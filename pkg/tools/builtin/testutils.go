@@ -3,8 +3,7 @@ package builtin
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
+		"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -25,7 +24,7 @@ type TestHelper struct {
 
 // NewTestHelper 创建测试辅助工具
 func NewTestHelper(t *testing.T) *TestHelper {
-	tmpDir, err := ioutil.TempDir("", "agentsdk_test_*")
+	tmpDir, err := os.MkdirTemp("", "agentsdk_test_*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
@@ -60,7 +59,7 @@ func (th *TestHelper) CreateTempFile(name, content string) string {
 		th.T.Fatalf("Failed to create dir: %v", err)
 	}
 
-	if err := ioutil.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		th.T.Fatalf("Failed to create file: %v", err)
 	}
 
@@ -78,7 +77,7 @@ func (th *TestHelper) CreateTempDir(name string) string {
 
 // ReadFile 读取文件内容
 func (th *TestHelper) ReadFile(path string) string {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		th.T.Fatalf("Failed to read file: %v", err)
 	}
@@ -281,7 +280,7 @@ func AssertFileNotExists(t *testing.T, path string) {
 
 // AssertFileContent 断言文件内容
 func AssertFileContent(t *testing.T, path, expectedContent string) {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Errorf("Failed to read file %q: %v", path, err)
 		return

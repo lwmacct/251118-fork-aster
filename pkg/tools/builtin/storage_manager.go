@@ -3,8 +3,7 @@ package builtin
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
+		"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -118,7 +117,7 @@ func (fsm *FileStorageManager) StoreData(key string, data interface{}) error {
 
 	// 写入文件
 	filePath := filepath.Join(fsm.dataDir, fmt.Sprintf("%s.json", key))
-	return ioutil.WriteFile(filePath, jsonData, 0644)
+	return os.WriteFile(filePath, jsonData, 0644)
 }
 
 // LoadData 加载数据
@@ -127,7 +126,7 @@ func (fsm *FileStorageManager) LoadData(key string, target interface{}) error {
 	defer fsm.mu.RUnlock()
 
 	filePath := filepath.Join(fsm.dataDir, fmt.Sprintf("%s.json", key))
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %v", err)
 	}

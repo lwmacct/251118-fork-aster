@@ -4,8 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
+		"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -288,7 +287,7 @@ func (sm *FileSubagentManager) GetSubagentOutput(taskID string) (string, error) 
 	}
 
 	outputFile := filepath.Join(sm.dataDir, fmt.Sprintf("%s.output", taskID))
-	data, err := ioutil.ReadFile(outputFile)
+	data, err := os.ReadFile(outputFile)
 	if err != nil {
 		return "", fmt.Errorf("failed to read output file: %v", err)
 	}
@@ -417,7 +416,7 @@ func (sm *FileSubagentManager) monitorSubagent(ctx context.Context, instance *Su
 // updateSubagentOutput 更新子代理输出
 func (sm *FileSubagentManager) updateSubagentOutput(instance *SubagentInstance) {
 	outputFile := filepath.Join(sm.dataDir, fmt.Sprintf("%s.output", instance.ID))
-	data, err := ioutil.ReadFile(outputFile)
+	data, err := os.ReadFile(outputFile)
 	if err == nil {
 		instance.Output = string(data)
 	}
@@ -458,12 +457,12 @@ func (sm *FileSubagentManager) saveSubagent(instance *SubagentInstance) error {
 		return fmt.Errorf("failed to marshal subagent: %v", err)
 	}
 
-	return ioutil.WriteFile(instanceFile, data, 0644)
+	return os.WriteFile(instanceFile, data, 0644)
 }
 
 // loadSubagents 从文件加载子代理
 func (sm *FileSubagentManager) loadSubagents() error {
-	files, err := ioutil.ReadDir(sm.dataDir)
+	files, err := os.ReadDir(sm.dataDir)
 	if err != nil {
 		return fmt.Errorf("failed to read data directory: %v", err)
 	}
@@ -474,7 +473,7 @@ func (sm *FileSubagentManager) loadSubagents() error {
 		}
 
 		instanceFile := filepath.Join(sm.dataDir, file.Name())
-		data, err := ioutil.ReadFile(instanceFile)
+		data, err := os.ReadFile(instanceFile)
 		if err != nil {
 			continue
 		}

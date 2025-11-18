@@ -4,8 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
+		"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -230,13 +229,13 @@ func (tm *FileTaskManager) GetTaskOutput(taskID string, filter string, lines int
 	errorFile := filepath.Join(task.Options.OutputDir, fmt.Sprintf("%s.stderr", taskID))
 
 	// 读取标准输出
-	stdout, err := ioutil.ReadFile(outputFile)
+	stdout, err := os.ReadFile(outputFile)
 	if err != nil && !os.IsNotExist(err) {
 		return "", "", fmt.Errorf("failed to read stdout: %v", err)
 	}
 
 	// 读取错误输出
-	stderr, err := ioutil.ReadFile(errorFile)
+	stderr, err := os.ReadFile(errorFile)
 	if err != nil && !os.IsNotExist(err) {
 		return "", "", fmt.Errorf("failed to read stderr: %v", err)
 	}
@@ -473,12 +472,12 @@ func (tm *FileTaskManager) saveTask(task *TaskInfo) error {
 		return fmt.Errorf("failed to marshal task: %v", err)
 	}
 
-	return ioutil.WriteFile(taskFile, data, 0644)
+	return os.WriteFile(taskFile, data, 0644)
 }
 
 // loadTasks 从文件加载任务
 func (tm *FileTaskManager) loadTasks() error {
-	files, err := ioutil.ReadDir(tm.dataDir)
+	files, err := os.ReadDir(tm.dataDir)
 	if err != nil {
 		return fmt.Errorf("failed to read data directory: %v", err)
 	}
@@ -489,7 +488,7 @@ func (tm *FileTaskManager) loadTasks() error {
 		}
 
 		taskFile := filepath.Join(tm.dataDir, file.Name())
-		data, err := ioutil.ReadFile(taskFile)
+		data, err := os.ReadFile(taskFile)
 		if err != nil {
 			continue
 		}
@@ -625,11 +624,11 @@ func (tm *FileTaskManager) cleanupOutputFiles(taskID string) error {
 	errorFile := filepath.Join(task.Options.OutputDir, fmt.Sprintf("%s.stderr", taskID))
 
 	// 清空文件内容
-	if err := ioutil.WriteFile(outputFile, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(outputFile, []byte{}, 0644); err != nil {
 		return fmt.Errorf("failed to clear output file: %v", err)
 	}
 
-	if err := ioutil.WriteFile(errorFile, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(errorFile, []byte{}, 0644); err != nil {
 		return fmt.Errorf("failed to clear error file: %v", err)
 	}
 
