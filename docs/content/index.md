@@ -6,8 +6,8 @@ navigation: false
 
 <div class="max-w-4xl mx-auto">
 
-<div class="text-center py-16">
-  <h1 class="text-6xl font-bold mb-6 bg-gradient-to-r from-primary-600 to-blue-600 bg-clip-text text-transparent">Aster · 星尘云枢</h1>
+<div class="text-center py-8">
+  <img src="/images/logo-banner.svg" alt="Aster · 星尘云枢" class="mx-auto mb-8" style="max-width: 800px; width: 100%;" />
   <p class="text-3xl font-semibold text-gray-700 dark:text-gray-300 mb-2">星尘汇聚，智能成枢</p>
   <p class="text-xl text-gray-600 dark:text-gray-400 mb-4">让每一个 Agent 都能在生产环境中闪耀</p>
   <p class="text-base text-gray-500 dark:text-gray-500 mb-10">Python、TypeScript、Bash 原生执行 • 事件驱动架构 • 企业级安全治理<br><em>Go 的高性能基底，脚本的灵活编排，为生产环境而生</em></p>
