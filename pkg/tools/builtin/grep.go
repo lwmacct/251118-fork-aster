@@ -157,7 +157,7 @@ func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("search failed: %v", err),
 			"recommendations": []string{
 				"检查正则表达式语法是否正确",
@@ -166,8 +166,8 @@ func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc
 				"检查模式是否包含特殊字符需要转义",
 				"确认系统是否安装了grep工具",
 			},
-			"pattern": pattern,
-			"path": path,
+			"pattern":     pattern,
+			"path":        path,
 			"duration_ms": duration.Milliseconds(),
 		}, nil
 	}
@@ -177,9 +177,9 @@ func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	// 添加元数据
 	response := map[string]interface{}{
-		"ok": true,
-		"pattern": pattern,
-		"path": path,
+		"ok":          true,
+		"pattern":     pattern,
+		"path":        path,
 		"output_mode": outputMode,
 		"duration_ms": duration.Milliseconds(),
 	}
@@ -448,10 +448,10 @@ func (t *GrepTool) containsString(slice []string, item string) bool {
 
 // 数据结构
 type GrepResult struct {
-	matches     []GrepMatch
-	files       []string
-	fileCounts  []FileCount
-	totalFiles  int
+	matches      []GrepMatch
+	files        []string
+	fileCounts   []FileCount
+	totalFiles   int
 	totalMatches int
 }
 

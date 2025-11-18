@@ -294,7 +294,7 @@ func TestKillShellTool_CleanupResources(t *testing.T) {
 	// 终止任务并清理资源
 	killInput := map[string]interface{}{
 		"shell_id": taskID,
-		"cleanup": true,
+		"cleanup":  true,
 	}
 
 	killResult := ExecuteToolWithInput(t, tool, killInput)

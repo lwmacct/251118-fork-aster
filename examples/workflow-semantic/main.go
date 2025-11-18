@@ -76,9 +76,9 @@ func main() {
 	memStore := storepkg()
 
 	deps := &agent.Dependencies{
-		Store:           memStore,
-		SandboxFactory:  sandbox.NewFactory(),
-		ToolRegistry:    toolRegistry,
+		Store:          memStore,
+		SandboxFactory: sandbox.NewFactory(),
+		ToolRegistry:   toolRegistry,
 		// 使用多提供商工厂，根据模板中的模型配置选择实际模型。
 		// 默认会使用 Anthropic 提供商，因此需要设置 ANTHROPIC_API_KEY。
 		ProviderFactory: provider.NewMultiProviderFactory(),

@@ -102,7 +102,7 @@ func TestExitPlanModeTool_BasicPlanCreation(t *testing.T) {
 - Prepare production environment
 - Deploy application
 - Monitor and verify`,
-		"estimated_duration": "2 weeks",
+		"estimated_duration":    "2 weeks",
 		"confirmation_required": true,
 	}
 
@@ -189,11 +189,11 @@ func TestExitPlanModeTool_ComprehensivePlan(t *testing.T) {
    - User training
    - Support handover`,
 
-		"plan_id":              "website_redesign_2024",
-		"estimated_duration":   "5 weeks",
-		"dependencies":         []string{"Content approval from marketing team", "Domain and hosting setup", "SSL certificate"},
-		"risks":                []string{"Scope creep during development", "Browser compatibility issues", "Content migration data loss"},
-		"success_criteria":     []string{"Page load time < 3 seconds", "Mobile responsive design", "100% content migration accuracy", "No security vulnerabilities"},
+		"plan_id":               "website_redesign_2024",
+		"estimated_duration":    "5 weeks",
+		"dependencies":          []string{"Content approval from marketing team", "Domain and hosting setup", "SSL certificate"},
+		"risks":                 []string{"Scope creep during development", "Browser compatibility issues", "Content migration data loss"},
+		"success_criteria":      []string{"Page load time < 3 seconds", "Mobile responsive design", "100% content migration accuracy", "No security vulnerabilities"},
 		"confirmation_required": false,
 	}
 
@@ -341,10 +341,10 @@ func TestExitPlanModeTool_ConcurrentPlanCreation(t *testing.T) {
 	concurrency := 3
 	result := RunConcurrentTest(concurrency, func() error {
 		input := map[string]interface{}{
-			"plan":          fmt.Sprintf("Concurrent test plan %d", time.Now().UnixNano()),
-			"plan_id":       fmt.Sprintf("concurrent_plan_%d", time.Now().UnixNano()),
-			"dependencies":  []string{"Test dependency"},
-			"risks":         []string{"Test risk"},
+			"plan":             fmt.Sprintf("Concurrent test plan %d", time.Now().UnixNano()),
+			"plan_id":          fmt.Sprintf("concurrent_plan_%d", time.Now().UnixNano()),
+			"dependencies":     []string{"Test dependency"},
+			"risks":            []string{"Test risk"},
 			"success_criteria": []string{"Test success"},
 		}
 
@@ -419,9 +419,9 @@ func TestExitPlanModeTool_ArrayFieldHandling(t *testing.T) {
 
 	// 测试空数组
 	input := map[string]interface{}{
-		"plan":         "Test plan with empty arrays",
-		"dependencies": []string{},
-		"risks":        []string{},
+		"plan":             "Test plan with empty arrays",
+		"dependencies":     []string{},
+		"risks":            []string{},
 		"success_criteria": []string{},
 	}
 
@@ -459,8 +459,8 @@ func BenchmarkExitPlanModeTool_CreatePlan(b *testing.B) {
 2. Write code
 3. Test functionality
 4. Deploy application`,
-		"dependencies":      []string{"Dependency 1", "Dependency 2"},
-		"risks":             []string{"Risk 1", "Risk 2"},
+		"dependencies":     []string{"Dependency 1", "Dependency 2"},
+		"risks":            []string{"Risk 1", "Risk 2"},
 		"success_criteria": []string{"Criteria 1", "Criteria 2"},
 	}
 

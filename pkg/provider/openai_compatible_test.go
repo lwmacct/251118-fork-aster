@@ -384,7 +384,7 @@ func TestMessageConversion(t *testing.T) {
 // TestReasoningModelDetection 测试推理模型检测
 func TestReasoningModelDetection(t *testing.T) {
 	testCases := []struct {
-		model      string
+		model       string
 		isReasoning bool
 	}{
 		{"gpt-4o", false},

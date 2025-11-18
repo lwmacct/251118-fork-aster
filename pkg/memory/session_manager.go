@@ -20,22 +20,22 @@ const (
 type AccessLevel int
 
 const (
-	AccessNone     AccessLevel = 0 // 无访问权限
-	AccessRead     AccessLevel = 1 // 只读
-	AccessWrite    AccessLevel = 2 // 读写
+	AccessNone        AccessLevel = 0 // 无访问权限
+	AccessRead        AccessLevel = 1 // 只读
+	AccessWrite       AccessLevel = 2 // 读写
 	AccessFullControl AccessLevel = 3 // 完全控制（含删除）
 )
 
 // SharedMemory 共享记忆
 type SharedMemory struct {
-	ID        string                 // 记忆 ID
-	Content   string                 // 内容
-	Metadata  map[string]interface{} // 元数据
-	Scope     MemoryScope            // 作用域
-	OwnerID   string                 // 所有者会话 ID
+	ID         string                 // 记忆 ID
+	Content    string                 // 内容
+	Metadata   map[string]interface{} // 元数据
+	Scope      MemoryScope            // 作用域
+	OwnerID    string                 // 所有者会话 ID
 	SharedWith map[string]AccessLevel // 共享给哪些会话（会话ID -> 访问级别）
-	CreatedAt time.Time              // 创建时间
-	UpdatedAt time.Time              // 更新时间
+	CreatedAt  time.Time              // 创建时间
+	UpdatedAt  time.Time              // 更新时间
 
 	// 记忆溯源
 	Provenance *MemoryProvenance
@@ -405,9 +405,9 @@ func (m *SessionMemoryManager) GetStats() SessionStats {
 	defer m.mu.RUnlock()
 
 	stats := SessionStats{
-		TotalMemories:   len(m.memories),
-		TotalSessions:   len(m.sessionIndex),
-		GlobalMemories:  len(m.globalMemories),
+		TotalMemories:     len(m.memories),
+		TotalSessions:     len(m.sessionIndex),
+		GlobalMemories:    len(m.globalMemories),
 		ScopeDistribution: make(map[MemoryScope]int),
 	}
 
@@ -420,10 +420,10 @@ func (m *SessionMemoryManager) GetStats() SessionStats {
 
 // SessionStats 会话统计信息
 type SessionStats struct {
-	TotalMemories     int                    // 总记忆数
-	TotalSessions     int                    // 总会话数
-	GlobalMemories    int                    // 全局记忆数
-	ScopeDistribution map[MemoryScope]int    // 作用域分布
+	TotalMemories     int                 // 总记忆数
+	TotalSessions     int                 // 总会话数
+	GlobalMemories    int                 // 全局记忆数
+	ScopeDistribution map[MemoryScope]int // 作用域分布
 }
 
 // CleanupExpired 清理过期记忆

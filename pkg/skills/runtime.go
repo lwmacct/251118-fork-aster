@@ -97,6 +97,7 @@ func (r *Runtime) Execute(ctx context.Context, skillName string, params map[stri
 //   - "python": 在沙箱中执行 `python <entry>`
 //   - "node" / "nodejs": 执行 `node <entry>`
 //   - "bash" / "sh": 执行 `bash`/`sh <entry>`
+//
 // 其它 runtime 将视为直接命令行前缀，由上层自行保证环境。
 func buildCommand(workDir string, skill *SkillDefinition) string {
 	if skill == nil || skill.Executable == nil {

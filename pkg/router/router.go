@@ -42,8 +42,8 @@ type Router interface {
 // StaticRouteEntry 静态路由条目——最简单的实现方式。
 // 匹配逻辑很保守：只根据 Task + Priority 精确匹配。
 type StaticRouteEntry struct {
-	Task     string        `json:"task,omitempty"`
-	Priority Priority      `json:"priority,omitempty"`
+	Task     string             `json:"task,omitempty"`
+	Priority Priority           `json:"priority,omitempty"`
 	Model    *types.ModelConfig `json:"model"`
 }
 
@@ -65,9 +65,9 @@ func NewStaticRouter(defaultModel *types.ModelConfig, routes []StaticRouteEntry)
 
 // SelectModel 根据 RouteIntent 选择模型。
 // 匹配规则：
-//   1. 先找 Task + Priority 都匹配的条目。
-//   2. 如果找不到，再找 Task 匹配但 Priority 为空的条目。
-//   3. 否则返回 defaultModel（如果存在）。
+//  1. 先找 Task + Priority 都匹配的条目。
+//  2. 如果找不到，再找 Task 匹配但 Priority 为空的条目。
+//  3. 否则返回 defaultModel（如果存在）。
 func (r *StaticRouter) SelectModel(_ context.Context, intent *RouteIntent) (*types.ModelConfig, error) {
 	if intent == nil {
 		if r.defaultModel != nil {
@@ -103,4 +103,3 @@ func (r *StaticRouter) SelectModel(_ context.Context, intent *RouteIntent) (*typ
 
 	return nil, fmt.Errorf("no route matched for task=%q priority=%q and no default model configured", intent.Task, intent.Priority)
 }
-

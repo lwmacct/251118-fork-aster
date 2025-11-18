@@ -328,7 +328,7 @@ func TestBashOutputTool_IncludeStderr(t *testing.T) {
 	}
 
 	outputInput := map[string]interface{}{
-		"bash_id":         taskID,
+		"bash_id":        taskID,
 		"include_stderr": true,
 	}
 

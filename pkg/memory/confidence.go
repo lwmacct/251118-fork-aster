@@ -29,11 +29,11 @@ type ConfidenceConfig struct {
 // DefaultConfidenceConfig 返回默认置信度配置。
 func DefaultConfidenceConfig() ConfidenceConfig {
 	return ConfidenceConfig{
-		DecayHalfLife:          30 * 24 * time.Hour, // 30天
-		MinConfidence:          0.20,
-		CorroborationBoost:     0.05,
-		MaxCorroborationBoost:  0.20,
-		RecencyWeight:          0.3,
+		DecayHalfLife:         30 * 24 * time.Hour, // 30天
+		MinConfidence:         0.20,
+		CorroborationBoost:    0.05,
+		MaxCorroborationBoost: 0.20,
+		RecencyWeight:         0.3,
 	}
 }
 

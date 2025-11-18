@@ -55,7 +55,7 @@ func main() {
 		Name:         "HITL-Demo-Agent",
 		Description:  "演示 Human-in-the-Loop 功能的 Agent",
 		SystemPrompt: buildSystemPrompt(),
-		Tools:        []tools.Tool{
+		Tools: []tools.Tool{
 			// 添加一个危险的 shell 工具用于演示
 			&tools.ShellTool{
 				Name:        "Bash",

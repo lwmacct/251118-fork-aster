@@ -61,10 +61,10 @@ func demonstrateStateManagement(ctx context.Context, service *session.InMemorySe
 
 	// 设置不同作用域的状态
 	states := map[string]interface{}{
-		"app:version":           "1.0.0",                    // 应用级
+		"app:version":           "1.0.0",                            // 应用级
 		"user:preferences":      map[string]string{"theme": "dark"}, // 用户级
-		"temp:current_task":     "processing",               // 临时
-		"session:message_count": 0,                          // 会话级
+		"temp:current_task":     "processing",                       // 临时
+		"session:message_count": 0,                                  // 会话级
 	}
 
 	for key, value := range states {
@@ -174,7 +174,7 @@ func demonstrateEventManagement(ctx context.Context, service *session.InMemorySe
 		} else if len(evt.Content.ToolCalls) > 0 {
 			fmt.Printf("Tool call: %s\n", evt.Content.ToolCalls[0].Name)
 		}
-		
+
 		if evt.IsFinalResponse() {
 			fmt.Println("    ✓ Final response")
 		}

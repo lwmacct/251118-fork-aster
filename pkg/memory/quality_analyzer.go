@@ -37,9 +37,9 @@ type Inconsistency struct {
 type InconsistencyType string
 
 const (
-	InconsistencyContradiction InconsistencyType = "contradiction" // 矛盾
-	InconsistencyDuplicate     InconsistencyType = "duplicate"     // 重复
-	InconsistencyOutdated      InconsistencyType = "outdated"      // 过时
+	InconsistencyContradiction InconsistencyType = "contradiction"  // 矛盾
+	InconsistencyDuplicate     InconsistencyType = "duplicate"      // 重复
+	InconsistencyOutdated      InconsistencyType = "outdated"       // 过时
 	InconsistencyLowConfidence InconsistencyType = "low_confidence" // 低置信度
 	InconsistencyConflict      InconsistencyType = "conflict"       // 冲突
 )
@@ -80,9 +80,9 @@ func (qa *QualityAnalyzer) detectContradictions(memories []MemoryWithScore) []In
 			if qa.areContradictory(memories[i], memories[j]) {
 				severity := qa.calculateContradictionSeverity(memories[i], memories[j])
 				inconsistencies = append(inconsistencies, Inconsistency{
-					Type:        InconsistencyContradiction,
-					MemoryID1:   memories[i].DocID,
-					MemoryID2:   memories[j].DocID,
+					Type:      InconsistencyContradiction,
+					MemoryID1: memories[i].DocID,
+					MemoryID2: memories[j].DocID,
 					Description: fmt.Sprintf("记忆存在矛盾：'%s' vs '%s'",
 						truncate(memories[i].Text, 50),
 						truncate(memories[j].Text, 50)),
@@ -288,9 +288,9 @@ type QualityReport struct {
 	DimensionScores map[QualityDimension]float64
 
 	// 问题统计
-	Inconsistencies      []Inconsistency
-	InconsistencyCount   map[InconsistencyType]int
-	TopIssues            []string
+	Inconsistencies    []Inconsistency
+	InconsistencyCount map[InconsistencyType]int
+	TopIssues          []string
 
 	// 建议
 	Recommendations []string
@@ -302,8 +302,8 @@ func (qa *QualityAnalyzer) GenerateReport(
 	memories []MemoryWithScore,
 ) (*QualityReport, error) {
 	report := &QualityReport{
-		GeneratedAt:      time.Now(),
-		DimensionScores:  make(map[QualityDimension]float64),
+		GeneratedAt:        time.Now(),
+		DimensionScores:    make(map[QualityDimension]float64),
 		InconsistencyCount: make(map[InconsistencyType]int),
 	}
 
@@ -438,9 +438,9 @@ func (qa *QualityAnalyzer) generateRecommendations(report *QualityReport) []stri
 
 // ImproveQuality 质量改进建议
 type ImproveQuality struct {
-	MemoryID    string
+	MemoryID     string
 	CurrentScore float64
-	Suggestions []string
+	Suggestions  []string
 }
 
 // SuggestImprovements 为低质量记忆提供改进建议
@@ -470,9 +470,9 @@ func (qa *QualityAnalyzer) SuggestImprovements(
 		}
 
 		improvements = append(improvements, ImproveQuality{
-			MemoryID:    quality.MemoryID,
+			MemoryID:     quality.MemoryID,
 			CurrentScore: quality.Score.Overall,
-			Suggestions: suggestions,
+			Suggestions:  suggestions,
 		})
 	}
 

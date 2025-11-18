@@ -26,9 +26,9 @@ type SessionCompressor interface {
 type CompressionLevel int
 
 const (
-	CompressionLevelNone     CompressionLevel = 0 // 不压缩
-	CompressionLevelLight    CompressionLevel = 1 // 轻度压缩（保留大部分细节）
-	CompressionLevelModerate CompressionLevel = 2 // 中度压缩（保留关键信息）
+	CompressionLevelNone       CompressionLevel = 0 // 不压缩
+	CompressionLevelLight      CompressionLevel = 1 // 轻度压缩（保留大部分细节）
+	CompressionLevelModerate   CompressionLevel = 2 // 中度压缩（保留关键信息）
 	CompressionLevelAggressive CompressionLevel = 3 // 激进压缩（只保留核心要点）
 )
 
@@ -45,10 +45,10 @@ type CompressionStats struct {
 // LLMSummarizerConfig LLM 总结器配置
 type LLMSummarizerConfig struct {
 	// LLM 配置
-	Provider   string // LLM 提供商（如 "openai", "anthropic"）
-	Model      string // 模型名称
-	APIKey     string // API 密钥
-	BaseURL    string // API 基础 URL
+	Provider string // LLM 提供商（如 "openai", "anthropic"）
+	Model    string // 模型名称
+	APIKey   string // API 密钥
+	BaseURL  string // API 基础 URL
 
 	// 总结配置
 	Level           CompressionLevel // 压缩级别

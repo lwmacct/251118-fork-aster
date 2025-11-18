@@ -7,4 +7,3 @@ import "context"
 type Embedder interface {
 	EmbedText(ctx context.Context, texts []string) ([][]float32, error)
 }
-

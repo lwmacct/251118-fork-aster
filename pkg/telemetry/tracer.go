@@ -143,19 +143,19 @@ func (t *NoopTracer) Inject(ctx context.Context, carrier interface{}) error {
 // NoopSpan 空实现的 span
 type NoopSpan struct{}
 
-func (s *NoopSpan) End()                                              {}
-func (s *NoopSpan) SetAttributes(attrs ...Attribute)                  {}
-func (s *NoopSpan) SetStatus(code StatusCode, description string)     {}
-func (s *NoopSpan) AddEvent(name string, attrs ...Attribute)          {}
-func (s *NoopSpan) RecordError(err error)                             {}
-func (s *NoopSpan) SpanContext() SpanContext                          { return &NoopSpanContext{} }
+func (s *NoopSpan) End()                                          {}
+func (s *NoopSpan) SetAttributes(attrs ...Attribute)              {}
+func (s *NoopSpan) SetStatus(code StatusCode, description string) {}
+func (s *NoopSpan) AddEvent(name string, attrs ...Attribute)      {}
+func (s *NoopSpan) RecordError(err error)                         {}
+func (s *NoopSpan) SpanContext() SpanContext                      { return &NoopSpanContext{} }
 
 // NoopSpanContext 空实现的 span context
 type NoopSpanContext struct{}
 
-func (c *NoopSpanContext) TraceID() string   { return "" }
-func (c *NoopSpanContext) SpanID() string    { return "" }
-func (c *NoopSpanContext) IsSampled() bool   { return false }
+func (c *NoopSpanContext) TraceID() string { return "" }
+func (c *NoopSpanContext) SpanID() string  { return "" }
+func (c *NoopSpanContext) IsSampled() bool { return false }
 
 // SimpleTracer 简单的内存 tracer 实现
 // 用于开发和测试环境
@@ -207,15 +207,15 @@ func (t *SimpleTracer) GetSpans() []*SimpleSpan {
 
 // SimpleSpan 简单的 span 实现
 type SimpleSpan struct {
-	name        string
-	startTime   time.Time
-	endTime     time.Time
-	attributes  []Attribute
-	events      []SpanEvent
-	status      StatusCode
-	statusDesc  string
-	err         error
-	tracer      *SimpleTracer
+	name       string
+	startTime  time.Time
+	endTime    time.Time
+	attributes []Attribute
+	events     []SpanEvent
+	status     StatusCode
+	statusDesc string
+	err        error
+	tracer     *SimpleTracer
 }
 
 type SpanEvent struct {

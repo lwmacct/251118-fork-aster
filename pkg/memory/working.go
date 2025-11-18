@@ -48,10 +48,10 @@ type WorkingMemoryManager struct {
 
 // WorkingMemoryMeta Working Memory 元数据
 type WorkingMemoryMeta struct {
-	ThreadID   string    `json:"thread_id"`
-	ResourceID string    `json:"resource_id"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ThreadID   string     `json:"thread_id"`
+	ResourceID string     `json:"resource_id"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
 }
 

@@ -59,7 +59,8 @@ func New(cfg *Config) (*Server, error) {
 // Handler 返回一个 http.Handler, 处理 MCP JSON-RPC 请求。
 //
 // 典型挂载方式:
-//   mux.Handle("/mcp", mcpSrv.Handler())
+//
+//	mux.Handle("/mcp", mcpSrv.Handler())
 func (s *Server) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

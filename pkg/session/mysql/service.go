@@ -255,7 +255,7 @@ func (s *Service) AppendEvent(ctx context.Context, sessionID string, event *sess
 
 				// MySQL UPSERT 使用 ON DUPLICATE KEY UPDATE
 				if err := tx.Exec(`
-					INSERT INTO session_states (session_id, scope, ` + "`key`" + `, value, created_at, updated_at)
+					INSERT INTO session_states (session_id, scope, `+"`key`"+`, value, created_at, updated_at)
 					VALUES (?, ?, ?, ?, ?, ?)
 					ON DUPLICATE KEY UPDATE value = ?, updated_at = ?
 				`, stateModel.SessionID, stateModel.Scope, stateModel.Key,

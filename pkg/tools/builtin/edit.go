@@ -96,14 +96,14 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	originalContent, err := tc.Sandbox.FS().Read(ctx, filePath)
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("failed to read file: %v", err),
 			"recommendations": []string{
 				"检查文件路径是否正确",
 				"确认文件是否存在",
 				"验证是否有读取权限",
 			},
-			"file_path": filePath,
+			"file_path":   filePath,
 			"duration_ms": time.Since(start).Milliseconds(),
 		}, nil
 	}
@@ -138,7 +138,7 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	// 检查是否发生了替换
 	if replacements == 0 {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": "old_string not found in file",
 			"recommendations": []string{
 				"检查old_string是否与文件内容完全匹配（包括空白字符和换行符）",
@@ -146,12 +146,12 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 				"尝试使用更小的字符串片段进行匹配",
 				"检查是否存在不可见字符或编码问题",
 			},
-			"file_path": filePath,
-			"old_string": oldString,
+			"file_path":         filePath,
+			"old_string":        oldString,
 			"old_string_length": len(oldString),
-			"content_length": len(originalContent),
-			"duration_ms": duration.Milliseconds(),
-			"backup_path": backupPath,
+			"content_length":    len(originalContent),
+			"duration_ms":       duration.Milliseconds(),
+			"backup_path":       backupPath,
 		}, nil
 	}
 
@@ -170,14 +170,14 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	err = tc.Sandbox.FS().Write(ctx, filePath, modifiedContent)
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("failed to write modified content: %v", err),
 			"recommendations": []string{
 				"检查文件写入权限",
 				"确认磁盘空间充足",
 				"检查文件是否被其他进程锁定",
 			},
-			"file_path": filePath,
+			"file_path":   filePath,
 			"duration_ms": time.Since(start).Milliseconds(),
 			"backup_path": backupPath,
 		}, nil
@@ -190,22 +190,22 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	sizeDifference := len(modifiedContent) - len(originalContent)
 
 	return map[string]interface{}{
-		"ok": true,
-		"file_path": filePath,
-		"old_string": oldString,
-		"new_string": newString,
-		"replacements": replacements,
-		"replace_all": replaceAll,
+		"ok":                   true,
+		"file_path":            filePath,
+		"old_string":           oldString,
+		"new_string":           newString,
+		"replacements":         replacements,
+		"replace_all":          replaceAll,
 		"preserve_indentation": preserveIndentation,
-		"original_lines": originalLines,
-		"modified_lines": modifiedLines,
-		"line_difference": lineDifference,
-		"original_size": len(originalContent),
-		"modified_size": len(modifiedContent),
-		"size_difference": sizeDifference,
-		"duration_ms": duration.Milliseconds(),
-		"backup_path": backupPath,
-		"backup_created": backupPath != "",
+		"original_lines":       originalLines,
+		"modified_lines":       modifiedLines,
+		"line_difference":      lineDifference,
+		"original_size":        len(originalContent),
+		"modified_size":        len(modifiedContent),
+		"size_difference":      sizeDifference,
+		"duration_ms":          duration.Milliseconds(),
+		"backup_path":          backupPath,
+		"backup_created":       backupPath != "",
 	}, nil
 }
 

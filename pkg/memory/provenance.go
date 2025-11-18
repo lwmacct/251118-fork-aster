@@ -168,14 +168,14 @@ func (p *MemoryProvenance) Freshness() time.Duration {
 func (p *MemoryProvenance) ToMetadata() map[string]interface{} {
 	meta := map[string]interface{}{
 		"provenance": map[string]interface{}{
-			"source_type":          string(p.SourceType),
-			"confidence":           p.Confidence,
-			"sources":              p.Sources,
-			"created_at":           p.CreatedAt.Format(time.RFC3339),
-			"updated_at":           p.UpdatedAt.Format(time.RFC3339),
-			"version":              p.Version,
-			"is_explicit":          p.IsExplicit,
-			"corroboration_count":  p.CorroborationCount,
+			"source_type":         string(p.SourceType),
+			"confidence":          p.Confidence,
+			"sources":             p.Sources,
+			"created_at":          p.CreatedAt.Format(time.RFC3339),
+			"updated_at":          p.UpdatedAt.Format(time.RFC3339),
+			"version":             p.Version,
+			"is_explicit":         p.IsExplicit,
+			"corroboration_count": p.CorroborationCount,
 		},
 	}
 

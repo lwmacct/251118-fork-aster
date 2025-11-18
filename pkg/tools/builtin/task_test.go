@@ -73,8 +73,8 @@ func TestTaskTool_LaunchGeneralPurposeSubagent(t *testing.T) {
 
 	input := map[string]interface{}{
 		"subagent_type": "general-purpose",
-		"prompt":       "Analyze the current project structure and provide a summary",
-		"model":        "gpt-3.5-turbo",
+		"prompt":        "Analyze the current project structure and provide a summary",
+		"model":         "gpt-3.5-turbo",
 	}
 
 	result := ExecuteToolWithInput(t, tool, input)
@@ -106,7 +106,7 @@ func TestTaskTool_InvalidSubagentType(t *testing.T) {
 
 	input := map[string]interface{}{
 		"subagent_type": "invalid_agent",
-		"prompt":       "Test prompt",
+		"prompt":        "Test prompt",
 	}
 
 	result := ExecuteToolWithInput(t, tool, input)
@@ -154,7 +154,7 @@ func TestTaskTool_EmptyPrompt(t *testing.T) {
 
 	input := map[string]interface{}{
 		"subagent_type": "general-purpose",
-		"prompt":       "", // 空提示
+		"prompt":        "", // 空提示
 	}
 
 	result := ExecuteToolWithInput(t, tool, input)
@@ -183,7 +183,7 @@ func TestTaskTool_AllSubagentTypes(t *testing.T) {
 		t.Run("Subagent_"+subagentType, func(t *testing.T) {
 			input := map[string]interface{}{
 				"subagent_type": subagentType,
-				"prompt":       fmt.Sprintf("Test prompt for %s subagent", subagentType),
+				"prompt":        fmt.Sprintf("Test prompt for %s subagent", subagentType),
 			}
 
 			result := ExecuteToolWithInput(t, tool, input)
@@ -207,7 +207,7 @@ func TestTaskTool_WithOptions(t *testing.T) {
 	}
 
 	input := map[string]interface{}{
-		"subagent_type":    "general-purpose",
+		"subagent_type":   "general-purpose",
 		"prompt":          "Test with options",
 		"model":           "gpt-4",
 		"timeout_minutes": 5,
@@ -245,7 +245,7 @@ func TestTaskTool_ResumeTask(t *testing.T) {
 	// 首先启动一个任务
 	initialInput := map[string]interface{}{
 		"subagent_type": "general-purpose",
-	"prompt":       "Initial task for resume testing",
+		"prompt":        "Initial task for resume testing",
 	}
 
 	initialResult := ExecuteToolWithInput(t, tool, initialInput)
@@ -259,8 +259,8 @@ func TestTaskTool_ResumeTask(t *testing.T) {
 	// 尝试恢复任务（注意：这需要实际的子代理框架支持）
 	resumeInput := map[string]interface{}{
 		"subagent_type": "general-purpose",
-		"prompt":       "Resumed task",
-		"resume":       taskID,
+		"prompt":        "Resumed task",
+		"resume":        taskID,
 	}
 
 	result := ExecuteToolWithInput(t, tool, resumeInput)
@@ -288,8 +288,8 @@ func TestTaskTool_ConcurrentSubagentLaunch(t *testing.T) {
 	concurrency := 3
 	result := RunConcurrentTest(concurrency, func() error {
 		input := map[string]interface{}{
-			"subagent_type": "general-purpose",
-			"prompt":       "Concurrent test task",
+			"subagent_type":   "general-purpose",
+			"prompt":          "Concurrent test task",
 			"timeout_minutes": 1,
 		}
 
@@ -324,7 +324,7 @@ func TestTaskTool_PerformanceInfo(t *testing.T) {
 
 	input := map[string]interface{}{
 		"subagent_type": "general-purpose",
-		"prompt":       "Performance test task",
+		"prompt":        "Performance test task",
 	}
 
 	result := ExecuteToolWithInput(t, tool, input)
@@ -356,8 +356,8 @@ func TestTaskTool_Metadata(t *testing.T) {
 
 	input := map[string]interface{}{
 		"subagent_type": "general-purpose",
-		"prompt":       "Task with metadata",
-		"model":       "gpt-3.5-turbo",
+		"prompt":        "Task with metadata",
+		"model":         "gpt-3.5-turbo",
 	}
 
 	result := ExecuteToolWithInput(t, tool, input)
@@ -392,7 +392,7 @@ func BenchmarkTaskTool_LaunchSubagent(b *testing.B) {
 
 	input := map[string]interface{}{
 		"subagent_type": "general-purpose",
-		"prompt":       "Benchmark task",
+		"prompt":        "Benchmark task",
 	}
 
 	BenchmarkTool(b, tool, input)
@@ -409,7 +409,7 @@ func BenchmarkTaskTool_LaunchWithFullOptions(b *testing.B) {
 	}
 
 	input := map[string]interface{}{
-		"subagent_type":    "general-purpose",
+		"subagent_type":   "general-purpose",
 		"prompt":          "Complex benchmark task with detailed requirements",
 		"model":           "gpt-4",
 		"timeout_minutes": 10,

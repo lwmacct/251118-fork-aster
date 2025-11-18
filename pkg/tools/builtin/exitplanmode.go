@@ -60,21 +60,21 @@ func (t *ExitPlanModeTool) InputSchema() map[string]interface{} {
 				"description": "预估的实施时间，如'2 hours', '3 days'",
 			},
 			"dependencies": map[string]interface{}{
-				"type": "array",
+				"type":        "array",
 				"description": "计划的依赖项或前提条件",
 				"items": map[string]interface{}{
 					"type": "string",
 				},
 			},
 			"risks": map[string]interface{}{
-				"type": "array",
+				"type":        "array",
 				"description": "潜在风险和缓解措施",
 				"items": map[string]interface{}{
 					"type": "string",
 				},
 			},
 			"success_criteria": map[string]interface{}{
-				"type": "array",
+				"type":        "array",
 				"description": "成功标准",
 				"items": map[string]interface{}{
 					"type": "string",
@@ -141,9 +141,9 @@ func (t *ExitPlanModeTool) Execute(ctx context.Context, input map[string]interfa
 	err := planManager.StorePlan(planRecord)
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
-			"error": fmt.Sprintf("failed to store plan: %v", err),
-			"plan_id": planID,
+			"ok":          false,
+			"error":       fmt.Sprintf("failed to store plan: %v", err),
+			"plan_id":     planID,
 			"duration_ms": time.Since(start).Milliseconds(),
 		}, nil
 	}
@@ -152,15 +152,15 @@ func (t *ExitPlanModeTool) Execute(ctx context.Context, input map[string]interfa
 
 	// 构建响应
 	response := map[string]interface{}{
-		"ok": true,
-		"plan_id": planID,
-		"plan": plan,
-		"status": "pending_approval",
+		"ok":                    true,
+		"plan_id":               planID,
+		"plan":                  plan,
+		"status":                "pending_approval",
 		"confirmation_required": confirmationRequired,
-		"created_at": planRecord.CreatedAt.Unix(),
-		"duration_ms": duration.Milliseconds(),
-		"storage": "persistent",
-		"storage_backend": "FilePlanManager",
+		"created_at":            planRecord.CreatedAt.Unix(),
+		"duration_ms":           duration.Milliseconds(),
+		"storage":               "persistent",
+		"storage_backend":       "FilePlanManager",
 	}
 
 	// 添加可选字段
@@ -231,7 +231,6 @@ func (t *ExitPlanModeTool) getStringSlice(input map[string]interface{}, key stri
 	}
 	return []string{}
 }
-
 
 func (t *ExitPlanModeTool) Prompt() string {
 	return `在规划模式完成后展示实施计划并请求用户确认。

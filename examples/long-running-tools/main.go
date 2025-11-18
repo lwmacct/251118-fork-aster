@@ -72,7 +72,7 @@ func progressTrackingExample(ctx context.Context) {
 
 	// 启动任务
 	taskID, _ := tool.StartAsync(ctx, map[string]interface{}{
-		"file_size": 10000,
+		"file_size":  10000,
 		"chunk_size": 1000,
 	})
 

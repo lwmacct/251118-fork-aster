@@ -191,7 +191,7 @@ func TestGrepTool_CaseInsensitive(t *testing.T) {
 	}
 
 	input := map[string]interface{}{
-		"pattern":       "PACKAGE",
+		"pattern":        "PACKAGE",
 		"case_sensitive": false,
 	}
 
@@ -290,8 +290,8 @@ func TestGrepTool_WithLineNumbers(t *testing.T) {
 	}
 
 	input := map[string]interface{}{
-		"pattern":     "package",
-		"output_mode": "content",
+		"pattern":      "package",
+		"output_mode":  "content",
 		"line_numbers": true,
 	}
 

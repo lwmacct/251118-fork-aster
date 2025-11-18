@@ -12,9 +12,9 @@ import (
 
 // mockBackend 模拟后端
 type mockBackend struct {
-	files       map[string]string
-	shouldFail  bool
-	readCalled  int
+	files      map[string]string
+	shouldFail bool
+	readCalled int
 }
 
 func newMockBackend() *mockBackend {
@@ -179,7 +179,7 @@ func TestAgentMemoryMiddleware_InjectToSystemPrompt(t *testing.T) {
 		capturedSystemPrompt = req.SystemPrompt
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -239,7 +239,7 @@ func TestAgentMemoryMiddleware_EmptySystemPrompt(t *testing.T) {
 		capturedSystemPrompt = req.SystemPrompt
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -380,7 +380,7 @@ func TestAgentMemoryMiddleware_CustomTemplate(t *testing.T) {
 		capturedSystemPrompt = req.SystemPrompt
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -493,7 +493,7 @@ func TestAgentMemoryMiddleware_LazyLoading(t *testing.T) {
 		capturedSystemPrompt = req.SystemPrompt
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil

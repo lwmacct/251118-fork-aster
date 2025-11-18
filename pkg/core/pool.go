@@ -18,10 +18,10 @@ type PoolOptions struct {
 
 // Pool Agent 池 - 管理多个 Agent 的生命周期
 type Pool struct {
-	mu         sync.RWMutex
-	agents     map[string]*agent.Agent
-	deps       *agent.Dependencies
-	maxAgents  int
+	mu        sync.RWMutex
+	agents    map[string]*agent.Agent
+	deps      *agent.Dependencies
+	maxAgents int
 }
 
 // NewPool 创建 Agent 池

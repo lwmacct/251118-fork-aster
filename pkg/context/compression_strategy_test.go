@@ -26,10 +26,10 @@ func TestSlidingWindowStrategy_Compress(t *testing.T) {
 	config.AlwaysKeepRecent = 2
 
 	tests := []struct {
-		name        string
-		windowSize  int
-		messages    []Message
-		wantMax     int
+		name       string
+		windowSize int
+		messages   []Message
+		wantMax    int
 	}{
 		{
 			name:       "no compression needed",

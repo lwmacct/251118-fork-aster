@@ -204,4 +204,3 @@ func tokenize(text string, minLen int) map[string]bool {
 	}
 	return result
 }
-

@@ -109,7 +109,7 @@ func (s *MaskStrategy) Name() string {
 // ReplaceStrategy 替换策略（替换为占位符）。
 // 例如：13812345678 -> [PHONE]
 type ReplaceStrategy struct {
-	UseTypeLabel bool              // 是否使用类型标签（如 [PHONE]）
+	UseTypeLabel bool               // 是否使用类型标签（如 [PHONE]）
 	CustomLabels map[PIIType]string // 自定义标签
 }
 
@@ -320,11 +320,11 @@ func (r *Redactor) RedactWithReport(ctx context.Context, text string) (string, *
 
 // RedactionReport 脱敏报告。
 type RedactionReport struct {
-	OriginalLength     int              // 原始文本长度
-	RedactedLength     int              // 脱敏后文本长度
-	TotalMatches       int              // 总匹配数
-	RedactedCharacters int              // 脱敏字符数
-	MatchesByType      map[PIIType]int  // 每种类型的匹配数
+	OriginalLength     int             // 原始文本长度
+	RedactedLength     int             // 脱敏后文本长度
+	TotalMatches       int             // 总匹配数
+	RedactedCharacters int             // 脱敏字符数
+	MatchesByType      map[PIIType]int // 每种类型的匹配数
 }
 
 // helper functions

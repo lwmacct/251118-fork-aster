@@ -42,17 +42,17 @@ type VectorStoreConfig struct {
 // EmbedderConfig 定义一个 embedder 配置。
 type EmbedderConfig struct {
 	Name      string `yaml:"name"`
-	Kind      string `yaml:"kind"`       // "mock", 将来可扩展 "openai" 等
+	Kind      string `yaml:"kind"` // "mock", 将来可扩展 "openai" 等
 	Model     string `yaml:"model,omitempty"`
 	EnvAPIKey string `yaml:"env_api_key,omitempty"`
 }
 
 // SemanticMemoryConfig 定义应用级语义记忆配置。
 type SemanticMemoryConfig struct {
-	Enabled       bool   `yaml:"enabled"`
-	Store         string `yaml:"store"`           // 对应 VectorStoreConfig.Name
-	Embedder      string `yaml:"embedder"`        // 对应 EmbedderConfig.Name
-	TopK          int    `yaml:"top_k,omitempty"` // 默认 5
+	Enabled        bool   `yaml:"enabled"`
+	Store          string `yaml:"store"`                     // 对应 VectorStoreConfig.Name
+	Embedder       string `yaml:"embedder"`                  // 对应 EmbedderConfig.Name
+	TopK           int    `yaml:"top_k,omitempty"`           // 默认 5
 	NamespaceScope string `yaml:"namespace_scope,omitempty"` // "user" | "project" | "resource" | "global"
 }
 
@@ -75,19 +75,19 @@ type WorkingMemoryConfig struct {
 
 // MemoryConfig Memory 总配置
 type MemoryConfig struct {
-	Text          *TextMemoryConfig          `yaml:"text,omitempty"`
-	WorkingMemory *WorkingMemoryConfig       `yaml:"working_memory,omitempty"`
-	Semantic      *SemanticMemoryConfig      `yaml:"semantic,omitempty"`
+	Text          *TextMemoryConfig     `yaml:"text,omitempty"`
+	WorkingMemory *WorkingMemoryConfig  `yaml:"working_memory,omitempty"`
+	Semantic      *SemanticMemoryConfig `yaml:"semantic,omitempty"`
 }
 
 // Config 顶层应用配置。
 type Config struct {
-	Templates      []Template           `yaml:"templates"`
-	Routing        *Routing             `yaml:"routing,omitempty"`
-	VectorStores   []VectorStoreConfig  `yaml:"vector_stores,omitempty"`
-	Embedders      []EmbedderConfig     `yaml:"embedders,omitempty"`
+	Templates      []Template            `yaml:"templates"`
+	Routing        *Routing              `yaml:"routing,omitempty"`
+	VectorStores   []VectorStoreConfig   `yaml:"vector_stores,omitempty"`
+	Embedders      []EmbedderConfig      `yaml:"embedders,omitempty"`
 	SemanticMemory *SemanticMemoryConfig `yaml:"semantic_memory,omitempty"` // 向后兼容，已废弃
-	Memory         *MemoryConfig        `yaml:"memory,omitempty"`          // 新的统一 Memory 配置
+	Memory         *MemoryConfig         `yaml:"memory,omitempty"`          // 新的统一 Memory 配置
 }
 
 // Load 从指定路径加载 YAML 配置。

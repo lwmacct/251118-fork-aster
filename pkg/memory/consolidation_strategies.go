@@ -185,14 +185,14 @@ func (s *RedundancyStrategy) mergeProvenance(memories []MemoryWithScore) *Memory
 // ConflictResolutionStrategy 冲突解决策略。
 // 处理内容相似但有矛盾的记忆。
 type ConflictResolutionStrategy struct {
-	similarityThreshold float64
+	similarityThreshold  float64
 	confidenceCalculator *ConfidenceCalculator
 }
 
 // NewConflictResolutionStrategy 创建冲突解决策略。
 func NewConflictResolutionStrategy(threshold float64, calculator *ConfidenceCalculator) *ConflictResolutionStrategy {
 	return &ConflictResolutionStrategy{
-		similarityThreshold: threshold,
+		similarityThreshold:  threshold,
 		confidenceCalculator: calculator,
 	}
 }

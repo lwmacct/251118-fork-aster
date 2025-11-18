@@ -11,9 +11,9 @@ import (
 	"github.com/astercloud/aster/pkg/router"
 	"github.com/astercloud/aster/pkg/sandbox"
 	"github.com/astercloud/aster/pkg/store"
-	"github.com/astercloud/aster/pkg/types"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/tools/builtin"
+	"github.com/astercloud/aster/pkg/types"
 )
 
 // 这个示例展示了如何使用 StaticRouter 根据不同的 routing_profile

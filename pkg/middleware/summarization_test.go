@@ -46,7 +46,7 @@ func TestSummarizationMiddleware_NoSummarization(t *testing.T) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -99,7 +99,7 @@ func TestSummarizationMiddleware_TriggerSummarization(t *testing.T) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -189,7 +189,7 @@ func TestSummarizationMiddleware_PreserveRecentMessages(t *testing.T) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -249,7 +249,7 @@ func TestSummarizationMiddleware_SummarizerFailure(t *testing.T) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -292,7 +292,7 @@ func TestSummarizationMiddleware_EmptyMessages(t *testing.T) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -336,7 +336,7 @@ func TestSummarizationMiddleware_NotEnoughMessagesToSummarize(t *testing.T) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -388,7 +388,7 @@ func TestSummarizationMiddleware_CustomTokenCounter(t *testing.T) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -528,7 +528,7 @@ func TestSummarizationMiddleware_SystemMessagePreservation(t *testing.T) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil

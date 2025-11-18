@@ -76,8 +76,9 @@ func (t *userPreferenceTool) Prompt() string {
 
 // projectFactTool 封装: 写项目事实/约定
 // Shared 控制用户级 vs 全局共享:
-//   Shared=false: /memories/users/<user-id>/projects/<project-id>/facts.md
-//   Shared=true : /memories/projects/<project-id>/facts.md
+//
+//	Shared=false: /memories/users/<user-id>/projects/<project-id>/facts.md
+//	Shared=true : /memories/projects/<project-id>/facts.md
 type projectFactTool struct {
 	userID      string
 	projectID   string
@@ -136,7 +137,8 @@ func (t *projectFactTool) Prompt() string {
 
 // resourceNoteTool 封装: 写资源级笔记 (文章/小说/歌曲/PPT等)
 // 根据 Scope 生成:
-//   [projects/<project-id>/]resources/<type>/<id>/notes.md
+//
+//	[projects/<project-id>/]resources/<type>/<id>/notes.md
 type resourceNoteTool struct {
 	userID       string
 	projectID    string
@@ -299,4 +301,3 @@ func main() {
 
 	fmt.Println("✅ 请查看 ./memories-advanced 目录下生成的 Markdown 文件, 对应不同作用域的记忆。")
 }
-

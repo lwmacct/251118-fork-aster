@@ -171,10 +171,10 @@ func (mc *MCPClient) ListTools(ctx context.Context) ([]MCPTool, error) {
 
 // MCPRequest MCP 请求
 type MCPRequest struct {
-	JSONRPC string         `json:"jsonrpc"`
-	Method  string         `json:"method"`
-	ID      int64          `json:"id"`
-	Params  MCPCallParams  `json:"params,omitempty"`
+	JSONRPC string        `json:"jsonrpc"`
+	Method  string        `json:"method"`
+	ID      int64         `json:"id"`
+	Params  MCPCallParams `json:"params,omitempty"`
 }
 
 // MCPCallParams 工具调用参数
@@ -193,8 +193,8 @@ type MCPResponse struct {
 
 // MCPError MCP 错误
 type MCPError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
 }
 

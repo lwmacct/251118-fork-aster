@@ -154,19 +154,19 @@ func stateManagementExample(ctx context.Context, service *postgres.Service, sess
 		Actions: session.EventActions{
 			StateDelta: map[string]interface{}{
 				// App 级状态（所有用户共享）
-				"app:version":    "1.0.0",
+				"app:version": "1.0.0",
 				"app:feature_flags": map[string]bool{
 					"enable_voice": true,
 					"enable_video": false,
 				},
 
 				// User 级状态（该用户所有会话共享）
-				"user:language":   "zh-CN",
-				"user:theme":      "dark",
-				"user:timezone":   "Asia/Shanghai",
+				"user:language": "zh-CN",
+				"user:theme":    "dark",
+				"user:timezone": "Asia/Shanghai",
 
 				// Session 级状态（当前会话）
-				"session:start_time":    time.Now().Unix(),
+				"session:start_time":         time.Now().Unix(),
 				"session:conversation_topic": "帮助咨询",
 
 				// Temp 级状态（临时）

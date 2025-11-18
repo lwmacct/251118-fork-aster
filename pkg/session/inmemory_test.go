@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/astercloud/aster/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/astercloud/aster/pkg/types"
 )
 
 func TestInMemoryService_Create(t *testing.T) {

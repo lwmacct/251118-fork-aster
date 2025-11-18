@@ -7,11 +7,11 @@ import (
 
 func TestSimpleTokenCounter_Count(t *testing.T) {
 	tests := []struct {
-		name      string
-		config    ModelConfig
-		text      string
-		wantMin   int
-		wantMax   int
+		name    string
+		config  ModelConfig
+		text    string
+		wantMin int
+		wantMax int
 	}{
 		{
 			name:    "empty text",
@@ -128,7 +128,7 @@ func TestSimpleTokenCounter_EstimateMessages(t *testing.T) {
 			messages: []Message{
 				{Role: "user", Content: "Hello"},
 			},
-			wantMin: 3,  // content + overhead
+			wantMin: 3, // content + overhead
 			wantMax: 10,
 		},
 		{

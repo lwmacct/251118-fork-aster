@@ -23,12 +23,12 @@ type ModelResponse struct {
 
 // ToolCallRequest 工具调用请求
 type ToolCallRequest struct {
-	ToolCallID   string
-	ToolName     string
-	ToolInput    map[string]interface{}
-	Tool         tools.Tool
-	Context      *tools.ToolContext
-	Metadata     map[string]interface{}
+	ToolCallID string
+	ToolName   string
+	ToolInput  map[string]interface{}
+	Tool       tools.Tool
+	Context    *tools.ToolContext
+	Metadata   map[string]interface{}
 }
 
 // ToolCallResponse 工具调用响应

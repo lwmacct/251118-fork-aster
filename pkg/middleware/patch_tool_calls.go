@@ -14,10 +14,10 @@ import (
 // 3. 记录失败的工具调用供调试
 type PatchToolCallsMiddleware struct {
 	*BaseMiddleware
-	enableLogging   bool
-	failedCalls     []FailedToolCall
-	maxFailedCalls  int
-	provideHints    bool
+	enableLogging  bool
+	failedCalls    []FailedToolCall
+	maxFailedCalls int
+	provideHints   bool
 }
 
 // FailedToolCall 失败的工具调用记录

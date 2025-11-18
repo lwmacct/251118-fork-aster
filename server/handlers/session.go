@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/store"
 	"github.com/astercloud/aster/pkg/types"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // CheckpointRecord Checkpoint 记录

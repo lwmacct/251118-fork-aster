@@ -68,10 +68,10 @@ func (t *LsTool) Execute(ctx context.Context, input map[string]interface{}, tc *
 	items := make([]map[string]interface{}, 0, len(results))
 	for _, info := range results {
 		items = append(items, map[string]interface{}{
-			"path":      info.Path,
-			"is_dir":    info.IsDirectory,
-			"size":      info.Size,
-			"modified":  info.ModifiedTime.Format("2006-01-02 15:04:05"),
+			"path":     info.Path,
+			"is_dir":   info.IsDirectory,
+			"size":     info.Size,
+			"modified": info.ModifiedTime.Format("2006-01-02 15:04:05"),
 		})
 	}
 

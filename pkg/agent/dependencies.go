@@ -16,7 +16,7 @@ type Dependencies struct {
 	ToolRegistry    *tools.Registry
 	ProviderFactory provider.Factory
 	// Router 为可选依赖，如果为 nil，则沿用旧的静态 ModelConfig 行为。
-	Router          router.Router
+	Router           router.Router
 	TemplateRegistry *TemplateRegistry
 }
 

@@ -435,8 +435,9 @@ func (s *Service) modelToEvent(model *EventModel) (*session.Event, error) {
 
 // parseStateKey 解析状态键的作用域
 // 例如: "app:version" -> ("app", "version")
-//      "user:preferences" -> ("user", "preferences")
-//      "simple_key" -> ("session", "simple_key")
+//
+//	"user:preferences" -> ("user", "preferences")
+//	"simple_key" -> ("session", "simple_key")
 func parseStateKey(key string) (scope, actualKey string) {
 	parts := strings.SplitN(key, ":", 2)
 	if len(parts) == 2 {

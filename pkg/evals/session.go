@@ -62,4 +62,3 @@ func extractMessageText(msg *types.Message) string {
 	// 向后兼容：直接返回 Content
 	return strings.TrimSpace(msg.Content)
 }
-

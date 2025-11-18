@@ -219,28 +219,28 @@ func TestWebSearchTool_APIKeyFromEnvironment(t *testing.T) {
 	// 测试从不同环境变量读取 API key
 
 	tests := []struct {
-		name    string
-		envVar  string
-		envVal  string
-		hasKey  bool
+		name   string
+		envVar string
+		envVal string
+		hasKey bool
 	}{
 		{
-			name:    "WF_TAVILY_API_KEY",
-			envVar:  "WF_TAVILY_API_KEY",
-			envVal:  "test-key-1",
-			hasKey:  true,
+			name:   "WF_TAVILY_API_KEY",
+			envVar: "WF_TAVILY_API_KEY",
+			envVal: "test-key-1",
+			hasKey: true,
 		},
 		{
-			name:    "TAVILY_API_KEY",
-			envVar:  "TAVILY_API_KEY",
-			envVal:  "test-key-2",
-			hasKey:  true,
+			name:   "TAVILY_API_KEY",
+			envVar: "TAVILY_API_KEY",
+			envVal: "test-key-2",
+			hasKey: true,
 		},
 		{
-			name:    "No API key",
-			envVar:  "",
-			envVal:  "",
-			hasKey:  false,
+			name:   "No API key",
+			envVar: "",
+			envVal: "",
+			hasKey: false,
 		},
 	}
 

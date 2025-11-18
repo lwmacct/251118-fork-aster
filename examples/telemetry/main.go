@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/astercloud/aster/pkg/telemetry"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 // 演示 OpenTelemetry 集成
@@ -301,61 +301,61 @@ func processLLM(ctx context.Context, parentSpan telemetry.Span) {
 // 使用 Jaeger Exporter
 func exampleJaegerExporter() {
 	/*
-	import "go.opentelemetry.io/otel/exporters/jaeger"
+		import "go.opentelemetry.io/otel/exporters/jaeger"
 
-	exporter, err := jaeger.New(
-		jaeger.WithCollectorEndpoint(
-			jaeger.WithEndpoint("http://localhost:14268/api/traces"),
-		),
-	)
-	if err != nil {
-		log.Fatalf("Failed to create Jaeger exporter: %v", err)
-	}
+		exporter, err := jaeger.New(
+			jaeger.WithCollectorEndpoint(
+				jaeger.WithEndpoint("http://localhost:14268/api/traces"),
+			),
+		)
+		if err != nil {
+			log.Fatalf("Failed to create Jaeger exporter: %v", err)
+		}
 
-	tracer, err := telemetry.NewOTelTracer(
-		"my-service",
-		telemetry.WithOTelExporter(exporter),
-	)
+		tracer, err := telemetry.NewOTelTracer(
+			"my-service",
+			telemetry.WithOTelExporter(exporter),
+		)
 	*/
 }
 
 // 使用 OTLP Exporter (Grafana Tempo, Honeycomb, etc.)
 func exampleOTLPExporter() {
 	/*
-	import "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+		import "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 
-	exporter, err := otlptracehttp.New(
-		context.Background(),
-		otlptracehttp.WithEndpoint("localhost:4318"),
-		otlptracehttp.WithInsecure(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to create OTLP exporter: %v", err)
-	}
+		exporter, err := otlptracehttp.New(
+			context.Background(),
+			otlptracehttp.WithEndpoint("localhost:4318"),
+			otlptracehttp.WithInsecure(),
+		)
+		if err != nil {
+			log.Fatalf("Failed to create OTLP exporter: %v", err)
+		}
 
-	tracer, err := telemetry.NewOTelTracer(
-		"my-service",
-		telemetry.WithOTelExporter(exporter),
-	)
+		tracer, err := telemetry.NewOTelTracer(
+			"my-service",
+			telemetry.WithOTelExporter(exporter),
+		)
 	*/
 }
 
 // 使用 Google Cloud Trace
 func exampleGoogleCloudTrace() {
 	/*
-	import texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+		import texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 
-	exporter, err := texporter.New(
-		texporter.WithProjectID("my-gcp-project"),
-	)
-	if err != nil {
-		log.Fatalf("Failed to create GCP Trace exporter: %v", err)
-	}
+		exporter, err := texporter.New(
+			texporter.WithProjectID("my-gcp-project"),
+		)
+		if err != nil {
+			log.Fatalf("Failed to create GCP Trace exporter: %v", err)
+		}
 
-	tracer, err := telemetry.NewOTelTracer(
-		"my-service",
-		telemetry.WithOTelExporter(exporter),
-	)
+		tracer, err := telemetry.NewOTelTracer(
+			"my-service",
+			telemetry.WithOTelExporter(exporter),
+		)
 	*/
 }
 
@@ -363,9 +363,9 @@ func exampleGoogleCloudTrace() {
 type propagation struct{}
 type MapCarrier map[string]string
 
-func (m MapCarrier) Get(key string) string       { return m[key] }
-func (m MapCarrier) Set(key, value string)       { m[key] = value }
-func (m MapCarrier) Keys() []string              {
+func (m MapCarrier) Get(key string) string { return m[key] }
+func (m MapCarrier) Set(key, value string) { m[key] = value }
+func (m MapCarrier) Keys() []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

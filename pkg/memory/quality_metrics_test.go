@@ -235,10 +235,10 @@ func TestQualityMetrics_GetStats(t *testing.T) {
 		confidence float64
 		score      float64
 	}{
-		{"high1", 0.9, 0.9},     // 高质量
-		{"high2", 0.85, 0.85},   // 高质量
-		{"medium", 0.6, 0.6},    // 中等质量
-		{"low", 0.2, 0.2},       // 低质量
+		{"high1", 0.9, 0.9},   // 高质量
+		{"high2", 0.85, 0.85}, // 高质量
+		{"medium", 0.6, 0.6},  // 中等质量
+		{"low", 0.2, 0.2},     // 低质量
 	}
 
 	for _, m := range memories {

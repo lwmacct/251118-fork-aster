@@ -50,7 +50,7 @@ func TestHumanInTheLoopMiddleware_BasicApproval(t *testing.T) {
 	// 创建中间件
 	middleware, err := NewHumanInTheLoopMiddleware(&HumanInTheLoopMiddlewareConfig{
 		InterruptOn: map[string]interface{}{
-			"sensitive_tool": true, // 需要审核
+			"sensitive_tool": true,  // 需要审核
 			"safe_tool":      false, // 不需要审核
 		},
 		ApprovalHandler: func(ctx context.Context, request *ReviewRequest) ([]Decision, error) {

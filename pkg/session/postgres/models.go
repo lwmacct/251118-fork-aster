@@ -31,12 +31,12 @@ func (SessionModel) TableName() string {
 // 对应表: session_states
 // 支持分层状态: app/user/session/temp
 type StateModel struct {
-	SessionID string      `gorm:"primaryKey;type:uuid"`
-	Scope     string      `gorm:"primaryKey;type:varchar(50)"` // app, user, session, temp
-	Key       string      `gorm:"primaryKey;type:varchar(255)"`
-	Value     []byte      `gorm:"type:jsonb;not null"` // JSONB 存储
-	CreatedAt time.Time   `gorm:"not null;default:now()"`
-	UpdatedAt time.Time   `gorm:"not null;default:now()"`
+	SessionID string    `gorm:"primaryKey;type:uuid"`
+	Scope     string    `gorm:"primaryKey;type:varchar(50)"` // app, user, session, temp
+	Key       string    `gorm:"primaryKey;type:varchar(255)"`
+	Value     []byte    `gorm:"type:jsonb;not null"` // JSONB 存储
+	CreatedAt time.Time `gorm:"not null;default:now()"`
+	UpdatedAt time.Time `gorm:"not null;default:now()"`
 
 	// 关联关系
 	Session SessionModel `gorm:"foreignKey:SessionID;references:ID"`
@@ -50,19 +50,19 @@ func (StateModel) TableName() string {
 // EventModel 事件数据库模型
 // 对应表: session_events
 type EventModel struct {
-	ID           string         `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	SessionID    string         `gorm:"type:uuid;not null;index:idx_session_events"`
-	InvocationID string         `gorm:"type:varchar(255);not null;index:idx_invocation_events"`
-	Branch       string         `gorm:"type:varchar(500);not null;index:idx_branch_events"`
-	Author       string         `gorm:"type:varchar(255);not null"`
-	AgentID      string         `gorm:"type:varchar(255);not null"`
-	Timestamp    time.Time      `gorm:"not null;default:now();index:idx_session_events"`
+	ID           string    `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	SessionID    string    `gorm:"type:uuid;not null;index:idx_session_events"`
+	InvocationID string    `gorm:"type:varchar(255);not null;index:idx_invocation_events"`
+	Branch       string    `gorm:"type:varchar(500);not null;index:idx_branch_events"`
+	Author       string    `gorm:"type:varchar(255);not null"`
+	AgentID      string    `gorm:"type:varchar(255);not null"`
+	Timestamp    time.Time `gorm:"not null;default:now();index:idx_session_events"`
 
 	// 内容 - JSONB 存储
-	Content  []byte `gorm:"type:jsonb;not null"`
+	Content []byte `gorm:"type:jsonb;not null"`
 
 	// 动作 - JSONB 存储
-	Actions  []byte `gorm:"type:jsonb"`
+	Actions []byte `gorm:"type:jsonb"`
 
 	// 长时运行工具 ID 列表
 	LongRunningToolIDs pq.StringArray `gorm:"type:text[]"`

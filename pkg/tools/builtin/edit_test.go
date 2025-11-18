@@ -88,7 +88,7 @@ func TestEditTool_SimpleEdit(t *testing.T) {
 	defer helper.CleanupAll()
 
 	input := map[string]interface{}{
-		"file_path": testFile,
+		"file_path":  testFile,
 		"old_string": "Hello World",
 		"new_string": "Hello Universe",
 	}

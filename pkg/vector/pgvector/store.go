@@ -12,7 +12,8 @@ import (
 
 // Config 配置 PgVector 向量存储。
 // 需要数据库已安装 pgvector 扩展:
-//   CREATE EXTENSION IF NOT EXISTS vector;
+//
+//	CREATE EXTENSION IF NOT EXISTS vector;
 type Config struct {
 	// DSN PostgreSQL 连接串, 如:
 	//   postgres://user:password@localhost:5432/dbname?sslmode=disable
@@ -37,10 +38,10 @@ type Config struct {
 
 // Store 使用 pgvector 实现的 VectorStore。
 type Store struct {
-	pool     *pgxpool.Pool
-	table    string
-	metric   string
-	dim      int
+	pool   *pgxpool.Pool
+	table  string
+	metric string
+	dim    int
 }
 
 // New 创建 PgVector 向量存储。
@@ -216,4 +217,3 @@ func distanceToScore(distance float64, metric string) float64 {
 		return 1.0 - distance
 	}
 }
-

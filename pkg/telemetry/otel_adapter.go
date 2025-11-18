@@ -31,8 +31,8 @@ import (
 //	ctx, span := tracer.StartSpan(ctx, "agent.chat")
 //	defer span.End()
 type OTelTracer struct {
-	tracer   trace.Tracer
-	provider *sdktrace.TracerProvider
+	tracer     trace.Tracer
+	provider   *sdktrace.TracerProvider
 	propagator propagation.TextMapPropagator
 }
 
@@ -331,27 +331,27 @@ func convertAttribute(attr Attribute) attribute.KeyValue {
 // 常用的预定义属性键（基于 OpenTelemetry 语义约定）
 var (
 	// Agent 相关
-	AttrAgentID          = "agent.id"
-	AttrAgentName        = "agent.name"
-	AttrAgentTemplateID  = "agent.template_id"
+	AttrAgentID         = "agent.id"
+	AttrAgentName       = "agent.name"
+	AttrAgentTemplateID = "agent.template_id"
 
 	// LLM 相关
-	AttrLLMProvider      = "llm.provider"
-	AttrLLMModel         = "llm.model"
-	AttrLLMMaxTokens     = "llm.max_tokens"
-	AttrLLMInputTokens   = "llm.usage.input_tokens"
-	AttrLLMOutputTokens  = "llm.usage.output_tokens"
-	AttrLLMTotalTokens   = "llm.usage.total_tokens"
+	AttrLLMProvider     = "llm.provider"
+	AttrLLMModel        = "llm.model"
+	AttrLLMMaxTokens    = "llm.max_tokens"
+	AttrLLMInputTokens  = "llm.usage.input_tokens"
+	AttrLLMOutputTokens = "llm.usage.output_tokens"
+	AttrLLMTotalTokens  = "llm.usage.total_tokens"
 
 	// Tool 相关
-	AttrToolName         = "tool.name"
-	AttrToolCallID       = "tool.call_id"
-	AttrToolDuration     = "tool.duration_ms"
-	AttrToolSuccess      = "tool.success"
+	AttrToolName     = "tool.name"
+	AttrToolCallID   = "tool.call_id"
+	AttrToolDuration = "tool.duration_ms"
+	AttrToolSuccess  = "tool.success"
 
 	// Session 相关
-	AttrSessionID        = "session.id"
-	AttrUserID           = "user.id"
-	AttrInvocationID     = "invocation.id"
-	AttrBranch           = "agent.branch"
+	AttrSessionID    = "session.id"
+	AttrUserID       = "user.id"
+	AttrInvocationID = "invocation.id"
+	AttrBranch       = "agent.branch"
 )

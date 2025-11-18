@@ -72,4 +72,3 @@ func main() {
 	fmt.Printf("Score: %.2f\n", simScore.Value)
 	fmt.Printf("Details: %+v\n", simScore.Details)
 }
-

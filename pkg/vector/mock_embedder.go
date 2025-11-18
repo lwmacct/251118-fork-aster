@@ -37,4 +37,3 @@ func (e *MockEmbedder) EmbedText(_ context.Context, texts []string) ([][]float32
 	}
 	return result, nil
 }
-

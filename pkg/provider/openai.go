@@ -46,19 +46,19 @@ func NewOpenAIProvider(config *types.ModelConfig) (Provider, error) {
 // Capabilities 返回 OpenAI 的能力
 func (p *OpenAIProvider) Capabilities() ProviderCapabilities {
 	caps := ProviderCapabilities{
-		SupportToolCalling:  true,
-		SupportSystemPrompt: true,
-		SupportStreaming:    true,
-		SupportVision:       true,
-		SupportAudio:        true,
-		SupportReasoning:    true, // o1/o3 模型
-		SupportPromptCache:  true,
-		SupportJSONMode:     true,
-		SupportFunctionCall: true,
-		MaxTokens:           128000,
-		ToolCallingFormat:   "openai",
+		SupportToolCalling:      true,
+		SupportSystemPrompt:     true,
+		SupportStreaming:        true,
+		SupportVision:           true,
+		SupportAudio:            true,
+		SupportReasoning:        true, // o1/o3 模型
+		SupportPromptCache:      true,
+		SupportJSONMode:         true,
+		SupportFunctionCall:     true,
+		MaxTokens:               128000,
+		ToolCallingFormat:       "openai",
 		ReasoningTokensIncluded: true,
-		CacheMinTokens:      1024, // Prompt Caching 最小 token 数
+		CacheMinTokens:          1024, // Prompt Caching 最小 token 数
 	}
 
 	// 根据模型调整能力

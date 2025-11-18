@@ -54,11 +54,11 @@ type SandboxFS interface {
 
 // FileInfo 文件信息
 type FileInfo struct {
-	Path       string
-	Size       int64
-	ModTime    time.Time
-	IsDir      bool
-	Mode       int
+	Path    string
+	Size    int64
+	ModTime time.Time
+	IsDir   bool
+	Mode    int
 }
 
 // GlobOptions Glob选项

@@ -49,9 +49,9 @@ func (p *MistralProvider) Capabilities() ProviderCapabilities {
 		SupportToolCalling:  true,
 		SupportSystemPrompt: true,
 		SupportStreaming:    true,
-		SupportVision:       true,  // Pixtral 模型
+		SupportVision:       true, // Pixtral 模型
 		SupportAudio:        false,
-		SupportReasoning:    true,  // 原生推理支持
+		SupportReasoning:    true, // 原生推理支持
 		SupportPromptCache:  false,
 		SupportJSONMode:     true, // response_format: json
 		SupportFunctionCall: true,

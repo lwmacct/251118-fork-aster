@@ -87,4 +87,3 @@ func main() {
 		log.Fatalf("MCP server failed: %v", err)
 	}
 }
-

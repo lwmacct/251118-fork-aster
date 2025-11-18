@@ -173,9 +173,9 @@ func runDemo(ctx context.Context, ag agent.Agent) {
 			wait: 3 * time.Second,
 		},
 		{
-			title: "会话 3: 查询任务进度",
+			title:  "会话 3: 查询任务进度",
 			prompt: `我的 REST API 项目进展如何了？还记得我的要求吗？`,
-			wait: 3 * time.Second,
+			wait:   3 * time.Second,
 		},
 	}
 

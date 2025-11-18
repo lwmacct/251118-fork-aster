@@ -10,8 +10,8 @@ import (
 
 // MockLLMProvider 模拟 LLM 提供者。
 type MockLLMProvider struct {
-	Response string
-	Error    error
+	Response  string
+	Error     error
 	CallCount int
 }
 
@@ -157,8 +157,8 @@ func TestConflictResolutionStrategy_DetectConflict(t *testing.T) {
 	strategy := NewConflictResolutionStrategy(0.75, nil)
 
 	tests := []struct {
-		name        string
-		memories    []MemoryWithScore
+		name         string
+		memories     []MemoryWithScore
 		wantConflict bool
 	}{
 		{
@@ -197,19 +197,19 @@ func TestConflictResolutionStrategy_SelectBestProvenance(t *testing.T) {
 
 	now := time.Now()
 	highConfidence := &MemoryProvenance{
-		SourceType:  SourceUserInput,
-		Confidence:  0.9,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-		IsExplicit:  true,
+		SourceType: SourceUserInput,
+		Confidence: 0.9,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+		IsExplicit: true,
 	}
 
 	lowConfidence := &MemoryProvenance{
-		SourceType:  SourceAgent,
-		Confidence:  0.5,
-		CreatedAt:   now.Add(-30 * 24 * time.Hour),
-		UpdatedAt:   now.Add(-30 * 24 * time.Hour),
-		IsExplicit:  false,
+		SourceType: SourceAgent,
+		Confidence: 0.5,
+		CreatedAt:  now.Add(-30 * 24 * time.Hour),
+		UpdatedAt:  now.Add(-30 * 24 * time.Hour),
+		IsExplicit: false,
 	}
 
 	memories := []MemoryWithScore{

@@ -14,9 +14,9 @@ import (
 type PIIRedactionMiddleware struct {
 	*middleware.BaseMiddleware
 	redactor       *Redactor
-	enableTracking bool                          // 是否启用追踪（用于还原）
-	tracking       map[string][]PIIMatch         // 追踪每个 Agent 的 PII 匹配
-	mu             sync.RWMutex                  // 保护 tracking map
+	enableTracking bool                  // 是否启用追踪（用于还原）
+	tracking       map[string][]PIIMatch // 追踪每个 Agent 的 PII 匹配
+	mu             sync.RWMutex          // 保护 tracking map
 }
 
 // PIIMiddlewareConfig PII 中间件配置。

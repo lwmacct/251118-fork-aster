@@ -82,7 +82,7 @@ func (t *BashTool) InputSchema() map[string]interface{} {
 				"description": "是否捕获命令输出，默认为true",
 			},
 			"environment": map[string]interface{}{
-				"type": "object",
+				"type":        "object",
 				"description": "设置环境变量",
 				"additionalProperties": map[string]interface{}{
 					"type": "string",
@@ -158,7 +158,7 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("command execution failed: %v", err),
 			"recommendations": []string{
 				"检查命令语法是否正确",
@@ -167,20 +167,20 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 				"检查命令是否在系统PATH中",
 				"确认环境变量设置正确",
 			},
-			"command": command,
+			"command":     command,
 			"duration_ms": duration.Milliseconds(),
 		}, nil
 	}
 
 	// 构建响应
 	response := map[string]interface{}{
-		"ok": true,
-		"command": command,
-		"exit_code": result.Code,
-		"success": result.Code == 0,
+		"ok":          true,
+		"command":     command,
+		"exit_code":   result.Code,
+		"success":     result.Code == 0,
 		"duration_ms": duration.Milliseconds(),
-		"start_time": start.Unix(),
-		"end_time": time.Now().Unix(),
+		"start_time":  start.Unix(),
+		"end_time":    time.Now().Unix(),
 	}
 
 	if captureOutput {
@@ -219,7 +219,6 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	return response, nil
 }
-
 
 func (t *BashTool) validateCommand(cmd string) error {
 	// 检查危险命令模式
@@ -299,7 +298,6 @@ func (t *BashTool) getCommandTimeout(cmd string) time.Duration {
 	// 默认超时
 	return t.defaultTimeout
 }
-
 
 func (t *BashTool) Prompt() string {
 	return `执行bash命令在持久化shell会话中。

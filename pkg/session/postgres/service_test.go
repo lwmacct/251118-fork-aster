@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/astercloud/aster/pkg/session"
+	"github.com/astercloud/aster/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/astercloud/aster/pkg/session"
-	"github.com/astercloud/aster/pkg/types"
 	"gorm.io/gorm/logger"
 )
 

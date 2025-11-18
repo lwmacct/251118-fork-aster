@@ -29,7 +29,7 @@ func NewOllamaProvider(config *types.ModelConfig) (Provider, error) {
 		DefaultModel:       "llama3.2",
 		SupportReasoning:   false,
 		SupportPromptCache: false,
-		SupportVision:      true,  // Ollama 支持 vision 模型
+		SupportVision:      true, // Ollama 支持 vision 模型
 		SupportAudio:       false,
 	}
 

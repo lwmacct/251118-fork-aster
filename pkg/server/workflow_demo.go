@@ -46,7 +46,7 @@ type WorkflowEvent struct {
 
 // WorkflowRunResponse 表示工作流运行的结果。
 type WorkflowRunResponse struct {
-	RunID       string          `json:"run_id,omitempty"`
+	RunID        string          `json:"run_id,omitempty"`
 	Events       []WorkflowEvent `json:"events"`
 	ErrorMessage string          `json:"error_message,omitempty"`
 }
@@ -112,17 +112,19 @@ func (s *workflowRunStore) Get(id string) (*WorkflowRunRecord, bool) {
 // WorkflowDemoGetRunHandler 返回指定 run_id 的工作流运行记录。
 //
 // 路径示例:
-//   GET /v1/workflows/demo/runs?id=<run_id>
+//
+//	GET /v1/workflows/demo/runs?id=<run_id>
 //
 // 响应体:
-//   {
-//     "id": "run-...",
-//     "workflow_id": "sequential_demo",
-//     "input": "处理用户数据",
-//     "events": [...],
-//     "eval_scores": [...],
-//     "created_at": "..."
-//   }
+//
+//	{
+//	  "id": "run-...",
+//	  "workflow_id": "sequential_demo",
+//	  "input": "处理用户数据",
+//	  "events": [...],
+//	  "eval_scores": [...],
+//	  "created_at": "..."
+//	}
 func (s *Server) WorkflowDemoGetRunHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -149,21 +151,24 @@ func (s *Server) WorkflowDemoGetRunHandler() http.Handler {
 // WorkflowDemoRunHandler 返回一个 HTTP handler, 用于运行内置的演示工作流。
 //
 // 路径示例:
-//   POST /v1/workflows/demo/run
+//
+//	POST /v1/workflows/demo/run
 //
 // 请求体:
-//   {
-//     "workflow_id": "sequential_demo",
-//     "input": "处理用户数据"
-//   }
+//
+//	{
+//	  "workflow_id": "sequential_demo",
+//	  "input": "处理用户数据"
+//	}
 //
 // 响应体:
-//   {
-//     "events": [
-//       {"id":"...","agent_id":"DataCollector","text":"...","metadata":{...}},
-//       ...
-//     ]
-//   }
+//
+//	{
+//	  "events": [
+//	    {"id":"...","agent_id":"DataCollector","text":"...","metadata":{...}},
+//	    ...
+//	  ]
+//	}
 func (s *Server) WorkflowDemoRunHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -231,7 +236,7 @@ func (s *Server) WorkflowDemoRunHandler() http.Handler {
 		s.workflowRuns.Save(record)
 
 		writeJSON(w, http.StatusOK, &WorkflowRunResponse{
-			RunID: runID,
+			RunID:  runID,
 			Events: events,
 		})
 	})
@@ -240,25 +245,28 @@ func (s *Server) WorkflowDemoRunHandler() http.Handler {
 // WorkflowDemoRunEvalHandler 返回一个 HTTP handler, 用于运行内置 demo 工作流并对最终回答进行评估。
 //
 // 路径示例:
-//   POST /v1/workflows/demo/run-eval
+//
+//	POST /v1/workflows/demo/run-eval
 //
 // 请求体:
-//   {
-//     "workflow_id": "sequential_demo",
-//     "input": "处理用户数据",
-//     "reference": "期望的总结结果...",
-//     "keywords": ["收集", "分析", "报告"],
-//     "scorers": ["keyword_coverage", "lexical_similarity"]
-//   }
+//
+//	{
+//	  "workflow_id": "sequential_demo",
+//	  "input": "处理用户数据",
+//	  "reference": "期望的总结结果...",
+//	  "keywords": ["收集", "分析", "报告"],
+//	  "scorers": ["keyword_coverage", "lexical_similarity"]
+//	}
 //
 // 响应体:
-//   {
-//     "events": [...],
-//     "eval_scores": [
-//       {"name": "keyword_coverage", "value": 0.75, ...},
-//       {"name": "lexical_similarity", "value": 0.82, ...}
-//     ]
-//   }
+//
+//	{
+//	  "events": [...],
+//	  "eval_scores": [
+//	    {"name": "keyword_coverage", "value": 0.75, ...},
+//	    {"name": "lexical_similarity", "value": 0.82, ...}
+//	  ]
+//	}
 func (s *Server) WorkflowDemoRunEvalHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -389,7 +397,7 @@ func (s *Server) WorkflowDemoRunEvalHandler() http.Handler {
 
 		writeJSON(w, http.StatusOK, &WorkflowRunEvalResponse{
 			WorkflowRunResponse: WorkflowRunResponse{
-				RunID: runID,
+				RunID:  runID,
 				Events: events,
 			},
 			EvalScores: evalScores,

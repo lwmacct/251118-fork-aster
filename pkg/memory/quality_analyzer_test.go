@@ -384,9 +384,9 @@ func TestGenerateRecommendations(t *testing.T) {
 	// 创建低质量场景的报告
 	report := &QualityReport{
 		Stats: QualityStats{
-			AverageQuality:   0.3,
-			TotalMemories:    10,
-			LowQualityCount:  5,
+			AverageQuality:  0.3,
+			TotalMemories:   10,
+			LowQualityCount: 5,
 		},
 		DimensionScores: map[QualityDimension]float64{
 			QualityAccuracy:     0.4,

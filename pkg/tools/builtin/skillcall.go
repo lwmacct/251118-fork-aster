@@ -123,4 +123,3 @@ Typical example:
   }
 }`
 }
-

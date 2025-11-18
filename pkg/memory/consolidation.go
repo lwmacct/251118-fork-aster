@@ -81,10 +81,10 @@ type ConsolidationStrategy interface {
 type ConsolidationReason string
 
 const (
-	ReasonRedundant  ConsolidationReason = "redundant"  // 冗余
-	ReasonConflict   ConsolidationReason = "conflict"   // 冲突
-	ReasonSummary    ConsolidationReason = "summary"    // 总结
-	ReasonNone       ConsolidationReason = "none"       // 不需要合并
+	ReasonRedundant ConsolidationReason = "redundant" // 冗余
+	ReasonConflict  ConsolidationReason = "conflict"  // 冲突
+	ReasonSummary   ConsolidationReason = "summary"   // 总结
+	ReasonNone      ConsolidationReason = "none"      // 不需要合并
 )
 
 // MemoryWithScore 带相似度分数的记忆。
@@ -98,12 +98,12 @@ type MemoryWithScore struct {
 
 // ConsolidatedMemory 合并后的记忆。
 type ConsolidatedMemory struct {
-	Text             string                 // 合并后的文本
-	Metadata         map[string]interface{} // 合并后的元数据
-	Provenance       *MemoryProvenance      // 合并后的溯源
-	SourceMemories   []string               // 源记忆 ID 列表
-	Reason           ConsolidationReason    // 合并原因
-	ConsolidatedAt   time.Time              // 合并时间
+	Text           string                 // 合并后的文本
+	Metadata       map[string]interface{} // 合并后的元数据
+	Provenance     *MemoryProvenance      // 合并后的溯源
+	SourceMemories []string               // 源记忆 ID 列表
+	Reason         ConsolidationReason    // 合并原因
+	ConsolidatedAt time.Time              // 合并时间
 }
 
 // NewConsolidationEngine 创建合并引擎。
@@ -178,9 +178,9 @@ func (ce *ConsolidationEngine) Consolidate(ctx context.Context) (*ConsolidationR
 
 		// 记录结果
 		result.MemoryGroups = append(result.MemoryGroups, MemoryGroup{
-			Memories:        group.Memories,
-			ConsolidatedID:  newDocID,
-			Reason:          reason,
+			Memories:       group.Memories,
+			ConsolidatedID: newDocID,
+			Reason:         reason,
 		})
 
 		result.MergedCount += len(group.Memories)
@@ -286,8 +286,8 @@ type ConsolidationResult struct {
 	Duration       time.Duration
 	Strategy       string
 	MemoryGroups   []MemoryGroup
-	MergedCount    int    // 合并的记忆数量
-	NewMemoryCount int    // 生成的新记忆数量
+	MergedCount    int // 合并的记忆数量
+	NewMemoryCount int // 生成的新记忆数量
 	Errors         []string
 }
 

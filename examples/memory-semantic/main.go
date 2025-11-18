@@ -71,4 +71,3 @@ func main() {
 		fmt.Printf("  ID=%s, score=%.4f, metadata=%v\n", h.ID, h.Score, h.Metadata)
 	}
 }
-

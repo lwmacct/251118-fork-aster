@@ -10,16 +10,19 @@ import (
 
 // SemanticSearchTool 基于 SemanticMemory 的语义检索工具。
 // 输入:
-//   {
-//     "query": string,
-//     "top_k": number (可选, 默认使用 SemanticMemoryConfig.TopK),
-//     "metadata": object (可选, 如 {"user_id":"alice","project_id":"demo"})
-//   }
+//
+//	{
+//	  "query": string,
+//	  "top_k": number (可选, 默认使用 SemanticMemoryConfig.TopK),
+//	  "metadata": object (可选, 如 {"user_id":"alice","project_id":"demo"})
+//	}
+//
 // 输出:
-//   [
-//     {"id": "...", "score": 0.87, "metadata": {...}},
-//     ...
-//   ]
+//
+//	[
+//	  {"id": "...", "score": 0.87, "metadata": {...}},
+//	  ...
+//	]
 type SemanticSearchTool struct {
 	sm *memory.SemanticMemory
 }
@@ -111,4 +114,3 @@ func (t *SemanticSearchTool) Prompt() string {
 	return "Use this tool to perform semantic search over previously indexed texts when keyword search is insufficient. " +
 		"Provide a clear natural language query and optional metadata (user_id, project_id, resource_id) to narrow the search scope."
 }
-

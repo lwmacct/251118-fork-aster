@@ -7,8 +7,8 @@ import (
 // NewClaudeErrorResponse 创建Claude兼容的错误响应
 func NewClaudeErrorResponse(err error, recommendations ...string) map[string]interface{} {
 	return map[string]interface{}{
-		"ok":             false,
-		"error":          err.Error(),
+		"ok":              false,
+		"error":           err.Error(),
 		"recommendations": recommendations,
 	}
 }

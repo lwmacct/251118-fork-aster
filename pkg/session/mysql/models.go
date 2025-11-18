@@ -31,7 +31,7 @@ type StateModel struct {
 	SessionID string    `gorm:"primaryKey;type:varchar(36)"`
 	Scope     string    `gorm:"primaryKey;type:varchar(50)"`
 	Key       string    `gorm:"primaryKey;type:varchar(255);column:key"` // key 是 MySQL 保留字，需要转义
-	Value     []byte    `gorm:"type:json;not null"`                       // MySQL 8.0+ JSON 类型
+	Value     []byte    `gorm:"type:json;not null"`                      // MySQL 8.0+ JSON 类型
 	CreatedAt time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `gorm:"not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
 

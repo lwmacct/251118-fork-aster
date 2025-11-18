@@ -134,7 +134,7 @@ func TestSkillCallTool_WithTimeout(t *testing.T) {
 	}
 
 	input := map[string]interface{}{
-		"skill":          "test_skill",
+		"skill":           "test_skill",
 		"timeout_seconds": 5,
 	}
 
@@ -235,4 +235,3 @@ func BenchmarkSkillCallTool_SimpleCall(b *testing.B) {
 
 	BenchmarkTool(b, tool, input)
 }
-

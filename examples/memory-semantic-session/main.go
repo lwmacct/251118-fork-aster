@@ -137,4 +137,3 @@ func main() {
 
 	fmt.Printf("\n✅ Student session: %s (can now use long-term memory)\n", (*studentSess).ID())
 }
-

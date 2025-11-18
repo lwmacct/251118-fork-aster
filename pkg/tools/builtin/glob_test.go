@@ -231,7 +231,7 @@ func TestGlobTool_CaseInsensitive(t *testing.T) {
 	}
 
 	input := map[string]interface{}{
-		"pattern":       "*.MD",
+		"pattern":        "*.MD",
 		"case_sensitive": false,
 	}
 

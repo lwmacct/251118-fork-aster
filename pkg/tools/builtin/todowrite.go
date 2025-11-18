@@ -53,7 +53,7 @@ func (t *TodoWriteTool) InputSchema() map[string]interface{} {
 		"type": "object",
 		"properties": map[string]interface{}{
 			"todos": map[string]interface{}{
-				"type": "array",
+				"type":        "array",
 				"description": "任务项数组，包含content、status、activeForm等字段",
 				"items": map[string]interface{}{
 					"type": "object",
@@ -232,10 +232,10 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 	// 检查操作是否成功
 	if operationErr != nil {
 		return map[string]interface{}{
-			"ok": false,
-			"error": fmt.Sprintf("failed to save todo list: %v", operationErr),
-			"action": action,
-			"list_name": listName,
+			"ok":          false,
+			"error":       fmt.Sprintf("failed to save todo list: %v", operationErr),
+			"action":      action,
+			"list_name":   listName,
 			"duration_ms": time.Since(start).Milliseconds(),
 		}, nil
 	}
@@ -244,15 +244,15 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 
 	// 构建响应
 	response := map[string]interface{}{
-		"ok": true,
-		"action": action,
-		"list_name": listName,
-		"list_id": todoList.ID,
-		"todos": todoList.Todos,
-		"total_todos": len(todoList.Todos),
-		"duration_ms": duration.Milliseconds(),
-		"updated_at": todoList.UpdatedAt.Unix(),
-		"storage": "persistent",
+		"ok":              true,
+		"action":          action,
+		"list_name":       listName,
+		"list_id":         todoList.ID,
+		"todos":           todoList.Todos,
+		"total_todos":     len(todoList.Todos),
+		"duration_ms":     duration.Milliseconds(),
+		"updated_at":      todoList.UpdatedAt.Unix(),
+		"storage":         "persistent",
 		"storage_backend": "FileTodoManager",
 	}
 
@@ -331,16 +331,16 @@ func (t *TodoWriteTool) updateTodo(todoList *TodoList, todoID string, updatedTod
 			todoList.UpdatedAt = time.Now()
 
 			return map[string]interface{}{
-				"updated": true,
+				"updated":         true,
 				"previous_status": existing.Status,
-				"new_status": updatedTodo.Status,
+				"new_status":      updatedTodo.Status,
 			}
 		}
 	}
 
 	return map[string]interface{}{
 		"updated": false,
-		"reason": "todo not found",
+		"reason":  "todo not found",
 	}
 }
 
@@ -353,7 +353,7 @@ func (t *TodoWriteTool) deleteTodo(todoList *TodoList, todoID string) map[string
 			todoList.UpdatedAt = time.Now()
 
 			return map[string]interface{}{
-				"deleted": true,
+				"deleted":      true,
 				"deleted_todo": existing,
 			}
 		}
@@ -361,7 +361,7 @@ func (t *TodoWriteTool) deleteTodo(todoList *TodoList, todoID string) map[string
 
 	return map[string]interface{}{
 		"deleted": false,
-		"reason": "todo not found",
+		"reason":  "todo not found",
 	}
 }
 
@@ -373,7 +373,7 @@ func (t *TodoWriteTool) clearTodos(todoList *TodoList) map[string]interface{} {
 
 	return map[string]interface{}{
 		"deleted_count": deletedCount,
-		"action": "cleared_all_todos",
+		"action":        "cleared_all_todos",
 	}
 }
 

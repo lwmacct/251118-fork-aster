@@ -43,9 +43,9 @@ type WindowManagerConfig struct {
 	CompressionThreshold float64 // 触发压缩的使用率阈值 (0.0-1.0)
 
 	// 消息保留策略
-	MinMessagesToKeep   int // 最少保留的消息数
-	AlwaysKeepSystem    bool // 始终保留 system 消息
-	AlwaysKeepRecent    int  // 始终保留最近的 N 条消息
+	MinMessagesToKeep int  // 最少保留的消息数
+	AlwaysKeepSystem  bool // 始终保留 system 消息
+	AlwaysKeepRecent  int  // 始终保留最近的 N 条消息
 
 	// 优先级配置
 	EnablePrioritization bool // 是否启用消息优先级
@@ -297,14 +297,14 @@ func (m *ContextWindowManager) GetStats() WindowStats {
 	defer m.mu.RUnlock()
 
 	return WindowStats{
-		CurrentMessages:    len(m.messages),
-		TotalMessages:      m.totalMessages,
-		CurrentTokens:      m.currentTokens,
-		RemainingTokens:    m.config.Budget.RemainingTokens(m.currentTokens),
-		UsagePercentage:    m.config.Budget.UsagePercentage(m.currentTokens),
-		CompressionCount:   len(m.compressionHistory),
-		IsWithinBudget:     m.config.Budget.IsWithinBudget(m.currentTokens),
-		ShouldWarn:         m.config.Budget.ShouldWarn(m.currentTokens),
+		CurrentMessages:  len(m.messages),
+		TotalMessages:    m.totalMessages,
+		CurrentTokens:    m.currentTokens,
+		RemainingTokens:  m.config.Budget.RemainingTokens(m.currentTokens),
+		UsagePercentage:  m.config.Budget.UsagePercentage(m.currentTokens),
+		CompressionCount: len(m.compressionHistory),
+		IsWithinBudget:   m.config.Budget.IsWithinBudget(m.currentTokens),
+		ShouldWarn:       m.config.Budget.ShouldWarn(m.currentTokens),
 	}
 }
 
@@ -324,9 +324,9 @@ type WindowStats struct {
 type MessagePriority int
 
 const (
-	PriorityLow    MessagePriority = 1
-	PriorityMedium MessagePriority = 2
-	PriorityHigh   MessagePriority = 3
+	PriorityLow      MessagePriority = 1
+	PriorityMedium   MessagePriority = 2
+	PriorityHigh     MessagePriority = 3
 	PriorityCritical MessagePriority = 4
 )
 
@@ -345,9 +345,9 @@ type PriorityCalculator interface {
 
 // DefaultPriorityCalculator 默认优先级计算器
 type DefaultPriorityCalculator struct {
-	recencyWeight   float64 // 最近度权重
-	roleWeight      float64 // 角色权重
-	lengthWeight    float64 // 长度权重
+	recencyWeight float64 // 最近度权重
+	roleWeight    float64 // 角色权重
+	lengthWeight  float64 // 长度权重
 }
 
 // NewDefaultPriorityCalculator 创建默认优先级计算器

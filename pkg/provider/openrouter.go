@@ -94,10 +94,10 @@ func (p *OpenRouterProvider) Capabilities() ProviderCapabilities {
 		SupportToolCalling:  true,
 		SupportSystemPrompt: true,
 		SupportStreaming:    true,
-		SupportVision:       true,  // 取决于所选模型
-		SupportAudio:        true,  // 取决于所选模型
-		SupportReasoning:    true,  // 支持 o1/o3 等推理模型
-		SupportPromptCache:  true,  // 支持 Prompt Caching
+		SupportVision:       true, // 取决于所选模型
+		SupportAudio:        true, // 取决于所选模型
+		SupportReasoning:    true, // 支持 o1/o3 等推理模型
+		SupportPromptCache:  true, // 支持 Prompt Caching
 		SupportJSONMode:     true,
 		SupportFunctionCall: true,
 		MaxTokens:           200000, // 取决于所选模型，最高可达 200K

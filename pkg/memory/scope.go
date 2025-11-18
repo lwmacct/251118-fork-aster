@@ -13,7 +13,9 @@ import (
 // - 支持用户专属 vs 全局共享两种模式
 //
 // 注意: Scope 只负责生成 namespace, 最终路径仍然是:
-//   /memories/<BaseNamespace>/<namespace>/<file>
+//
+//	/memories/<BaseNamespace>/<namespace>/<file>
+//
 // 其中 BaseNamespace 由 AgentMemoryMiddleware 决定, 通常为:
 //   - ""                  : 无用户隔离(单用户或纯共享)
 //   - "users/<user-id>"   : 多用户系统中的用户私有前缀
@@ -45,14 +47,15 @@ type Scope struct {
 // - Shared=true  => 加前导 "/", 作为全局/共享记忆
 //
 // 示例:
-//   Scope{UserID:"alice", ProjectID:"demo", Shared:false}.Namespace()
-//     -> "projects/demo"
-//   Scope{ProjectID:"demo", Shared:true}.Namespace()
-//     -> "/projects/demo"
-//   Scope{ResourceType:"article", ResourceID:"abc", Shared:false}.Namespace()
-//     -> "resources/article/abc"
-//   Scope{ProjectID:"demo", ResourceType:"article", ResourceID:"abc", Shared:true}.Namespace()
-//     -> "/projects/demo/resources/article/abc"
+//
+//	Scope{UserID:"alice", ProjectID:"demo", Shared:false}.Namespace()
+//	  -> "projects/demo"
+//	Scope{ProjectID:"demo", Shared:true}.Namespace()
+//	  -> "/projects/demo"
+//	Scope{ResourceType:"article", ResourceID:"abc", Shared:false}.Namespace()
+//	  -> "resources/article/abc"
+//	Scope{ProjectID:"demo", ResourceType:"article", ResourceID:"abc", Shared:true}.Namespace()
+//	  -> "/projects/demo/resources/article/abc"
 func (s Scope) Namespace() string {
 	var parts []string
 
@@ -81,4 +84,3 @@ func (s Scope) Namespace() string {
 	// 用户级命名空间, 不加 "/", 由 BaseNamespace 叠加
 	return ns
 }
-

@@ -56,11 +56,11 @@ func (m *MockProvider) Close() error {
 // TestParseScoreResponse_JSON 测试 JSON 格式解析
 func TestParseScoreResponse_JSON(t *testing.T) {
 	tests := []struct {
-		name         string
-		output       string
-		wantScore    float64
-		wantReason   string
-		wantErr      bool
+		name       string
+		output     string
+		wantScore  float64
+		wantReason string
+		wantErr    bool
 	}{
 		{
 			name:       "valid JSON with reason",
@@ -105,10 +105,10 @@ func TestParseScoreResponse_JSON(t *testing.T) {
 // TestParseScoreResponse_Text 测试纯文本格式解析
 func TestParseScoreResponse_Text(t *testing.T) {
 	tests := []struct {
-		name       string
-		output     string
-		wantScore  float64
-		wantErr    bool
+		name      string
+		output    string
+		wantScore float64
+		wantErr   bool
 	}{
 		{
 			name:      "text with Score:",
@@ -152,11 +152,11 @@ func TestParseScoreResponse_Text(t *testing.T) {
 // TestLLMScorer_Score 测试 LLM Scorer 的基本功能
 func TestLLMScorer_Score(t *testing.T) {
 	tests := []struct {
-		name          string
-		mockResponse  string
-		input         *TextEvalInput
-		wantScore     float64
-		wantErr       bool
+		name         string
+		mockResponse string
+		input        *TextEvalInput
+		wantScore    float64
+		wantErr      bool
 	}{
 		{
 			name:         "successful JSON response",

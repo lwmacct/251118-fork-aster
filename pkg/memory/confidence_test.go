@@ -12,10 +12,10 @@ func TestConfidenceCalculator_Calculate(t *testing.T) {
 	calc := NewConfidenceCalculator(cfg)
 
 	tests := []struct {
-		name           string
+		name            string
 		setupProvenance func() *MemoryProvenance
-		wantMin        float64
-		wantMax        float64
+		wantMin         float64
+		wantMax         float64
 	}{
 		{
 			name: "fresh user input",
@@ -207,32 +207,32 @@ func TestConfidenceCalculator_ScoreByRelevance(t *testing.T) {
 	calc := NewConfidenceCalculator(DefaultConfidenceConfig())
 
 	tests := []struct {
-		name           string
-		semanticScore  float64
-		confidence     float64
-		wantMin        float64
-		wantMax        float64
+		name          string
+		semanticScore float64
+		confidence    float64
+		wantMin       float64
+		wantMax       float64
 	}{
 		{
-			name:           "high semantic, high confidence",
-			semanticScore:  0.9,
-			confidence:     0.9,
-			wantMin:        0.80,
-			wantMax:        0.82,
+			name:          "high semantic, high confidence",
+			semanticScore: 0.9,
+			confidence:    0.9,
+			wantMin:       0.80,
+			wantMax:       0.82,
 		},
 		{
-			name:           "high semantic, low confidence",
-			semanticScore:  0.9,
-			confidence:     0.3,
-			wantMin:        0.26,
-			wantMax:        0.28,
+			name:          "high semantic, low confidence",
+			semanticScore: 0.9,
+			confidence:    0.3,
+			wantMin:       0.26,
+			wantMax:       0.28,
 		},
 		{
-			name:           "low semantic, high confidence",
-			semanticScore:  0.3,
-			confidence:     0.9,
-			wantMin:        0.26,
-			wantMax:        0.28,
+			name:          "low semantic, high confidence",
+			semanticScore: 0.3,
+			confidence:    0.9,
+			wantMin:       0.26,
+			wantMax:       0.28,
 		},
 	}
 

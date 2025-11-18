@@ -17,7 +17,7 @@ type ExecutorConfig struct {
 
 // Executor 工具执行器
 type Executor struct {
-	config   ExecutorConfig
+	config    ExecutorConfig
 	semaphore chan struct{}
 	running   sync.WaitGroup
 }

@@ -172,8 +172,8 @@ func TestTodoWriteTool_UpdateTodo(t *testing.T) {
 				"priority":   3,
 			},
 		},
-		"action":   "update",
-		"todo_id":  todoID,
+		"action":  "update",
+		"todo_id": todoID,
 	}
 
 	result := ExecuteToolWithInput(t, tool, updateInput)
@@ -248,18 +248,18 @@ func TestTodoWriteTool_ClearTodos(t *testing.T) {
 	createInput := map[string]interface{}{
 		"todos": []interface{}{
 			map[string]interface{}{
-				"content": "Task 1",
-				"status":  "pending",
+				"content":    "Task 1",
+				"status":     "pending",
 				"activeForm": "任务1",
 			},
 			map[string]interface{}{
-				"content": "Task 2",
-				"status":  "pending",
+				"content":    "Task 2",
+				"status":     "pending",
 				"activeForm": "任务2",
 			},
 			map[string]interface{}{
-				"content": "Task 3",
-				"status":  "pending",
+				"content":    "Task 3",
+				"status":     "pending",
 				"activeForm": "任务3",
 			},
 		},
@@ -557,7 +557,7 @@ func TestTodoWriteTool_ConcurrentOperations(t *testing.T) {
 					"priority":   1,
 				},
 			},
-			"action": "create",
+			"action":    "create",
 			"list_name": fmt.Sprintf("concurrent_test_list_%d", time.Now().UnixNano()),
 		}
 

@@ -104,10 +104,10 @@ func (t *UpdateWorkingMemoryTool) Execute(ctx context.Context, input map[string]
 	}
 
 	return map[string]interface{}{
-		"success":    true,
-		"thread_id":  threadID,
+		"success":     true,
+		"thread_id":   threadID,
 		"resource_id": resourceID,
-		"scope":      string(t.manager.GetScope()),
+		"scope":       string(t.manager.GetScope()),
 	}, nil
 }
 

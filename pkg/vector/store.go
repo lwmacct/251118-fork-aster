@@ -35,4 +35,3 @@ type VectorStore interface {
 	Query(ctx context.Context, q Query) ([]Hit, error)
 	Close() error
 }
-

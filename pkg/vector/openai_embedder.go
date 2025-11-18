@@ -11,7 +11,8 @@ import (
 
 // OpenAIEmbedder 基于 OpenAI 兼容接口的 Embedder 实现。
 // 默认调用 POST {BaseURL}/v1/embeddings, 请求格式:
-//   { "input": [...], "model": "text-embedding-3-small" }
+//
+//	{ "input": [...], "model": "text-embedding-3-small" }
 type OpenAIEmbedder struct {
 	BaseURL string
 	APIKey  string
@@ -105,4 +106,3 @@ func (e *OpenAIEmbedder) EmbedText(ctx context.Context, texts []string) ([][]flo
 
 	return out, nil
 }
-

@@ -239,28 +239,28 @@ func NewBaseEnhancedTool(name, description string) *BaseEnhancedTool {
 		name:        name,
 		description: description,
 		timeout:     30 * time.Second, // 默认 30 秒
-		priority:    100,               // 默认优先级
+		priority:    100,              // 默认优先级
 		metadata:    make(map[string]interface{}),
 	}
 }
 
-func (t *BaseEnhancedTool) Name() string                        { return t.name }
-func (t *BaseEnhancedTool) Description() string                 { return t.description }
-func (t *BaseEnhancedTool) Schema() *types.ToolSchema           { return t.schema }
-func (t *BaseEnhancedTool) IsLongRunning() bool                 { return t.isLongRunning }
-func (t *BaseEnhancedTool) Timeout() time.Duration              { return t.timeout }
-func (t *BaseEnhancedTool) RequiresApproval() bool              { return t.requireApproval }
-func (t *BaseEnhancedTool) Priority() int                       { return t.priority }
-func (t *BaseEnhancedTool) RetryPolicy() *RetryPolicy           { return t.retryPolicy }
-func (t *BaseEnhancedTool) Metadata() map[string]interface{}    { return t.metadata }
+func (t *BaseEnhancedTool) Name() string                     { return t.name }
+func (t *BaseEnhancedTool) Description() string              { return t.description }
+func (t *BaseEnhancedTool) Schema() *types.ToolSchema        { return t.schema }
+func (t *BaseEnhancedTool) IsLongRunning() bool              { return t.isLongRunning }
+func (t *BaseEnhancedTool) Timeout() time.Duration           { return t.timeout }
+func (t *BaseEnhancedTool) RequiresApproval() bool           { return t.requireApproval }
+func (t *BaseEnhancedTool) Priority() int                    { return t.priority }
+func (t *BaseEnhancedTool) RetryPolicy() *RetryPolicy        { return t.retryPolicy }
+func (t *BaseEnhancedTool) Metadata() map[string]interface{} { return t.metadata }
 
 // Setter 方法
-func (t *BaseEnhancedTool) SetSchema(schema *types.ToolSchema)      { t.schema = schema }
-func (t *BaseEnhancedTool) SetLongRunning(v bool)                   { t.isLongRunning = v }
-func (t *BaseEnhancedTool) SetTimeout(d time.Duration)              { t.timeout = d }
-func (t *BaseEnhancedTool) SetRequireApproval(v bool)               { t.requireApproval = v }
-func (t *BaseEnhancedTool) SetPriority(p int)                       { t.priority = p }
-func (t *BaseEnhancedTool) SetRetryPolicy(policy *RetryPolicy)      { t.retryPolicy = policy }
+func (t *BaseEnhancedTool) SetSchema(schema *types.ToolSchema) { t.schema = schema }
+func (t *BaseEnhancedTool) SetLongRunning(v bool)              { t.isLongRunning = v }
+func (t *BaseEnhancedTool) SetTimeout(d time.Duration)         { t.timeout = d }
+func (t *BaseEnhancedTool) SetRequireApproval(v bool)          { t.requireApproval = v }
+func (t *BaseEnhancedTool) SetPriority(p int)                  { t.priority = p }
+func (t *BaseEnhancedTool) SetRetryPolicy(policy *RetryPolicy) { t.retryPolicy = policy }
 func (t *BaseEnhancedTool) SetMetadata(key string, value interface{}) {
 	t.metadata[key] = value
 }

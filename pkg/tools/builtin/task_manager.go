@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-		"os"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -52,19 +52,19 @@ type TaskOptions struct {
 
 // TaskInfo 任务信息
 type TaskInfo struct {
-	ID          string            `json:"id"`
-	Command     string            `json:"command"`
-	PID         int               `json:"pid"`
-	Status      string            `json:"status"` // "running", "completed", "failed", "killed"
-	ExitCode    int               `json:"exit_code"`
-	StartTime   time.Time         `json:"start_time"`
-	EndTime     *time.Time        `json:"end_time,omitempty"`
-	Duration    time.Duration     `json:"duration"`
-	WorkDir     string            `json:"work_dir"`
-	Shell       string            `json:"shell"`
-	Options     *TaskOptions      `json:"options"`
-	Metadata    map[string]string `json:"metadata"`
-	LastUpdate  time.Time         `json:"last_update"`
+	ID         string            `json:"id"`
+	Command    string            `json:"command"`
+	PID        int               `json:"pid"`
+	Status     string            `json:"status"` // "running", "completed", "failed", "killed"
+	ExitCode   int               `json:"exit_code"`
+	StartTime  time.Time         `json:"start_time"`
+	EndTime    *time.Time        `json:"end_time,omitempty"`
+	Duration   time.Duration     `json:"duration"`
+	WorkDir    string            `json:"work_dir"`
+	Shell      string            `json:"shell"`
+	Options    *TaskOptions      `json:"options"`
+	Metadata   map[string]string `json:"metadata"`
+	LastUpdate time.Time         `json:"last_update"`
 }
 
 // FileTaskManager 基于文件系统的任务管理器实现
@@ -127,15 +127,15 @@ func (tm *FileTaskManager) StartTask(ctx context.Context, cmd string, opts *Task
 
 	// 创建任务信息
 	taskInfo := &TaskInfo{
-		ID:          taskID,
-		Command:     cmd,
-		Status:      "starting",
-		StartTime:   time.Now(),
-		WorkDir:     opts.WorkDir,
-		Shell:       opts.Shell,
-		Options:     opts,
-		Metadata:    make(map[string]string),
-		LastUpdate:  time.Now(),
+		ID:         taskID,
+		Command:    cmd,
+		Status:     "starting",
+		StartTime:  time.Now(),
+		WorkDir:    opts.WorkDir,
+		Shell:      opts.Shell,
+		Options:    opts,
+		Metadata:   make(map[string]string),
+		LastUpdate: time.Now(),
 	}
 
 	// 构建命令

@@ -53,7 +53,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	filePath, ok := input["file_path"].(string)
 	if !ok {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": "file_path must be a string",
 			"recommendations": []string{
 				"确保file_path参数为字符串类型",
@@ -64,7 +64,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	if filePath == "" {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": "file_path cannot be empty",
 			"recommendations": []string{
 				"提供有效的文件路径",
@@ -76,7 +76,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	// 验证文件路径安全性
 	if err := t.validatePath(filePath); err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("invalid file path: %v", err),
 			"recommendations": []string{
 				"使用相对路径或允许的绝对路径",
@@ -105,7 +105,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	content, err := tc.Sandbox.FS().Read(ctx, filePath)
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("failed to read file: %v", err),
 			"recommendations": []string{
 				"检查文件路径是否正确",
@@ -113,7 +113,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 				"验证是否有读取权限",
 				"检查文件是否被其他进程占用",
 			},
-			"file_path": filePath,
+			"file_path":   filePath,
 			"duration_ms": time.Since(start).Milliseconds(),
 		}, nil
 	}
@@ -121,14 +121,14 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	// 如果文件为空
 	if content == "" {
 		return map[string]interface{}{
-			"ok": true,
-			"file_path": filePath,
-			"content": "",
-			"lines": 0,
-			"offset": offset,
-			"limit": limit,
-			"truncated": false,
-			"file_size": 0,
+			"ok":          true,
+			"file_path":   filePath,
+			"content":     "",
+			"lines":       0,
+			"offset":      offset,
+			"limit":       limit,
+			"truncated":   false,
+			"file_size":   0,
 			"duration_ms": time.Since(start).Milliseconds(),
 		}, nil
 	}
@@ -141,15 +141,15 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	startLine := offset - 1
 	if startLine >= totalLines {
 		return map[string]interface{}{
-			"ok": true,
-			"file_path": filePath,
-			"content": "",
-			"lines": 0,
-			"offset": offset,
-			"limit": limit,
-			"truncated": false,
+			"ok":          true,
+			"file_path":   filePath,
+			"content":     "",
+			"lines":       0,
+			"offset":      offset,
+			"limit":       limit,
+			"truncated":   false,
 			"total_lines": totalLines,
-			"file_size": len(content),
+			"file_size":   len(content),
 			"duration_ms": time.Since(start).Milliseconds(),
 		}, nil
 	}
@@ -222,16 +222,16 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	}
 
 	return map[string]interface{}{
-		"ok": true,
-		"file_path": filePath,
-		"content": resultContent,
-		"lines": readLines,
-		"offset": offset,
-		"limit": limit,
-		"truncated": truncated,
+		"ok":          true,
+		"file_path":   filePath,
+		"content":     resultContent,
+		"lines":       readLines,
+		"offset":      offset,
+		"limit":       limit,
+		"truncated":   truncated,
 		"total_lines": totalLines,
-		"file_size": fileSize,
-		"file_type": fileType,
+		"file_size":   fileSize,
+		"file_type":   fileType,
 		"duration_ms": time.Since(start).Milliseconds(),
 	}, nil
 }

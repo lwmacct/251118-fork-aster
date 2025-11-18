@@ -41,7 +41,7 @@ func (t *GlobTool) InputSchema() map[string]interface{} {
 				"description": "搜索的起始目录，默认为当前目录",
 			},
 			"exclude_patterns": map[string]interface{}{
-				"type": "array",
+				"type":        "array",
 				"description": "要排除的文件模式列表",
 				"items": map[string]interface{}{
 					"type": "string",
@@ -108,7 +108,7 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("search failed: %v", err),
 			"recommendations": []string{
 				"检查搜索模式是否正确",
@@ -116,8 +116,8 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 				"验证是否有读取权限",
 				"检查模式是否包含特殊字符",
 			},
-			"pattern": pattern,
-			"path": path,
+			"pattern":     pattern,
+			"path":        path,
 			"duration_ms": duration.Milliseconds(),
 		}, nil
 	}
@@ -191,29 +191,29 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 		}
 
 		fileInfos[i] = map[string]interface{}{
-			"path": match,
-			"name": filepath.Base(match),
-			"type": fileType,
-			"size": size,
+			"path":          match,
+			"name":          filepath.Base(match),
+			"type":          fileType,
+			"size":          size,
 			"modified_time": modifiedTime.Unix(),
 			"relative_path": t.getRelativePath(match, path),
 		}
 	}
 
 	return map[string]interface{}{
-		"ok": true,
-		"pattern": pattern,
-		"path": path,
-		"matches": fileInfos,
-		"total_matches": len(fileInfos),
-		"truncated": maxResults > 0 && len(matches) >= maxResults,
+		"ok":               true,
+		"pattern":          pattern,
+		"path":             path,
+		"matches":          fileInfos,
+		"total_matches":    len(fileInfos),
+		"truncated":        maxResults > 0 && len(matches) >= maxResults,
 		"exclude_patterns": excludePatterns,
-		"include_hidden": includeHidden,
-		"case_sensitive": caseSensitive,
-		"sort_by": sortBy,
-		"recursive": recursive,
-		"max_results": maxResults,
-		"duration_ms": duration.Milliseconds(),
+		"include_hidden":   includeHidden,
+		"case_sensitive":   caseSensitive,
+		"sort_by":          sortBy,
+		"recursive":        recursive,
+		"max_results":      maxResults,
+		"duration_ms":      duration.Milliseconds(),
 	}, nil
 }
 
@@ -290,8 +290,8 @@ func (t *GlobTool) validatePath(path string) error {
 func (t *GlobTool) searchFiles(ctx context.Context, rootPath, pattern string, excludePatterns []string, includeHidden, caseSensitive, recursive bool, tc *tools.ToolContext) ([]string, error) {
 	// 使用沙箱的Glob功能
 	opts := &sandbox.GlobOptions{
-		CWD:    rootPath,
-		Dot:    includeHidden,
+		CWD:      rootPath,
+		Dot:      includeHidden,
 		Absolute: false,
 	}
 

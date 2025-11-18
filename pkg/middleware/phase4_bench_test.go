@@ -27,7 +27,7 @@ func BenchmarkSummarizationMiddleware_NoSummarization(b *testing.B) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -62,7 +62,7 @@ func BenchmarkSummarizationMiddleware_WithSummarization(b *testing.B) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -94,7 +94,7 @@ func BenchmarkAgentMemoryMiddleware_LazyLoad(b *testing.B) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -130,7 +130,7 @@ func BenchmarkAgentMemoryMiddleware_AlreadyLoaded(b *testing.B) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil
@@ -207,7 +207,7 @@ func BenchmarkPhase4Stack(b *testing.B) {
 	handler := func(ctx context.Context, req *ModelRequest) (*ModelResponse, error) {
 		return &ModelResponse{
 			Message: types.Message{
-				Role:    types.MessageRoleAssistant,
+				Role:          types.MessageRoleAssistant,
 				ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: "Response"}},
 			},
 		}, nil

@@ -6,8 +6,8 @@ import (
 	"iter"
 	"sync"
 
-	"golang.org/x/sync/errgroup"
 	"github.com/astercloud/aster/pkg/session"
+	"golang.org/x/sync/errgroup"
 )
 
 // ParallelAgent 并行执行多个子 Agent

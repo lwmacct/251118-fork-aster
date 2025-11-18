@@ -118,7 +118,7 @@ func TestBashTool_WorkingDirectory(t *testing.T) {
 
 	input := map[string]interface{}{
 		"command": "pwd",
-		"cwd":      helper.TmpDir,
+		"cwd":     helper.TmpDir,
 	}
 
 	result := ExecuteToolWithInput(t, tool, input)

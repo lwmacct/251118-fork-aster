@@ -19,9 +19,9 @@ const (
 
 // TodoItem 任务项
 type TodoItem struct {
-	Content    string     `json:"content"`     // 任务内容描述
-	Status     TodoStatus `json:"status"`      // 任务状态
-	ActiveForm string     `json:"activeForm"`  // 进行时描述
+	Content    string     `json:"content"`    // 任务内容描述
+	Status     TodoStatus `json:"status"`     // 任务状态
+	ActiveForm string     `json:"activeForm"` // 进行时描述
 }
 
 // TodoListMiddleware 任务列表中间件
