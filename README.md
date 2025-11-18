@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/public/images/logo-banner.svg" alt="Aster · 星尘云枢" width="800">
+  <img src="https://raw.githubusercontent.com/astercloud/aster/main/docs/public/images/logo-banner.svg" alt="Aster · 星尘云枢" width="800">
 </p>
 
 <p align="center">

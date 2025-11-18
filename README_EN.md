@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/public/images/logo-banner.svg" alt="Aster · Where Stardust Converges" width="800">
+  <img src="https://raw.githubusercontent.com/astercloud/aster/main/docs/public/images/logo-banner.svg" alt="Aster · Where Stardust Converges" width="800">
 </p>
 
 <p align="center">
