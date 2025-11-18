@@ -297,7 +297,6 @@ func (c *SimpleTokenCounter) ModelName() string {
 // TikTokenCounter 使用 tiktoken 库的精确计数器（可选）
 // 注意: 这需要外部依赖，暂时作为接口定义
 type TikTokenCounter struct {
-	modelName string
 	// encoder tiktoken.Encoder // 需要引入 tiktoken 库
 }
 
@@ -405,8 +404,8 @@ func (m *MultiModelTokenCounter) EstimateMessagesForModel(ctx context.Context, m
 
 // TokenBudget 表示 Token 预算配置
 type TokenBudget struct {
-	MaxTokens     int // 最大 Token 数
-	ReservedTokens int // 预留 Token 数（用于输出）
+	MaxTokens        int     // 最大 Token 数
+	ReservedTokens   int     // 预留 Token 数（用于输出）
 	WarningThreshold float64 // 警告阈值（0.0-1.0）
 }
 

@@ -15,13 +15,13 @@ import (
 type PreferenceCategory string
 
 const (
-	CategoryUI       PreferenceCategory = "ui"        // UI 偏好
-	CategoryWorkflow PreferenceCategory = "workflow"  // 工作流偏好
-	CategoryContent  PreferenceCategory = "content"   // 内容偏好
-	CategoryLanguage PreferenceCategory = "language"  // 语言偏好
-	CategoryTiming   PreferenceCategory = "timing"    // 时间偏好
-	CategoryFormat   PreferenceCategory = "format"    // 格式偏好
-	CategoryGeneral  PreferenceCategory = "general"   // 通用偏好
+	CategoryUI       PreferenceCategory = "ui"       // UI 偏好
+	CategoryWorkflow PreferenceCategory = "workflow" // 工作流偏好
+	CategoryContent  PreferenceCategory = "content"  // 内容偏好
+	CategoryLanguage PreferenceCategory = "language" // 语言偏好
+	CategoryTiming   PreferenceCategory = "timing"   // 时间偏好
+	CategoryFormat   PreferenceCategory = "format"   // 格式偏好
+	CategoryGeneral  PreferenceCategory = "general"  // 通用偏好
 )
 
 // Preference 用户偏好
@@ -83,8 +83,8 @@ const (
 // DefaultPreferenceManagerConfig 返回默认配置
 func DefaultPreferenceManagerConfig() PreferenceManagerConfig {
 	return PreferenceManagerConfig{
-		StrengthDecay:         0.01,  // 每天衰减 1%
-		MinStrength:           0.1,   // 最小强度 10%
+		StrengthDecay:         0.01, // 每天衰减 1%
+		MinStrength:           0.1,  // 最小强度 10%
 		MaxPreferencesPerUser: 1000,
 		ConflictStrategy:      ConflictKeepStronger,
 		AutoExtract:           true,
@@ -261,7 +261,7 @@ func (pm *PreferenceManager) DeletePreference(
 	prefs := pm.preferences[userID]
 	newPrefs := []*Preference{}
 	for _, p := range prefs {
-		if !(p.Category == category && p.Key == key) {
+		if p.Category != category || p.Key != key {
 			newPrefs = append(newPrefs, p)
 		}
 	}
@@ -366,12 +366,12 @@ func (pm *PreferenceManager) GetStats(userID string) PreferenceStats {
 	defer pm.mu.RUnlock()
 
 	stats := PreferenceStats{
-		TotalPreferences:       len(pm.preferences[userID]),
-		CategoryDistribution:   make(map[PreferenceCategory]int),
-		AverageStrength:        0,
-		HighStrengthCount:      0,
-		MediumStrengthCount:    0,
-		LowStrengthCount:       0,
+		TotalPreferences:     len(pm.preferences[userID]),
+		CategoryDistribution: make(map[PreferenceCategory]int),
+		AverageStrength:      0,
+		HighStrengthCount:    0,
+		MediumStrengthCount:  0,
+		LowStrengthCount:     0,
 	}
 
 	if stats.TotalPreferences == 0 {
@@ -400,12 +400,12 @@ func (pm *PreferenceManager) GetStats(userID string) PreferenceStats {
 
 // PreferenceStats 偏好统计信息
 type PreferenceStats struct {
-	TotalPreferences       int                               // 总偏好数
-	CategoryDistribution   map[PreferenceCategory]int        // 类别分布
-	AverageStrength        float64                           // 平均强度
-	HighStrengthCount      int                               // 高强度数量 (>= 0.7)
-	MediumStrengthCount    int                               // 中等强度数量 (>= 0.4)
-	LowStrengthCount       int                               // 低强度数量 (< 0.4)
+	TotalPreferences     int                        // 总偏好数
+	CategoryDistribution map[PreferenceCategory]int // 类别分布
+	AverageStrength      float64                    // 平均强度
+	HighStrengthCount    int                        // 高强度数量 (>= 0.7)
+	MediumStrengthCount  int                        // 中等强度数量 (>= 0.4)
+	LowStrengthCount     int                        // 低强度数量 (< 0.4)
 }
 
 // PreferenceExtractor 偏好提取器

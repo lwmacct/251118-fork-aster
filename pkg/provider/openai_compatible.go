@@ -52,10 +52,10 @@ type OpenAICompatibleOptions struct {
 	Timeout time.Duration
 
 	// 重试配置
-	MaxRetries    int
-	RetryDelay    time.Duration
-	RetryOn429    bool // 是否在 429 时重试
-	RetryOn500    bool // 是否在 5xx 时重试
+	MaxRetries int
+	RetryDelay time.Duration
+	RetryOn429 bool // 是否在 429 时重试
+	RetryOn500 bool // 是否在 5xx 时重试
 
 	// 自定义请求头
 	CustomHeaders map[string]string
@@ -310,14 +310,15 @@ func (p *OpenAICompatibleProvider) convertContentBlocks(blocks []types.ContentBl
 			imageBlock := map[string]interface{}{
 				"type": "image_url",
 			}
-			if b.Type == "url" {
+			switch b.Type {
+			case "url":
 				imageBlock["image_url"] = map[string]interface{}{
 					"url": b.Source,
 				}
 				if b.Detail != "" {
 					imageBlock["image_url"].(map[string]interface{})["detail"] = b.Detail
 				}
-			} else if b.Type == "base64" {
+			case "base64":
 				// base64 格式
 				dataURL := fmt.Sprintf("data:%s;base64,%s", b.MimeType, b.Source)
 				imageBlock["image_url"] = map[string]interface{}{

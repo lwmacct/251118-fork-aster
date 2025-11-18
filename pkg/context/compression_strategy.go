@@ -186,8 +186,8 @@ func (s *PriorityBasedStrategy) Compress(
 // TokenBasedStrategy 基于 Token 预算的压缩策略
 // 从最旧的消息开始删除，直到满足 Token 预算
 type TokenBasedStrategy struct {
-	tokenCounter   TokenCounter
-	targetUsage    float64 // 目标使用率（0.0-1.0）
+	tokenCounter TokenCounter
+	targetUsage  float64 // 目标使用率（0.0-1.0）
 }
 
 // NewTokenBasedStrategy 创建基于 Token 的策略
@@ -230,12 +230,10 @@ func (s *TokenBasedStrategy) Compress(
 	keepIndices := make(map[int]bool)
 
 	// 1. 始终保留 system 消息
-	systemIndices := []int{}
 	if config.AlwaysKeepSystem {
 		for i, msg := range messages {
 			if msg.Role == "system" {
 				keepIndices[i] = true
-				systemIndices = append(systemIndices, i)
 			}
 		}
 	}

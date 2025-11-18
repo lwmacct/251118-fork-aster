@@ -6,13 +6,13 @@ import (
 	"iter"
 	"log"
 
-	"github.com/google/uuid"
 	"github.com/astercloud/aster/pkg/middleware"
 	"github.com/astercloud/aster/pkg/provider"
 	"github.com/astercloud/aster/pkg/session"
 	"github.com/astercloud/aster/pkg/skills"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/types"
+	"github.com/google/uuid"
 )
 
 // StreamingAgent 扩展接口 - 支持流式执行
@@ -390,12 +390,9 @@ func (a *Agent) executeToolCalls(ctx context.Context, toolCalls []types.ToolCall
 
 		// 执行工具
 		req := &tools.ExecuteRequest{
-			Tool:  tool,
-			Input: call.Arguments,
-			Context: &tools.ToolContext{
-				AgentID: a.id,
-				Signal:  ctx,
-			},
+			Tool:    tool,
+			Input:   call.Arguments,
+			Context: a.buildToolContext(ctx),
 		}
 		execResult := a.executor.Execute(ctx, req)
 		if execResult.Error != nil {
@@ -433,11 +430,6 @@ func (a *Agent) getToolsForProvider() []types.ToolDefinition {
 		})
 	}
 	return tools
-}
-
-// getMaxTokens 获取最大 token 数 (已弃用)
-func (a *Agent) getMaxTokens() int {
-	return 4096 // 默认值
 }
 
 // persistMessage 持久化消息

@@ -1,8 +1,6 @@
 package server
 
 import (
-	"net/http"
-
 	"github.com/astercloud/aster/server/handlers"
 	"github.com/gin-gonic/gin"
 )
@@ -115,19 +113,33 @@ func (s *Server) registerToolRoutes(rg *gin.RouterGroup) {
 
 // registerMiddlewareRoutes registers all middleware-related routes
 func (s *Server) registerMiddlewareRoutes(rg *gin.RouterGroup) {
-	// TODO: Implement middleware management API
-	// This would allow dynamic registration/management of middleware chains
+	// Create middleware handler
+	h := handlers.NewMiddlewareHandler(s.store)
+
 	middlewares := rg.Group("/middlewares")
 	{
-		// Placeholder: returns available middleware types
-		middlewares.GET("", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"success": true,
-				"data": []string{
-					"logging", "cors", "auth", "rate_limit", "metrics",
-				},
-			})
-		})
+		// Basic CRUD
+		middlewares.POST("", h.Create)
+		middlewares.GET("", h.List)
+		middlewares.GET("/:id", h.Get)
+		middlewares.PATCH("/:id", h.Update)
+		middlewares.DELETE("/:id", h.Delete)
+
+		// Management operations
+		middlewares.POST("/:id/enable", h.Enable)
+		middlewares.POST("/:id/disable", h.Disable)
+		middlewares.POST("/:id/reload", h.Reload)
+		middlewares.GET("/:id/stats", h.GetStats)
+
+		// Registry
+		registry := middlewares.Group("/registry")
+		{
+			registry.GET("", h.ListRegistry)
+			registry.POST("/:id/install", h.Install)
+			registry.DELETE("/:id/uninstall", h.Uninstall)
+			registry.GET("/:id/info", h.GetInfo)
+			registry.POST("/reload-all", h.ReloadAll)
+		}
 	}
 }
 
@@ -202,5 +214,31 @@ func (s *Server) registerMCPRoutes(rg *gin.RouterGroup) {
 			servers.POST("/:id/connect", h.Connect)
 			servers.POST("/:id/disconnect", h.Disconnect)
 		}
+	}
+}
+
+// registerSystemRoutes registers all system-related routes
+func (s *Server) registerSystemRoutes(rg *gin.RouterGroup) {
+	// Create system handler
+	h := handlers.NewSystemHandler(s.store)
+
+	system := rg.Group("/system")
+	{
+		// Configuration management
+		config := system.Group("/config")
+		{
+			config.GET("", h.ListConfig)
+			config.GET("/:key", h.GetConfig)
+			config.PUT("/:key", h.UpdateConfig)
+			config.DELETE("/:key", h.DeleteConfig)
+		}
+
+		// System operations
+		system.GET("/info", h.GetInfo)
+		system.GET("/health", h.GetHealth)
+		system.GET("/stats", h.GetStats)
+		system.POST("/reload", h.Reload)
+		system.POST("/gc", h.RunGC)
+		system.POST("/backup", h.Backup)
 	}
 }

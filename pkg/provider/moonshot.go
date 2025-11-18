@@ -61,9 +61,10 @@ func (p *MoonshotProvider) Capabilities() ProviderCapabilities {
 
 	// 根据模型调整 MaxTokens
 	model := p.Config().Model
-	if model == "moonshot-v1-32k" {
+	switch model {
+	case "moonshot-v1-32k":
 		caps.MaxTokens = 32000
-	} else if model == "moonshot-v1-128k" {
+	case "moonshot-v1-128k":
 		caps.MaxTokens = 128000
 	}
 

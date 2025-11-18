@@ -3,11 +3,8 @@ package builtin
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
-	"github.com/astercloud/aster/pkg/sandbox"
 	"github.com/astercloud/aster/pkg/tools"
 )
 
@@ -87,14 +84,14 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]interface{
 	task, err := taskManager.GetTask(shellID)
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("background shell not found: %s", shellID),
 			"recommendations": []string{
 				"确认shell_id是否正确",
 				"检查任务是否已经被终止",
 				"使用BashOutput工具查看可用的后台任务",
 			},
-			"shell_id": shellID,
+			"shell_id":    shellID,
 			"duration_ms": time.Since(start).Milliseconds(),
 		}, nil
 	}
@@ -102,12 +99,12 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]interface{
 	// 检查任务状态
 	if task.Status != "running" {
 		return map[string]interface{}{
-			"ok": false,
-			"error": fmt.Sprintf("task is not running, current status: %s", task.Status),
-			"shell_id": shellID,
-			"command": task.Command,
-			"pid": task.PID,
-			"status": task.Status,
+			"ok":          false,
+			"error":       fmt.Sprintf("task is not running, current status: %s", task.Status),
+			"shell_id":    shellID,
+			"command":     task.Command,
+			"pid":         task.PID,
+			"status":      task.Status,
 			"duration_ms": time.Since(start).Milliseconds(),
 			"recommendations": []string{
 				"任务已经完成或失败，无需终止",
@@ -170,19 +167,19 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]interface{
 
 	// 构建响应
 	response := map[string]interface{}{
-		"ok": success,
-		"shell_id": shellID,
-		"command": task.Command,
-		"pid": task.PID,
-		"status": updatedTask.Status,
-		"signal": finalSignal,
+		"ok":          success,
+		"shell_id":    shellID,
+		"command":     task.Command,
+		"pid":         task.PID,
+		"status":      updatedTask.Status,
+		"signal":      finalSignal,
 		"duration_ms": duration.Milliseconds(),
-		"kill_time": start.Unix(),
-		"success": success,
-		"message": message,
-		"force": force,
-		"wait": wait,
-		"cleanup": cleanup,
+		"kill_time":   start.Unix(),
+		"success":     success,
+		"message":     message,
+		"force":       force,
+		"wait":        wait,
+		"cleanup":     cleanup,
 	}
 
 	// 添加退出码（如果可获得）
@@ -215,7 +212,13 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]interface{
 	return response, nil
 }
 
+// 以下辅助函数预留用于未来的功能增强
+// 当前实现使用taskManager，但这些函数提供了独立的底层操作能力
+
 // isProcessRunning 检查进程是否运行（辅助函数）
+// 预留用于直接进程检查，不依赖taskManager
+//
+//nolint:unused // 预留用于未来功能增强
 func (t *KillShellTool) isProcessRunning(ctx context.Context, pid int, tc *tools.ToolContext) bool {
 	if pid <= 0 {
 		return false
@@ -223,7 +226,7 @@ func (t *KillShellTool) isProcessRunning(ctx context.Context, pid int, tc *tools
 
 	// 使用ps命令检查进程
 	psCmd := fmt.Sprintf("ps -p %d > /dev/null 2>&1", pid)
-	result, err := tc.Sandbox.Exec(ctx, psCmd, &sandbox.ExecOptions{})
+	result, err := tc.Sandbox.Exec(ctx, psCmd, nil)
 	if err != nil {
 		return false
 	}
@@ -232,6 +235,9 @@ func (t *KillShellTool) isProcessRunning(ctx context.Context, pid int, tc *tools
 }
 
 // getSignalNumber 获取信号编号
+// 预留用于信号转换，提供统一的信号处理接口
+//
+//nolint:unused // 预留用于未来功能增强
 func (t *KillShellTool) getSignalNumber(signal string) int {
 	signalMap := map[string]int{
 		"SIGTERM": 15,
@@ -248,7 +254,8 @@ func (t *KillShellTool) getSignalNumber(signal string) int {
 	}
 
 	// 尝试解析数字
-	if num, err := strconv.Atoi(signal); err == nil {
+	var num int
+	if _, err := fmt.Sscanf(signal, "%d", &num); err == nil {
 		return num
 	}
 
@@ -257,6 +264,9 @@ func (t *KillShellTool) getSignalNumber(signal string) int {
 }
 
 // waitForProcessExit 等待进程退出（辅助函数）
+// 预留用于同步等待进程终止，返回退出码
+//
+//nolint:unused // 预留用于未来功能增强
 func (t *KillShellTool) waitForProcessExit(ctx context.Context, pid int, timeoutSeconds int, tc *tools.ToolContext) int {
 	timeout := time.Duration(timeoutSeconds) * time.Second
 	startTime := time.Now()
@@ -265,9 +275,9 @@ func (t *KillShellTool) waitForProcessExit(ctx context.Context, pid int, timeout
 		if !t.isProcessRunning(ctx, pid, tc) {
 			// 进程已退出，获取退出码
 			waitCmd := fmt.Sprintf("wait %d 2>/dev/null; echo $?", pid)
-			if result, err := tc.Sandbox.Exec(ctx, waitCmd, &sandbox.ExecOptions{}); err == nil {
+			if result, err := tc.Sandbox.Exec(ctx, waitCmd, nil); err == nil {
 				var exitCode int
-				_, _ = fmt.Sscanf(strings.TrimSpace(result.Stdout), "%d", &exitCode)
+				_, _ = fmt.Sscanf(result.Stdout, "%d", &exitCode)
 				return exitCode
 			}
 			return 0 // 假设成功退出
@@ -285,17 +295,17 @@ func (t *KillShellTool) waitForProcessExit(ctx context.Context, pid int, timeout
 func (t *KillShellTool) getCleanupInfo(task *TaskInfo) map[string]interface{} {
 	if task == nil || task.Options == nil {
 		return map[string]interface{}{
-			"files_cleared": 0,
+			"files_cleared":  0,
 			"cleanup_method": "not_available",
 		}
 	}
 
 	return map[string]interface{}{
-		"output_file": fmt.Sprintf("%s/%s.stdout", task.Options.OutputDir, task.ID),
-		"error_file":  fmt.Sprintf("%s/%s.stderr", task.Options.OutputDir, task.ID),
-		"task_file":   fmt.Sprintf("%s/%s.json", "/tmp/agentsdk_tasks", task.ID),
-		"files_cleared": 3,
-		"cleanup_method": "file_truncate_and_remove",
+		"output_file":       fmt.Sprintf("%s/%s.stdout", task.Options.OutputDir, task.ID),
+		"error_file":        fmt.Sprintf("%s/%s.stderr", task.Options.OutputDir, task.ID),
+		"task_file":         fmt.Sprintf("%s/%s.json", "/tmp/agentsdk_tasks", task.ID),
+		"files_cleared":     3,
+		"cleanup_method":    "file_truncate_and_remove",
 		"cleanup_timestamp": time.Now().Unix(),
 	}
 }

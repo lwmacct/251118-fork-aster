@@ -3,6 +3,7 @@ package builtin
 import (
 	"context"
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -113,7 +114,7 @@ func (t *WriteTool) Execute(ctx context.Context, input map[string]interface{}, t
 		if dir != "." && dir != "/" {
 			// 创建目录（沙箱会处理）
 			if err := tc.Sandbox.FS().Write(ctx, dir+"/.mkdir_marker", ""); err != nil {
-				// 忽略错误，继续尝试写入文件
+				log.Printf("[WriteTool] Warning: failed to create directory marker: %v", err)
 			}
 		}
 	}
@@ -124,7 +125,7 @@ func (t *WriteTool) Execute(ctx context.Context, input map[string]interface{}, t
 
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("failed to write file: %v", err),
 			"recommendations": []string{
 				"检查文件路径是否正确",
@@ -133,7 +134,7 @@ func (t *WriteTool) Execute(ctx context.Context, input map[string]interface{}, t
 				"检查磁盘空间是否充足",
 				"验证文件是否被其他进程锁定",
 			},
-			"file_path": filePath,
+			"file_path":   filePath,
 			"duration_ms": duration.Milliseconds(),
 		}, nil
 	}
@@ -170,14 +171,14 @@ func (t *WriteTool) Execute(ctx context.Context, input map[string]interface{}, t
 
 	// 构建响应
 	response := map[string]interface{}{
-		"ok": true,
-		"file_path": filePath,
-		"content": content,
-		"lines": lines,
-		"file_size": fileSize,
-		"file_type": fileType,
-		"duration_ms": duration.Milliseconds(),
-		"append_mode": append,
+		"ok":           true,
+		"file_path":    filePath,
+		"content":      content,
+		"lines":        lines,
+		"file_size":    fileSize,
+		"file_type":    fileType,
+		"duration_ms":  duration.Milliseconds(),
+		"append_mode":  append,
 		"created_dirs": createDirs,
 	}
 
@@ -204,7 +205,6 @@ func (t *WriteTool) Execute(ctx context.Context, input map[string]interface{}, t
 
 	return response, nil
 }
-
 
 // validatePath 验证文件路径安全性
 func (t *WriteTool) validatePath(path string) error {
@@ -233,7 +233,6 @@ func (t *WriteTool) createBackup(ctx context.Context, filePath, content string, 
 
 	return backupPath
 }
-
 
 func (t *WriteTool) Prompt() string {
 	return `向本地文件系统写入文件内容。

@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -19,9 +20,9 @@ type StepCallback func(ctx context.Context, stepCount int) error
 type TriggerKind string
 
 const (
-	TriggerKindStep     TriggerKind = "step"      // 步骤触发
-	TriggerKindInterval TriggerKind = "interval"  // 时间间隔触发
-	TriggerKindCron     TriggerKind = "cron"      // Cron 表达式触发 (未实现)
+	TriggerKindStep      TriggerKind = "step"     // 步骤触发
+	TriggerKindInterval  TriggerKind = "interval" // 时间间隔触发
+	TriggerKindCron      TriggerKind = "cron"     // Cron 表达式触发 (未实现)
 	TriggerKindFileWatch TriggerKind = "file"     // 文件变化触发 (未实现)
 )
 
@@ -29,9 +30,9 @@ const (
 type ScheduledTask struct {
 	ID           string
 	Kind         TriggerKind
-	Spec         string        // 任务规格: "step:5", "interval:10s", "cron:* * * * *"
+	Spec         string // 任务规格: "step:5", "interval:10s", "cron:* * * * *"
 	Callback     TaskCallback
-	Agent        *agent.Agent  // 可选: 关联的 Agent
+	Agent        *agent.Agent // 可选: 关联的 Agent
 	LastTrigger  time.Time
 	TriggerCount int64
 	Enabled      bool
@@ -39,19 +40,19 @@ type ScheduledTask struct {
 
 // StepTask 步骤任务
 type StepTask struct {
-	ID           string
-	Every        int           // 每 N 步触发一次
-	Callback     StepCallback
+	ID            string
+	Every         int // 每 N 步触发一次
+	Callback      StepCallback
 	LastTriggered int
 }
 
 // IntervalTask 时间间隔任务
 type IntervalTask struct {
-	ID           string
-	Interval     time.Duration
-	Callback     TaskCallback
-	ticker       *time.Ticker
-	stopCh       chan struct{}
+	ID       string
+	Interval time.Duration
+	Callback TaskCallback
+	ticker   *time.Ticker
+	stopCh   chan struct{}
 }
 
 // SchedulerOptions Scheduler 配置
@@ -66,7 +67,7 @@ type Scheduler struct {
 	mu sync.RWMutex
 
 	// 步骤任务
-	stepTasks map[string]*StepTask
+	stepTasks     map[string]*StepTask
 	stepListeners []StepCallback
 
 	// 时间间隔任务
@@ -171,14 +172,14 @@ func (s *Scheduler) NotifyStep(stepCount int) {
 		}
 		go func(cb StepCallback) {
 			if err := cb(s.ctx, stepCount); err != nil {
-				// 记录错误但不中断
+				log.Printf("[Scheduler] Step callback error at step %d: %v", stepCount, err)
 			}
 		}(listener)
 	}
 
 	// 检查并触发任务
 	for _, task := range tasks {
-		shouldTrigger := stepCount - task.LastTriggered >= task.Every
+		shouldTrigger := stepCount-task.LastTriggered >= task.Every
 		if !shouldTrigger {
 			continue
 		}
@@ -191,7 +192,7 @@ func (s *Scheduler) NotifyStep(stepCount int) {
 		// 异步执行回调
 		go func(t *StepTask) {
 			if err := t.Callback(s.ctx, stepCount); err != nil {
-				// 记录错误
+				log.Printf("[Scheduler] Step task %s callback error: %v", t.ID, err)
 			}
 
 			// 通知触发
@@ -235,7 +236,7 @@ func (s *Scheduler) EveryInterval(interval time.Duration, callback TaskCallback)
 			case <-ticker.C:
 				// 执行回调
 				if err := callback(s.ctx); err != nil {
-					// 记录错误
+					log.Printf("[Scheduler] Interval task %s callback error: %v", id, err)
 				}
 
 				// 通知触发

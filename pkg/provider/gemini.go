@@ -287,14 +287,15 @@ func (p *GeminiProvider) convertMessages(messages []types.Message) []GeminiConte
 
 				case *types.ImageContent:
 					// 图片内容
-					if b.Type == "base64" {
+					switch b.Type {
+					case "base64":
 						content.Parts = append(content.Parts, GeminiPart{
 							InlineData: &GeminiBlob{
 								MimeType: b.MimeType,
 								Data:     b.Source,
 							},
 						})
-					} else if b.Type == "url" {
+					case "url":
 						// Gemini 不直接支持 URL，需要先下载并转换为 base64
 						// 这里简化处理，实际应用中需要下载图片
 						content.Parts = append(content.Parts, GeminiPart{
@@ -304,7 +305,8 @@ func (p *GeminiProvider) convertMessages(messages []types.Message) []GeminiConte
 
 				case *types.AudioContent:
 					// 音频内容
-					if b.Type == "base64" {
+					switch b.Type {
+					case "base64":
 						content.Parts = append(content.Parts, GeminiPart{
 							InlineData: &GeminiBlob{
 								MimeType: b.MimeType,

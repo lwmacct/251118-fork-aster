@@ -29,16 +29,16 @@ type TaskDefinition struct {
 
 // TaskExecution 任务执行结果
 type TaskExecution struct {
-	TaskID      string                 `json:"task_id"`
-	Subagent    string                 `json:"subagent"`
-	Model       string                 `json:"model"`
-	Status      string                 `json:"status"`
-	Result      interface{}            `json:"result,omitempty"`
-	Error       string                 `json:"error,omitempty"`
-	StartTime   time.Time              `json:"start_time"`
-	EndTime     *time.Time             `json:"end_time,omitempty"`
-	Duration    time.Duration          `json:"duration"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	TaskID    string                 `json:"task_id"`
+	Subagent  string                 `json:"subagent"`
+	Model     string                 `json:"model"`
+	Status    string                 `json:"status"`
+	Result    interface{}            `json:"result,omitempty"`
+	Error     string                 `json:"error,omitempty"`
+	StartTime time.Time              `json:"start_time"`
+	EndTime   *time.Time             `json:"end_time,omitempty"`
+	Duration  time.Duration          `json:"duration"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // NewTaskTool 创建Task工具
@@ -156,7 +156,7 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc
 			Metadata: map[string]string{
 				"priority": fmt.Sprintf("%d", priority),
 				"async":    fmt.Sprintf("%t", async),
-				"created": fmt.Sprintf("%d", time.Now().Unix()),
+				"created":  fmt.Sprintf("%d", time.Now().Unix()),
 			},
 		}
 
@@ -168,10 +168,10 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
-			"error": fmt.Sprintf("failed to start/resume subagent: %v", err),
+			"ok":            false,
+			"error":         fmt.Sprintf("failed to start/resume subagent: %v", err),
 			"subagent_type": subagentType,
-			"duration_ms": duration.Milliseconds(),
+			"duration_ms":   duration.Milliseconds(),
 			"recommendations": []string{
 				"检查子代理类型是否正确",
 				"确认提示词是否有效",
@@ -182,28 +182,28 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	// 构建响应
 	response := map[string]interface{}{
-		"ok": true,
-		"task_id": subagent.ID,
-		"subagent_type": subagentType,
-		"prompt": prompt,
-		"model": subagent.Config.Model,
-		"status": subagent.Status,
-		"duration_ms": duration.Milliseconds(),
-		"start_time": subagent.StartTime.Unix(),
-		"async": async,
-		"priority": priority,
+		"ok":              true,
+		"task_id":         subagent.ID,
+		"subagent_type":   subagentType,
+		"prompt":          prompt,
+		"model":           subagent.Config.Model,
+		"status":          subagent.Status,
+		"duration_ms":     duration.Milliseconds(),
+		"start_time":      subagent.StartTime.Unix(),
+		"async":           async,
+		"priority":        priority,
 		"timeout_minutes": timeoutMinutes,
-		"pid": subagent.PID,
-		"command": subagent.Command,
+		"pid":             subagent.PID,
+		"command":         subagent.Command,
 	}
 
 	// 添加子代理配置信息
 	if subagent.Config != nil {
 		response["subagent_config"] = map[string]interface{}{
-			"timeout": subagent.Config.Timeout.String(),
-			"max_tokens": subagent.Config.MaxTokens,
+			"timeout":     subagent.Config.Timeout.String(),
+			"max_tokens":  subagent.Config.MaxTokens,
 			"temperature": subagent.Config.Temperature,
-			"work_dir": subagent.Config.WorkDir,
+			"work_dir":    subagent.Config.WorkDir,
 		}
 	}
 
@@ -252,7 +252,13 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	return response, nil
 }
 
+// 以下函数预留用于未来的子代理功能集成
+// 当前实现为简化版本，完整功能需要与agent框架深度集成
+
 // executeTask 执行任务（简化实现）
+// 预留用于启动子代理执行任务
+//
+//nolint:unused // 预留用于未来子代理功能
 func (t *TaskTool) executeTask(ctx context.Context, taskDef *TaskDefinition, tc *tools.ToolContext) *TaskExecution {
 	startTime := time.Now()
 
@@ -266,7 +272,7 @@ func (t *TaskTool) executeTask(ctx context.Context, taskDef *TaskDefinition, tc 
 		StartTime: startTime,
 		Duration:  time.Since(startTime),
 		Metadata: map[string]interface{}{
-			"note": "Subagent execution requires integration with agent framework",
+			"note":             "Subagent execution requires integration with agent framework",
 			"task_description": taskDef.Description,
 		},
 	}
@@ -280,6 +286,9 @@ func (t *TaskTool) executeTask(ctx context.Context, taskDef *TaskDefinition, tc 
 }
 
 // resumeTask 恢复任务（简化实现）
+// 预留用于恢复暂停的子代理任务
+//
+//nolint:unused // 预留用于未来子代理功能
 func (t *TaskTool) resumeTask(ctx context.Context, taskID string, tc *tools.ToolContext) *TaskExecution {
 	startTime := time.Now()
 
@@ -292,7 +301,7 @@ func (t *TaskTool) resumeTask(ctx context.Context, taskID string, tc *tools.Tool
 		StartTime: startTime,
 		Duration:  time.Since(startTime),
 		Metadata: map[string]interface{}{
-			"note": "Task resumption requires integration with agent framework",
+			"note":       "Task resumption requires integration with agent framework",
 			"resumed_at": startTime.Unix(),
 		},
 	}

@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"log"
 	"regexp"
 	"sync"
 	"time"
@@ -32,10 +33,10 @@ type Room struct {
 
 // RoomMessage Room 消息记录
 type RoomMessage struct {
-	From    string   `json:"from"`
-	To      []string `json:"to,omitempty"` // 空表示广播
-	Text    string   `json:"text"`
-	Sent    int64    `json:"sent"` // Unix timestamp
+	From string   `json:"from"`
+	To   []string `json:"to,omitempty"` // 空表示广播
+	Text string   `json:"text"`
+	Sent int64    `json:"sent"` // Unix timestamp
 }
 
 // NewRoom 创建新的 Room
@@ -147,9 +148,10 @@ func (r *Room) Say(ctx context.Context, from string, text string) error {
 		// 异步发送,避免阻塞
 		go func(agent *agent.Agent, txt string, memberName string) {
 			if err := agent.Send(ctx, txt); err != nil {
-				// 记录错误但不中断其他消息发送
-				// 这里可以通过回调或事件通知上层
+				log.Printf("[Room] Failed to send message to agent %s: %v", memberName, err)
 			}
+			// 记录错误但不中断其他消息发送
+			// 这里可以通过回调或事件通知上层
 		}(ag, formattedText, name)
 	}
 

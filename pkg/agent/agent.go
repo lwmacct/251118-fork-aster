@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/astercloud/aster/pkg/commands"
 	"github.com/astercloud/aster/pkg/events"
 	"github.com/astercloud/aster/pkg/middleware"
@@ -20,6 +19,7 @@ import (
 	"github.com/astercloud/aster/pkg/skills"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/types"
+	"github.com/google/uuid"
 )
 
 // Agent AI代理
@@ -598,6 +598,7 @@ func (a *Agent) Close() error {
 
 // buildToolContext 构造工具执行上下文, 注入必要的服务。
 // 当前会注入:
+//   - tool_manuals: 工具手册映射，供 ToolHelp 等工具使用
 //   - skills_runtime: *skills.Runtime, 供 skill_call 工具使用 (仅当 Agent 配置了 SkillsPackage 时)
 func (a *Agent) buildToolContext(ctx context.Context) *tools.ToolContext {
 	tc := &tools.ToolContext{

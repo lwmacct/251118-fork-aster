@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -105,7 +106,7 @@ func (m *Manager) InstallFromZip(ctx context.Context, skillID string, r io.Reade
 
 	// 先删除旧目录（如果存在）
 	if err := os.RemoveAll(targetRoot); err != nil {
-		// 尝试继续，Write 时会自动创建目录
+		log.Printf("[SkillManager] Warning: failed to remove old skill directory %s: %v", targetRoot, err)
 	}
 
 	// 解压所有文件
@@ -209,8 +210,9 @@ func (m *Manager) Uninstall(ctx context.Context, skillID string) error {
 
 // normalizeZipEntryName 去掉 zip 内部可能存在的共同根目录前缀。
 // 例如:
-//   skill/SCILL.md -> SKILL.md
-//   skill/scripts/pdf2md.go -> scripts/pdf2md.go
+//
+//	skill/SCILL.md -> SKILL.md
+//	skill/scripts/pdf2md.go -> scripts/pdf2md.go
 func normalizeZipEntryName(name string) string {
 	name = filepath.ToSlash(name)
 	parts := strings.Split(name, "/")
@@ -308,10 +310,11 @@ func (m *Manager) DeleteVersion(ctx context.Context, skillID, version string) er
 // splitIDAndVersion 从路径推导逻辑 ID 与版本号。
 // 约定: 如果目录名最后一段包含 "@", 则视为 "<id>@<version>" 结构。
 // 例如:
-//   "pdf-to-markdown"           -> ("pdf-to-markdown", "")
-//   "pdf-to-markdown@20251116"  -> ("pdf-to-markdown", "20251116")
-//   "workflows/code-review"     -> ("workflows/code-review", "")
-//   "workflows/code-review@v2"  -> ("workflows/code-review", "v2")
+//
+//	"pdf-to-markdown"           -> ("pdf-to-markdown", "")
+//	"pdf-to-markdown@20251116"  -> ("pdf-to-markdown", "20251116")
+//	"workflows/code-review"     -> ("workflows/code-review", "")
+//	"workflows/code-review@v2"  -> ("workflows/code-review", "v2")
 func splitIDAndVersion(path string) (string, string) {
 	base := filepath.Base(path)
 	dir := filepath.Dir(path)

@@ -294,11 +294,8 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 
 	startTime := time.Now()
 
-	toolCtx := &tools.ToolContext{
-		AgentID: a.id,
-		Sandbox: a.sandbox,
-		Signal:  ctx,
-	}
+	// 构建工具执行上下文，包含必要的服务注入
+	toolCtx := a.buildToolContext(ctx)
 
 	// 通过 Middleware Stack 执行工具 (Phase 6C)
 	var execResult *tools.ExecuteResult
@@ -460,7 +457,8 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 			currentBlockIndex = chunk.Index
 			if delta, ok := chunk.Delta.(map[string]interface{}); ok {
 				blockType, _ := delta["type"].(string)
-				if blockType == "text" {
+				switch blockType {
+				case "text":
 					// 发送文本开始事件
 					a.eventBus.EmitProgress(&types.ProgressTextChunkStartEvent{
 						Step: a.stepCount,
@@ -471,7 +469,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 					}
 					assistantContent[currentBlockIndex] = &types.TextBlock{Text: ""}
 					textBuffers[currentBlockIndex] = ""
-				} else if blockType == "tool_use" {
+				case "tool_use":
 					log.Printf("[handleStreamResponse] Received tool_use block! ID: %v, Name: %v", delta["id"], delta["name"])
 					// 初始化工具调用块
 					for len(assistantContent) <= currentBlockIndex {
@@ -496,7 +494,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 						Name:  toolName,
 						Input: make(map[string]interface{}),
 					}
-				} else {
+				default:
 					log.Printf("[handleStreamResponse] Unknown block type: %s", blockType)
 				}
 			}
@@ -504,7 +502,8 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 		case "content_block_delta":
 			if delta, ok := chunk.Delta.(map[string]interface{}); ok {
 				deltaType, _ := delta["type"].(string)
-				if deltaType == "text_delta" {
+				switch deltaType {
+				case "text_delta":
 					text, _ := delta["text"].(string)
 					if currentBlockIndex >= 0 {
 						for len(assistantContent) <= currentBlockIndex {
@@ -527,7 +526,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 						Step:  a.stepCount,
 						Delta: text,
 					})
-				} else if deltaType == "input_json_delta" {
+				case "input_json_delta":
 					partialJSON, _ := delta["partial_json"].(string)
 					if currentBlockIndex >= 0 {
 						if _, exists := inputJSONBuffers[currentBlockIndex]; !exists {
@@ -535,7 +534,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 						}
 						inputJSONBuffers[currentBlockIndex] += partialJSON
 					}
-				} else if deltaType == "arguments" {
+				case "arguments":
 					partialArgs, _ := delta["arguments"].(string)
 					blockIndex := chunk.Index
 					if blockIndex < 0 {

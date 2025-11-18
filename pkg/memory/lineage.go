@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 )
 
@@ -165,8 +166,7 @@ func (lg *LineageGraph) removeFromSlice(slice []string, value string) []string {
 // LineageManager 记忆谱系管理器。
 // 提供高级的谱系追踪和级联删除功能。
 type LineageManager struct {
-	graph       *LineageGraph
-	vectorStore interface{} // VectorStore 接口，用于实际删除
+	graph *LineageGraph
 }
 
 // NewLineageManager 创建谱系管理器。
@@ -229,6 +229,7 @@ func (lm *LineageManager) RevokeDataSource(ctx context.Context, sourceID string)
 	for _, memID := range affectedMemories {
 		deleted, err := lm.DeleteMemoryWithLineage(ctx, memID, true)
 		if err != nil {
+			// TODO: handle error
 			return deletedIDs, fmt.Errorf("delete memory %s: %w", memID, err)
 		}
 		deletedIDs = append(deletedIDs, deleted...)
@@ -265,6 +266,7 @@ func (lm *LineageManager) RegenerateFromSource(ctx context.Context, revokedSourc
 			// 有其他来源，需要重新生成记忆
 			// TODO: 调用记忆生成服务从剩余来源重建
 			// 这部分逻辑需要与 Memory Consolidation 集成
+			log.Printf("[LineageManager] Memory %s has other sources, regeneration needed", memID)
 		}
 	}
 
@@ -292,11 +294,11 @@ func (lm *LineageManager) GetLineageDepth(memoryID string) int {
 
 // GetLineageStats 获取谱系统计信息。
 type LineageStats struct {
-	TotalMemories      int            // 总记忆数
-	RootMemories       int            // 根记忆数（无父记忆）
-	DerivedMemories    int            // 派生记忆数（有父记忆）
-	MaxDepth           int            // 最大谱系深度
-	MemoriesBySource   map[string]int // 每个数据源的记忆数
+	TotalMemories    int            // 总记忆数
+	RootMemories     int            // 根记忆数（无父记忆）
+	DerivedMemories  int            // 派生记忆数（有父记忆）
+	MaxDepth         int            // 最大谱系深度
+	MemoriesBySource map[string]int // 每个数据源的记忆数
 }
 
 func (lm *LineageManager) GetLineageStats() LineageStats {

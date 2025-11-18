@@ -6,6 +6,7 @@ import (
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -13,8 +14,8 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/gin-gonic/gin"
 	"github.com/astercloud/aster"
+	"github.com/gin-gonic/gin"
 )
 
 // TracingConfig 追踪配置
@@ -157,8 +158,18 @@ func AddEvent(ctx context.Context, name string, attributes ...interface{}) {
 func SetAttribute(ctx context.Context, key string, value interface{}) {
 	span := trace.SpanFromContext(ctx)
 	if span != nil && span.IsRecording() {
-		// 这里可以根据类型添加不同的属性
-		// 简化处理，实际使用时应该根据 value 类型调用不同的方法
+		switch v := value.(type) {
+		case string:
+			span.SetAttributes(attribute.String(key, v))
+		case int:
+			span.SetAttributes(attribute.Int(key, v))
+		case int64:
+			span.SetAttributes(attribute.Int64(key, v))
+		case bool:
+			span.SetAttributes(attribute.Bool(key, v))
+		default:
+			span.SetAttributes(attribute.String(key, fmt.Sprintf("%v", v)))
+		}
 	}
 }
 

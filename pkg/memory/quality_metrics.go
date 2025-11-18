@@ -189,7 +189,7 @@ func (qm *QualityMetrics) evaluateCompleteness(memory *MemoryWithScore) float64 
 	score := 1.0 / (1.0 + math.Exp(-0.01*(length-200)))
 
 	// 检查是否有元数据
-	if memory.Metadata != nil && len(memory.Metadata) > 0 {
+	if len(memory.Metadata) > 0 {
 		score = math.Min(score+0.1, 1.0) // 有元数据加 10%
 	}
 

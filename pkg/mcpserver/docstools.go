@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -231,8 +232,9 @@ func (t *DocsSearchTool) Execute(ctx context.Context, input map[string]interface
 		return nil
 	})
 
+	// max_results_reached 是预期的终止条件，其他错误需要记录
 	if walkErr != nil && walkErr.Error() != "max_results_reached" {
-		// 其他错误忽略, 只在调试时关注
+		log.Printf("[SearchFilesTool] Walk error: %v", walkErr)
 	}
 
 	return map[string]interface{}{
@@ -254,4 +256,3 @@ Guidelines:
 - Limit the search using "subdir" and/or "glob" when possible to avoid scanning the entire tree.
 - Inspect the returned matches (path + line number + line) and then use docs_get to read the full file if needed.`
 }
-

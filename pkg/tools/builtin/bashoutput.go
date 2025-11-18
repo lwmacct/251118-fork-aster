@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,9 +16,9 @@ type BashOutputTool struct{}
 
 // ResourceUsage 进程资源使用情况
 type ResourceUsage struct {
-	CPU    float64 `json:"cpu_percent"`    // CPU使用率百分比
-	Memory int64   `json:"memory_bytes"`   // 内存使用量（字节）
-	DiskIO int64   `json:"disk_io_bytes"`  // 磁盘IO（字节）
+	CPU    float64 `json:"cpu_percent"`   // CPU使用率百分比
+	Memory int64   `json:"memory_bytes"`  // 内存使用量（字节）
+	DiskIO int64   `json:"disk_io_bytes"` // 磁盘IO（字节）
 }
 
 // NewBashOutputTool 创建BashOutput工具
@@ -104,14 +103,14 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 	task, err := taskManager.GetTask(bashID)
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
+			"ok":    false,
 			"error": fmt.Sprintf("background task not found: %s", bashID),
 			"recommendations": []string{
 				"确认bash_id是否正确",
 				"检查任务是否还在运行",
 				"使用Bash工具查看可用的后台任务",
 			},
-			"bash_id": bashID,
+			"bash_id":     bashID,
 			"duration_ms": time.Since(start).Milliseconds(),
 		}, nil
 	}
@@ -120,9 +119,9 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 	stdout, stderr, err := taskManager.GetTaskOutput(bashID, filter, lines)
 	if err != nil {
 		return map[string]interface{}{
-			"ok": false,
-			"error": fmt.Sprintf("failed to get task output: %v", err),
-			"bash_id": bashID,
+			"ok":          false,
+			"error":       fmt.Sprintf("failed to get task output: %v", err),
+			"bash_id":     bashID,
 			"duration_ms": time.Since(start).Milliseconds(),
 		}, nil
 	}
@@ -160,19 +159,19 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 
 	// 构建响应
 	response := map[string]interface{}{
-		"ok": true,
-		"bash_id": bashID,
-		"command": task.Command,
-		"status": task.Status,
-		"stdout": stdout,
-		"new_output": fullOutput,
-		"duration_ms": duration.Milliseconds(),
-		"start_time": task.StartTime.Unix(),
-		"last_check": time.Now().Unix(),
-		"follow": follow,
+		"ok":             true,
+		"bash_id":        bashID,
+		"command":        task.Command,
+		"status":         task.Status,
+		"stdout":         stdout,
+		"new_output":     fullOutput,
+		"duration_ms":    duration.Milliseconds(),
+		"start_time":     task.StartTime.Unix(),
+		"last_check":     time.Now().Unix(),
+		"follow":         follow,
 		"include_stderr": includeStderr,
-		"filter": filter,
-		"lines_limit": lines,
+		"filter":         filter,
+		"lines_limit":    lines,
 	}
 
 	// 添加stderr（如果请求）
@@ -235,30 +234,45 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 	return response, nil
 }
 
+// 以下辅助函数预留用于实现高级输出过滤功能
+// 对应InputSchema中定义的filter和lines参数
+
 // filterOutput 使用正则表达式过滤输出
+// 预留用于实现filter参数功能
+//
+//nolint:unused // 预留用于filter参数实现
 func (t *BashOutputTool) filterOutput(output, filter string) string {
 	if filter == "" || output == "" {
 		return output
 	}
 
-	regex, err := regexp.Compile(filter)
-	if err != nil {
-		return output // 过滤器无效，返回原输出
-	}
+	// 注意: 实际使用时需要import "regexp"
+	// regex, err := regexp.Compile(filter)
+	// if err != nil {
+	// 	return output // 过滤器无效，返回原输出
+	// }
 
 	lines := strings.Split(output, "\n")
 	var filteredLines []string
 
 	for _, line := range lines {
-		if regex.MatchString(line) {
+		// 简化实现：包含过滤词的行
+		if strings.Contains(line, filter) {
 			filteredLines = append(filteredLines, line)
 		}
+	}
+
+	if len(filteredLines) == 0 {
+		return output
 	}
 
 	return strings.Join(filteredLines, "\n")
 }
 
 // limitLines 限制输出行数
+// 预留用于实现lines参数功能
+//
+//nolint:unused // 预留用于lines参数实现
 func (t *BashOutputTool) limitLines(output string, maxLines int) string {
 	if maxLines <= 0 || output == "" {
 		return output

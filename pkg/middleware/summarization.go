@@ -262,11 +262,6 @@ func (m *SummarizationMiddleware) ResetSummarizationCount() {
 	log.Printf("[SummarizationMiddleware] Summarization count reset")
 }
 
-// estimateTokens 估算消息的 token 数量(调试用)
-func (m *SummarizationMiddleware) estimateTokens(messages []types.Message) int {
-	return m.tokenCounter(messages)
-}
-
 // GetConfig 获取当前配置
 func (m *SummarizationMiddleware) GetConfig() map[string]interface{} {
 	return map[string]interface{}{

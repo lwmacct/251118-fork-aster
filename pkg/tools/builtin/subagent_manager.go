@@ -310,7 +310,7 @@ func (sm *FileSubagentManager) CleanupSubagent(taskID string) error {
 		sm.mu.Unlock()
 		_ = sm.StopSubagent(taskID)
 		sm.mu.Lock()
-		_, _ = sm.agents[taskID] // 重新获取实例但忽略，因为即将删除
+		// Agent 即将被删除
 	}
 
 	// 删除输出文件

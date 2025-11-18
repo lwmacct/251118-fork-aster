@@ -7,12 +7,12 @@ import (
 	"time"
 
 	aster "github.com/astercloud/aster"
-	"github.com/gin-gonic/gin"
 	"github.com/astercloud/aster/pkg/agent"
 	"github.com/astercloud/aster/pkg/store"
 	"github.com/astercloud/aster/server/auth"
 	"github.com/astercloud/aster/server/observability"
 	"github.com/astercloud/aster/server/ratelimit"
+	"github.com/gin-gonic/gin"
 )
 
 // Server represents the aster production server
@@ -231,6 +231,7 @@ func (s *Server) setupRoutes() {
 	s.registerWorkflowRoutes(v1)
 	s.registerToolRoutes(v1)
 	s.registerMiddlewareRoutes(v1)
+	s.registerSystemRoutes(v1)
 	s.registerTelemetryRoutes(v1)
 	s.registerEvalRoutes(v1)
 	s.registerMCPRoutes(v1)

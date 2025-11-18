@@ -367,13 +367,16 @@ func (ap *AnthropicProvider) parseStreamEvent(event map[string]interface{}) *Str
 			// 添加详细的调试日志
 			if blockType, ok := contentBlock["type"].(string); ok {
 				log.Printf("[AnthropicProvider] content_block_start: type=%s, index=%d", blockType, chunk.Index)
-				if blockType == "tool_use" {
-					log.Printf("[AnthropicProvider] ✅ Received tool_use block: id=%v, name=%v", contentBlock["id"], contentBlock["name"])
-				} else if blockType == "text" {
-					log.Printf("[AnthropicProvider] ⚠️ Received text block instead of tool_use")
+				switch blockType {
+				case "tool_use":
+					log.Printf("[AnthropicProvider] Received tool_use block: id=%v, name=%v", contentBlock["id"], contentBlock["name"])
+				case "text":
+					log.Printf("[AnthropicProvider] Received text block instead of tool_use")
+				default:
+					log.Printf("[AnthropicProvider] Unknown block type: %s", blockType)
 				}
 			} else {
-				log.Printf("[AnthropicProvider] ⚠️ content_block_start without type field: %v", contentBlock)
+				log.Printf("[AnthropicProvider] content_block_start without type field: %v", contentBlock)
 			}
 		}
 
