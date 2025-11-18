@@ -1,8 +1,8 @@
-version: 2
+# This file is automatically set up by golangci-lint
+# See https://golangci-lint.run/usage/configuration/#config-file
+version: "2"
 
 run:
-  skip-dirs:
-    - examples
   tests: false  # 测试文件需要适配新接口，暂时跳过
   timeout: 5m
 
@@ -21,6 +21,14 @@ issues:
   exclude:
     - "declared and not used"  # 某些示例代码可能有未使用的变量
   exclude-rules:
+    # 跳过示例目录
+    - path: examples/
+      linters:
+        - errcheck
+        - govet
+        - ineffassign
+        - staticcheck
+        - unused
     # 暂时跳过测试文件的检查（需要适配新接口）
     - path: _test\.go
       linters:
