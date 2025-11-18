@@ -14,13 +14,13 @@ import (
 
 // FilesystemMiddlewareConfig 文件系统中间件配置
 type FilesystemMiddlewareConfig struct {
-	Backend            backends.BackendProtocol // 后端存储
-	TokenLimit         int                      // 大结果驱逐阈值(tokens)
-	EnableEviction     bool                     // 是否启用自动驱逐
-	AllowedPathPrefixes []string                 // 允许的路径前缀列表(用于路径安全验证)
-	EnablePathValidation bool                    // 是否启用路径验证(默认: true)
-	CustomToolDescriptions map[string]string     // 自定义工具描述
-	SystemPromptOverride string                  // 覆盖默认系统提示词
+	Backend                backends.BackendProtocol // 后端存储
+	TokenLimit             int                      // 大结果驱逐阈值(tokens)
+	EnableEviction         bool                     // 是否启用自动驱逐
+	AllowedPathPrefixes    []string                 // 允许的路径前缀列表(用于路径安全验证)
+	EnablePathValidation   bool                     // 是否启用路径验证(默认: true)
+	CustomToolDescriptions map[string]string        // 自定义工具描述
+	SystemPromptOverride   string                   // 覆盖默认系统提示词
 }
 
 // FilesystemMiddleware 文件系统中间件
@@ -31,14 +31,14 @@ type FilesystemMiddlewareConfig struct {
 // 4. 路径安全验证
 type FilesystemMiddleware struct {
 	*BaseMiddleware
-	backend              backends.BackendProtocol
-	tokenLimit           int
-	enableEviction       bool
-	allowedPathPrefixes  []string
-	enablePathValidation bool
+	backend                backends.BackendProtocol
+	tokenLimit             int
+	enableEviction         bool
+	allowedPathPrefixes    []string
+	enablePathValidation   bool
 	customToolDescriptions map[string]string
-	systemPromptOverride string
-	fsTools              []tools.Tool
+	systemPromptOverride   string
+	fsTools                []tools.Tool
 }
 
 // NewFilesystemMiddleware 创建文件系统中间件
@@ -48,8 +48,8 @@ func NewFilesystemMiddleware(config *FilesystemMiddlewareConfig) *FilesystemMidd
 	}
 
 	// 默认启用路径验证
-	enablePathValidation := true
-	if config.EnablePathValidation == false && len(config.AllowedPathPrefixes) == 0 {
+	enablePathValidation := config.EnablePathValidation
+	if !enablePathValidation && len(config.AllowedPathPrefixes) == 0 {
 		// 只有在明确禁用且没有指定前缀时才不验证
 		enablePathValidation = false
 	}

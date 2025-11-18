@@ -29,7 +29,7 @@ func NewDoubaoProvider(config *types.ModelConfig, dbConfig *DoubaoConfig) (Provi
 	if dbConfig == nil || dbConfig.EndpointID == "" {
 		// 尝试从 Model 字段获取 endpoint_id
 		if config.Model == "" {
-			return nil, fmt.Errorf("Doubao: endpoint_id is required")
+			return nil, fmt.Errorf("doubao: endpoint_id is required")
 		}
 		dbConfig = &DoubaoConfig{
 			EndpointID: config.Model,

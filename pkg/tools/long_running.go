@@ -253,10 +253,8 @@ func (e *LongRunningExecutor) Cleanup(before time.Time) int {
 func (e *LongRunningExecutor) UpdateProgress(taskID string, progress float64, metadata map[string]interface{}) error {
 	return e.updateStatus(taskID, func(s *TaskStatus) {
 		s.Progress = progress
-		if metadata != nil {
-			for k, v := range metadata {
-				s.Metadata[k] = v
-			}
+		for k, v := range metadata {
+			s.Metadata[k] = v
 		}
 	})
 }

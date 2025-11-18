@@ -87,34 +87,32 @@ func (dp *DeepseekProvider) Complete(ctx context.Context, messages []types.Messa
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+dp.apiKey)
 
-	logging.Info(ctx, fmt.Sprintf("⏳ [DeepseekProvider] 发送请求到DeepSeek API，等待响应..."), nil)
-
 	// 发送请求
 	resp, err := dp.client.Do(req)
 	if err != nil {
-		logging.Error(ctx, fmt.Sprintf("❌ [DeepseekProvider] 请求失败: %v", err), nil)
+		logging.Error(ctx, fmt.Sprintf("请求失败: %v", err), nil)
 		return nil, fmt.Errorf("send request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	logging.Info(ctx, fmt.Sprintf("✅ [DeepseekProvider] 收到响应, HTTP状态码: %d", resp.StatusCode), nil)
+	logging.Info(ctx, fmt.Sprintf("收到响应, HTTP状态码: %d", resp.StatusCode), nil)
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		logging.Error(ctx, fmt.Sprintf("❌ [DeepseekProvider] API错误响应: %s", string(body)), nil)
+		logging.Error(ctx, fmt.Sprintf("API错误响应: %s", string(body)), nil)
 		return nil, fmt.Errorf("deepseek api error: %d - %s", resp.StatusCode, string(body))
 	}
 
-	logging.Debug(ctx, fmt.Sprintf("📖 [DeepseekProvider] 正在解析API响应..."), nil)
+	logging.Debug(ctx, "正在解析API响应...", nil)
 
 	// 解析完整响应
 	var apiResp map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		logging.Error(ctx, fmt.Sprintf("❌ [DeepseekProvider] 解析响应失败: %v", err), nil)
+		logging.Error(ctx, fmt.Sprintf("解析响应失败: %v", err), nil)
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	logging.Debug(ctx, fmt.Sprintf("✅ [DeepseekProvider] 响应解析成功"), nil)
+	logging.Debug(ctx, "响应解析成功", nil)
 
 	// 解析消息内容
 	message, err := dp.parseCompleteResponse(apiResp)
@@ -129,10 +127,10 @@ func (dp *DeepseekProvider) Complete(ctx context.Context, messages []types.Messa
 			InputTokens:  int64(usageData["prompt_tokens"].(float64)),
 			OutputTokens: int64(usageData["completion_tokens"].(float64)),
 		}
-		logging.Info(ctx, fmt.Sprintf("💰 [DeepseekProvider] Token使用: 输入=%d, 输出=%d, 总计=%d", usage.InputTokens, usage.OutputTokens, usage.InputTokens+usage.OutputTokens), nil)
+		logging.Info(ctx, fmt.Sprintf("Token使用: 输入=%d, 输出=%d, 总计=%d", usage.InputTokens, usage.OutputTokens, usage.InputTokens+usage.OutputTokens), nil)
 	}
 
-	logging.Info(ctx, fmt.Sprintf("🎉 [DeepseekProvider] Complete API调用完成"), nil)
+	logging.Info(ctx, "Complete API调用完成", nil)
 
 	return &CompleteResponse{
 		Message: message,

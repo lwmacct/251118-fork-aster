@@ -43,11 +43,11 @@ type AgentMemoryMiddlewareConfig struct {
 // NewAgentMemoryMiddleware 创建中间件
 func NewAgentMemoryMiddleware(config *AgentMemoryMiddlewareConfig) (*AgentMemoryMiddleware, error) {
 	if config == nil {
-		return nil, fmt.Errorf("config cannot be nil")
+		return nil, fmt.Errorf("agent memory not configured properly")
 	}
 
 	if config.Backend == nil {
-		return nil, fmt.Errorf("Backend is required")
+		return nil, fmt.Errorf("backend is required")
 	}
 
 	if config.MemoryPath == "" {
@@ -232,9 +232,9 @@ func (m *AgentMemoryMiddleware) ReloadMemory(ctx context.Context) error {
 // GetConfig 获取配置信息
 func (m *AgentMemoryMiddleware) GetConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"memory_path":     m.memoryPath,
-		"memory_loaded":   m.memoryLoaded,
-		"memory_size":     len(m.memoryContent),
-		"memory_file":     AGENT_MEMORY_FILE_PATH,
+		"memory_path":   m.memoryPath,
+		"memory_loaded": m.memoryLoaded,
+		"memory_size":   len(m.memoryContent),
+		"memory_file":   AGENT_MEMORY_FILE_PATH,
 	}
 }

@@ -9,19 +9,19 @@ import (
 type PIIType string
 
 const (
-	PIIEmail          PIIType = "email"
-	PIIPhone          PIIType = "phone"
-	PIICreditCard     PIIType = "credit_card"
-	PIISSNus          PIIType = "ssn_us"           // 美国社会安全号
-	PIIChineseID      PIIType = "chinese_id"       // 中国身份证
-	PIIChinesePhone   PIIType = "chinese_phone"    // 中国手机号
-	PIIIPAddress      PIIType = "ip_address"
-	PIIPassport       PIIType = "passport"
-	PIIBankAccount    PIIType = "bank_account"
-	PIIDateOfBirth    PIIType = "date_of_birth"
-	PIIAddress        PIIType = "address"
-	PIIName           PIIType = "name"              // 需要 LLM 检测
-	PIICustom         PIIType = "custom"
+	PIIEmail        PIIType = "email"
+	PIIPhone        PIIType = "phone"
+	PIICreditCard   PIIType = "credit_card"
+	PIISSNus        PIIType = "ssn_us"        // 美国社会安全号
+	PIIChineseID    PIIType = "chinese_id"    // 中国身份证
+	PIIChinesePhone PIIType = "chinese_phone" // 中国手机号
+	PIIIPAddress    PIIType = "ip_address"
+	PIIPassport     PIIType = "passport"
+	PIIBankAccount  PIIType = "bank_account"
+	PIIDateOfBirth  PIIType = "date_of_birth"
+	PIIAddress      PIIType = "address"
+	PIIName         PIIType = "name" // 需要 LLM 检测
+	PIICustom       PIIType = "custom"
 )
 
 // PIIPattern 定义一个 PII 检测模式。
@@ -142,11 +142,7 @@ func validateSSN(ssn string) bool {
 
 	// 验证序列号（最后4位）不为 0000
 	serial := clean[5:9]
-	if serial == "0000" {
-		return false
-	}
-
-	return true
+	return serial != "0000"
 }
 
 // validateChinesePhone 验证中国手机号的有效性。

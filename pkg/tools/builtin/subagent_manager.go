@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-		"os"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -65,16 +65,16 @@ type SubagentInstance struct {
 	Error         string                 `json:"error,omitempty"`
 	ExitCode      int                    `json:"exit_code,omitempty"`
 	LastUpdate    time.Time              `json:"last_update"`
-	Metadata      map[string]string     `json:"metadata,omitempty"`
+	Metadata      map[string]string      `json:"metadata,omitempty"`
 	ResourceUsage *SubagentResourceUsage `json:"resource_usage,omitempty"`
 }
 
 // SubagentResourceUsage 子代理资源使用情况
 type SubagentResourceUsage struct {
-	MemoryMB float64 `json:"memory_mb"`
+	MemoryMB   float64 `json:"memory_mb"`
 	CPUPercent float64 `json:"cpu_percent"`
-	DiskMB    float64 `json:"disk_mb"`
-	NetworkMB float64 `json:"network_mb"`
+	DiskMB     float64 `json:"disk_mb"`
+	NetworkMB  float64 `json:"network_mb"`
 }
 
 // FileSubagentManager 基于文件的子代理管理器实现
@@ -243,7 +243,7 @@ func (sm *FileSubagentManager) StopSubagent(taskID string) error {
 	if instance.PID > 0 {
 		proc, err := os.FindProcess(instance.PID)
 		if err == nil {
-			_ = proc.Signal(os.Interrupt) // 发送SIGINT信号
+			proc.Signal(os.Interrupt) // 发送SIGINT信号
 		}
 	}
 
@@ -442,7 +442,7 @@ func (sm *FileSubagentManager) updateResourceUsage(instance *SubagentInstance) {
 		_, _ = fmt.Sscanf(fields[1], "%f", &pcpu)
 
 		instance.ResourceUsage = &SubagentResourceUsage{
-			MemoryMB: rss / 1024, // 转换为MB
+			MemoryMB:   rss / 1024, // 转换为MB
 			CPUPercent: pcpu,
 		}
 	}

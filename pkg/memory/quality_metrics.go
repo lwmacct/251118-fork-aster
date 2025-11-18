@@ -67,15 +67,15 @@ type QualityMetricsConfig struct {
 	RelevanceWeight    float64
 
 	// 时效性配置
-	MaxAge            time.Duration // 最大有效期
-	TimelinessDecay   float64       // 时效性衰减系数（每天）
+	MaxAge          time.Duration // 最大有效期
+	TimelinessDecay float64       // 时效性衰减系数（每天）
 
 	// 质量阈值
 	MinQualityThreshold float64 // 最低质量阈值
 	WarningThreshold    float64 // 警告阈值
 
 	// 自动清理
-	EnableAutoCleanup   bool    // 启用自动清理低质量记忆
+	EnableAutoCleanup   bool // 启用自动清理低质量记忆
 	AutoCleanupInterval time.Duration
 }
 
@@ -430,13 +430,11 @@ func RankByQuality(
 			scoreI := ranked[i].Score
 			scoreJ := ranked[j].Score
 
-			if qualities != nil {
-				if qI, ok := qualities[ranked[i].DocID]; ok {
-					scoreI = qI.Score.Overall * 0.7 + ranked[i].Score*0.3
-				}
-				if qJ, ok := qualities[ranked[j].DocID]; ok {
-					scoreJ = qJ.Score.Overall * 0.7 + ranked[j].Score*0.3
-				}
+			if qI, ok := qualities[ranked[i].DocID]; ok {
+				scoreI = qI.Score.Overall*0.7 + ranked[i].Score*0.3
+			}
+			if qJ, ok := qualities[ranked[j].DocID]; ok {
+				scoreJ = qJ.Score.Overall*0.7 + ranked[j].Score*0.3
 			}
 
 			// 降序排序

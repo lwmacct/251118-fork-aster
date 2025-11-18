@@ -30,8 +30,8 @@ type GeminiProvider struct {
 
 // GeminiContent Gemini 消息内容格式
 type GeminiContent struct {
-	Role  string        `json:"role,omitempty"`
-	Parts []GeminiPart  `json:"parts"`
+	Role  string       `json:"role,omitempty"`
+	Parts []GeminiPart `json:"parts"`
 }
 
 // GeminiPart Gemini 内容部分
@@ -82,7 +82,7 @@ type GeminiFunctionDeclaration struct {
 // NewGeminiProvider 创建 Gemini 提供商
 func NewGeminiProvider(config *types.ModelConfig) (Provider, error) {
 	if config.APIKey == "" {
-		return nil, fmt.Errorf("Gemini: API key is required")
+		return nil, fmt.Errorf("gemini: API key is required")
 	}
 
 	// 设置默认模型
@@ -137,7 +137,7 @@ func (p *GeminiProvider) Stream(
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
-		return nil, fmt.Errorf("Gemini API error: %d - %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("gemini API error: %d - %s", resp.StatusCode, string(body))
 	}
 
 	// 创建流式响应 channel
@@ -183,7 +183,7 @@ func (p *GeminiProvider) Complete(
 	// 检查响应状态
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Gemini API error: %d - %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("gemini API error: %d - %s", resp.StatusCode, string(body))
 	}
 
 	// 解析响应

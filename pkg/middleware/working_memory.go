@@ -18,32 +18,32 @@ import (
 // 3. 提供 update_working_memory 工具
 type WorkingMemoryMiddleware struct {
 	*BaseMiddleware
-	manager          *memory.WorkingMemoryManager
+	manager              *memory.WorkingMemoryManager
 	systemPromptTemplate string
 	workingMemoryTools   []tools.Tool
-	experimental     bool // 是否启用实验性 find/replace 工具
+	experimental         bool // 是否启用实验性 find/replace 工具
 }
 
 // WorkingMemoryMiddlewareConfig 配置
 type WorkingMemoryMiddlewareConfig struct {
-	Backend              backends.BackendProtocol // 存储后端
-	BasePath             string                   // 存储根路径，默认 "/working_memory/"
+	Backend              backends.BackendProtocol  // 存储后端
+	BasePath             string                    // 存储根路径，默认 "/working_memory/"
 	Scope                memory.WorkingMemoryScope // "thread" | "resource"
-	Schema               *memory.JSONSchema       // 可选的 JSON Schema
-	Template             string                   // 可选的 Markdown 模板
-	TTL                  time.Duration            // 可选的过期时间（0 表示不过期）
-	SystemPromptTemplate string                   // 可选，自定义 system prompt 模板
-	Experimental         bool                     // 是否启用实验性功能
+	Schema               *memory.JSONSchema        // 可选的 JSON Schema
+	Template             string                    // 可选的 Markdown 模板
+	TTL                  time.Duration             // 可选的过期时间（0 表示不过期）
+	SystemPromptTemplate string                    // 可选，自定义 system prompt 模板
+	Experimental         bool                      // 是否启用实验性功能
 }
 
 // NewWorkingMemoryMiddleware 创建 Working Memory 中间件
 func NewWorkingMemoryMiddleware(config *WorkingMemoryMiddlewareConfig) (*WorkingMemoryMiddleware, error) {
 	if config == nil {
-		return nil, fmt.Errorf("config cannot be nil")
+		return nil, fmt.Errorf("working memory not configured properly")
 	}
 
 	if config.Backend == nil {
-		return nil, fmt.Errorf("Backend is required")
+		return nil, fmt.Errorf("backend is required")
 	}
 
 	// 创建 Working Memory 管理器
