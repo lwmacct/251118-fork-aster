@@ -243,7 +243,7 @@ func (sm *FileSubagentManager) StopSubagent(taskID string) error {
 	if instance.PID > 0 {
 		proc, err := os.FindProcess(instance.PID)
 		if err == nil {
-			proc.Signal(os.Interrupt) // 发送SIGINT信号
+			_ = proc.Signal(os.Interrupt) // 发送SIGINT信号
 		}
 	}
 

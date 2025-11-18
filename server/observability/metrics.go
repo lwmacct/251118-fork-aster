@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -115,9 +116,9 @@ func NewMetricsManager(namespace string) *MetricsManager {
 		m.workflowsRunning,
 	)
 
-	// 注册默认的 Go 和 Process 指标
-	m.registry.MustRegister(prometheus.NewGoCollector())
-	m.registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	// 注册 Go 运行时指标
+	m.registry.MustRegister(collectors.NewGoCollector())
+	m.registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 
 	return m
 }
