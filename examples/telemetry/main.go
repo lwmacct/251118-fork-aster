@@ -186,7 +186,7 @@ func toolTracingExample() {
 	tools := []string{"Bash", "Read", "HttpRequest"}
 
 	for _, toolName := range tools {
-		ctx, span := tracer.StartSpan(
+		_, span := tracer.StartSpan(
 			ctx,
 			"tool.execute",
 			telemetry.WithSpanKind(telemetry.SpanKindInternal),
@@ -232,8 +232,8 @@ func distributedTracingExample() {
 	)
 
 	// 模拟将 trace context 传播到 Service B
-	carrier := make(map[string]string)
-	if err := tracer.Inject(ctx, propagation.MapCarrier(carrier)); err != nil {
+	carrier := make(MapCarrier)
+	if err := tracer.Inject(ctx, carrier); err != nil {
 		log.Printf("Failed to inject context: %v", err)
 	}
 
@@ -243,7 +243,7 @@ func distributedTracingExample() {
 
 	// Service B: 提取 trace context
 	ctxB := context.Background()
-	ctxB = tracer.Extract(ctxB, propagation.MapCarrier(carrier))
+	ctxB = tracer.Extract(ctxB, carrier)
 
 	ctx, spanB := tracer.StartSpan(
 		ctxB,
@@ -270,7 +270,7 @@ func processMiddleware(ctx context.Context, parentSpan telemetry.Span) {
 
 	middlewares := []string{"auth", "rate-limit", "logging"}
 	for _, mw := range middlewares {
-		ctx, span := tracer.StartSpan(
+		_, span := tracer.StartSpan(
 			ctx,
 			fmt.Sprintf("middleware.%s", mw),
 			telemetry.WithSpanKind(telemetry.SpanKindInternal),

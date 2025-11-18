@@ -73,7 +73,7 @@ func setupPostgreSQLService() *postgres.Service {
 }
 
 // createSessionExample 创建 Session 示例
-func createSessionExample(ctx context.Context, service *postgres.Service) *session.Session {
+func createSessionExample(ctx context.Context, service *postgres.Service) *session.SessionData {
 	req := &session.CreateRequest{
 		AppName: "demo-app",
 		UserID:  "user-001",

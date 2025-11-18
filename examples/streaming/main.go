@@ -27,9 +27,8 @@ func main() {
 	config := &types.AgentConfig{
 		TemplateID: "default",
 		ModelConfig: &types.ModelConfig{
-			Provider:  "anthropic",
-			Model:     "claude-3-5-sonnet-20241022",
-			MaxTokens: 4096,
+			Provider: "anthropic",
+			Model:    "claude-3-5-sonnet-20241022",
 		},
 		Sandbox: &types.SandboxConfig{
 			Kind:    types.SandboxKindLocal,
@@ -135,11 +134,10 @@ func createDependencies() *agent.Dependencies {
 	// 创建模板注册表
 	templateRegistry := agent.NewTemplateRegistry()
 	templateRegistry.Register(&types.AgentTemplateDefinition{
-		ID:          "default",
-		Name:        "Default Agent",
-		Description: "A general-purpose agent",
-		Model:       "claude-3-5-sonnet-20241022",
-		Tools:       []interface{}{"*"},
+		ID:           "default",
+		SystemPrompt: "You are a helpful AI assistant.",
+		Model:        "claude-3-5-sonnet-20241022",
+		Tools:        []interface{}{"*"},
 	})
 
 	// 创建工具注册表和存储

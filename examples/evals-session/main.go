@@ -24,10 +24,8 @@ func main() {
 			Timestamp: time.Now(),
 			Author:    "user",
 			Content: types.Message{
-				Role: types.MessageRoleUser,
-				Content: []types.ContentBlock{
-					&types.TextBlock{Text: "What is the capital of France?"},
-				},
+				Role:    types.MessageRoleUser,
+				Content: "What is the capital of France?",
 			},
 		},
 		{
@@ -35,10 +33,8 @@ func main() {
 			Timestamp: time.Now(),
 			Author:    "assistant",
 			Content: types.Message{
-				Role: types.MessageRoleAssistant,
-				Content: []types.ContentBlock{
-					&types.TextBlock{Text: "Paris is the capital of France, located in Europe."},
-				},
+				Role:    types.MessageRoleAssistant,
+				Content: "Paris is the capital of France, located in Europe.",
 			},
 		},
 	}

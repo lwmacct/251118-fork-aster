@@ -95,10 +95,8 @@ func main() {
 	agentID := "agt-test123"
 	testMessages := []types.Message{
 		{
-			Role: types.MessageRoleUser,
-			Content: []types.ContentBlock{
-				&types.TextBlock{Text: "Hello Agent!"},
-			},
+			Role:    types.MessageRoleUser,
+			Content: "Hello Agent!",
 		},
 	}
 
@@ -155,9 +153,9 @@ func main() {
 	// 获取最后的bookmark
 	lastBookmark := bus.GetLastBookmark()
 	if lastBookmark != nil {
-		fmt.Printf("  最后Bookmark: seq=%d, time=%s\n",
-			lastBookmark.Seq,
-			lastBookmark.Timestamp.Format("15:04:05"))
+		fmt.Printf("  最后Bookmark: cursor=%d, time=%d\n",
+			lastBookmark.Cursor,
+			lastBookmark.Timestamp)
 	}
 
 	// 获取时间线

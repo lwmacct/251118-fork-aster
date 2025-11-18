@@ -29,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	sessionID := (*sess).ID()
+	sessionID := sess.ID()
 	fmt.Printf("✅ Created session: %s\n\n", sessionID)
 
 	// 3. 演示分层状态管理
@@ -57,7 +57,7 @@ func demonstrateStateManagement(ctx context.Context, service *session.InMemorySe
 		SessionID: sessionID,
 	})
 
-	state := (*sess).State()
+	state := sess.State()
 
 	// 设置不同作用域的状态
 	states := map[string]interface{}{
@@ -162,7 +162,7 @@ func demonstrateEventManagement(ctx context.Context, service *session.InMemorySe
 		SessionID: sessionID,
 	})
 
-	eventList := (*sess).Events()
+	eventList := sess.Events()
 	fmt.Printf("\n📊 Total events: %d\n\n", eventList.Len())
 
 	// 遍历事件

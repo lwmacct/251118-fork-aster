@@ -71,7 +71,7 @@ func setupMySQLService() *mysql.Service {
 }
 
 // createSessionExample 创建 Session
-func createSessionExample(ctx context.Context, service *mysql.Service) *session.Session {
+func createSessionExample(ctx context.Context, service *mysql.Service) *session.SessionData {
 	req := &session.CreateRequest{
 		AppName: "mysql-demo-app",
 		UserID:  "user-mysql-001",

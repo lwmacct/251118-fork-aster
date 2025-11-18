@@ -23,7 +23,6 @@ func main() {
 	userID := "alice"
 
 	teachingSessionID := "teaching-session"
-	studentSessionID := "student-session"
 
 	// 创建教学会话
 	teachingSess, err := svc.Create(ctx, &session.CreateRequest{
@@ -35,10 +34,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("create teaching session: %v", err)
 	}
-	if (*teachingSess).ID() != teachingSessionID {
+	if teachingSess.ID() != teachingSessionID {
 		// 使用固定 sessionID 方便演示
 		if err := svc.Update(ctx, &session.UpdateRequest{
-			SessionID: (*teachingSess).ID(),
+			SessionID: teachingSess.ID(),
 			Metadata:  map[string]interface{}{"_alias": teachingSessionID},
 		}); err != nil {
 			log.Printf("update teaching session metadata: %v", err)
@@ -71,12 +70,12 @@ func main() {
 		},
 	}
 	for _, ev := range teachEvents {
-		if err := svc.AppendEvent(ctx, (*teachingSess).ID(), ev); err != nil {
+		if err := svc.AppendEvent(ctx, teachingSess.ID(), ev); err != nil {
 			log.Fatalf("append teaching event: %v", err)
 		}
 	}
 
-	fmt.Printf("✅ Created teaching session: %s\n", (*teachingSess).ID())
+	fmt.Printf("✅ Created teaching session: %s\n", teachingSess.ID())
 
 	// 2. 准备语义记忆（长期记忆）
 	vecStore := vector.NewMemoryStore()
@@ -99,7 +98,7 @@ func main() {
 		ctx,
 		appName,
 		userID,
-		(*teachingSess).ID(),
+		teachingSess.ID(),
 		map[string]interface{}{"user_id": userID},
 		&memory.LongTermBridgeConfig{MinTokens: 3},
 	); err != nil {
@@ -135,5 +134,5 @@ func main() {
 		}
 	}
 
-	fmt.Printf("\n✅ Student session: %s (can now use long-term memory)\n", (*studentSess).ID())
+	fmt.Printf("\n✅ Student session: %s (can now use long-term memory)\n", studentSess.ID())
 }

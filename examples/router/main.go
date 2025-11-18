@@ -21,8 +21,11 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// 简单的内存存储 + 本地沙箱
-	memStore := store.NewMemoryStore()
+	// 简单的JSON存储 + 本地沙箱
+	memStore, err := store.NewJSONStore("./.aster-router")
+	if err != nil {
+		log.Fatalf("Failed to create store: %v", err)
+	}
 	sbFactory := sandbox.NewFactory()
 
 	// Provider 工厂

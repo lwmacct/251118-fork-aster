@@ -144,7 +144,7 @@ Remember: Working Memory is automatically loaded at the start of each conversati
 	runDemo(ctx, ag)
 }
 
-func runDemo(ctx context.Context, ag agent.Agent) {
+func runDemo(ctx context.Context, ag *agent.Agent) {
 	scenarios := []struct {
 		title  string
 		prompt string
@@ -249,7 +249,7 @@ func runDemo(ctx context.Context, ag agent.Agent) {
 	}
 }
 
-func printAgentStatus(ag agent.Agent) {
+func printAgentStatus(ag *agent.Agent) {
 	status := ag.Status()
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("📊 Agent Status")

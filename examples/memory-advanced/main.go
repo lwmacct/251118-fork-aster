@@ -204,7 +204,7 @@ func main() {
 
 	// 1. 构建 Backend: 默认使用 StateBackend + 本地 ./memories 目录
 	stateBackend := backends.NewStateBackend()
-	localMemBackend := backends.NewLocalBackend("./memories-advanced")
+	localMemBackend := backends.NewStateBackend()
 
 	memoryBackend := backends.NewCompositeBackend(
 		stateBackend,

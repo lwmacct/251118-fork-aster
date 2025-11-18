@@ -11,13 +11,13 @@ import (
 
 // Phase4IntegrationExample 展示如何集成 SummarizationMiddleware 和 AgentMemoryMiddleware
 func Phase4IntegrationExample() error {
-	ctx := context.Background()
+	_ = context.Background()
 
 	// 1. 创建后端存储
 	// 使用 CompositeBackend 支持多路径路由
-	composite := backends.NewCompositeBackend([]backends.Route{
+	filesystemBackend := createFilesystemBackend()
+	composite := backends.NewCompositeBackend(filesystemBackend, []backends.RouteConfig{
 		{Prefix: "/memories/", Backend: createStoreBackend()},
-		{Prefix: "/", Backend: createFilesystemBackend()},
 	})
 
 	// 2. 创建自定义 Summarizer (使用真实 LLM)
@@ -73,7 +73,7 @@ func generateSummaryWithLLM(ctx context.Context, messages []types.Message) (stri
 	// 3. 设置较低的 temperature (如 0.3)
 
 	// 构建总结请求
-	summaryPrompt := `Please provide a concise summary of the following conversation, capturing:
+	_ = `Please provide a concise summary of the following conversation, capturing:
 1. Main topics discussed
 2. Important decisions or conclusions
 3. Action items or next steps
@@ -81,22 +81,17 @@ func generateSummaryWithLLM(ctx context.Context, messages []types.Message) (stri
 
 Keep the summary focused and informative, around 200-300 words.`
 
-	// 组装消息
-	summaryMessages := []types.Message{
-		{
-			Role: types.MessageRoleSystem,
-			Content: []types.ContentBlock{
-				&types.TextBlock{Text: summaryPrompt},
-			},
-		},
-	}
-	summaryMessages = append(summaryMessages, messages...)
-
-	// TODO: 调用 Provider 的 Stream 方法
+	// TODO: 实际应该组装消息并调用LLM
+	// Example:
+	// summaryMessages := []types.Message{
+	//     {Role: types.MessageRoleSystem, Content: summaryPrompt},
+	// }
+	// summaryMessages = append(summaryMessages, messages...)
 	// resp, err := provider.Stream(ctx, summaryMessages, &provider.StreamOptions{
 	//     Temperature: 0.3,
 	//     MaxTokens:   500,
 	// })
+	_ = messages
 
 	// 示例返回
 	return "Summary of conversation: [Topics discussed, decisions made, next steps...]", nil

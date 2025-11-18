@@ -21,20 +21,12 @@ func main() {
 	ctx := context.Background()
 
 	// 1. 构建 Backend:
-	//    - 默认使用 StateBackend (内存临时文件)
-	//    - /memories/ 路径映射到本地 ./memories 目录, 用于长期记忆
+	//    - 使用 StateBackend (内存临时文件)
 	stateBackend := backends.NewStateBackend()
-	localMemBackend := backends.NewLocalBackend("./memories")
 
-	memoryBackend := backends.NewCompositeBackend(
-		stateBackend,
-		[]backends.RouteConfig{
-			{
-				Prefix:  "/memories/",
-				Backend: localMemBackend,
-			},
-		},
-	)
+	// Note: 在实际应用中，可以使用FilesystemBackend或其他持久化Backend
+	// memoryBackend := backends.NewCompositeBackend(...)
+	memoryBackend := stateBackend
 
 	// 2. 创建 Filesystem + AgentMemory 中间件
 	fsMiddleware := middleware.NewFilesystemMiddleware(&middleware.FilesystemMiddlewareConfig{
