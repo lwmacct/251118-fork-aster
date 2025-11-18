@@ -148,7 +148,12 @@ coverage.html
 # ============================
 .nuxt/
 .output/
-public/
+
+# 忽略构建输出，但保留静态资源
+/docs/.output/
+/docs/public/
+# 保留 docs/public/images/ 用于 README 图片
+!docs/public/images/
 
 # ============================
 # 安全和密钥
