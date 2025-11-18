@@ -12,6 +12,15 @@
   <em>Go 的高性能基底，脚本的灵活编排，为生产环境而生</em>
 </p>
 
+<p align="center">
+  <a href="https://github.com/astercloud/aster/actions/workflows/go-ci.yml"><img src="https://github.com/astercloud/aster/actions/workflows/go-ci.yml/badge.svg" alt="Go CI"></a>
+  <a href="https://github.com/astercloud/aster/actions/workflows/deploy-docs.yml"><img src="https://github.com/astercloud/aster/actions/workflows/deploy-docs.yml/badge.svg" alt="Deploy Docs"></a>
+  <a href="https://goreportcard.com/report/github.com/astercloud/aster"><img src="https://goreportcard.com/badge/github.com/astercloud/aster" alt="Go Report Card"></a>
+  <a href="https://codecov.io/gh/astercloud/aster"><img src="https://codecov.io/gh/astercloud/aster/branch/main/graph/badge.svg" alt="codecov"></a>
+  <a href="https://github.com/astercloud/aster/releases"><img src="https://img.shields.io/github/v/release/astercloud/aster" alt="Release"></a>
+  <a href="https://github.com/astercloud/aster/blob/main/LICENSE"><img src="https://img.shields.io/github/license/astercloud/aster" alt="License"></a>
+</p>
+
 📖 **[完整文档](https://astercloud.github.io/aster/)** | 🚀 **[快速开始](https://astercloud.github.io/aster/introduction/quickstart)** | 🏗️ **[架构设计](https://astercloud.github.io/aster/introduction/architecture)**
 
 ## 架构设计
