@@ -8,74 +8,93 @@ import (
 	"strings"
 
 	"github.com/astercloud/aster/pkg/agent"
-	"github.com/astercloud/aster/pkg/backends"
 	"github.com/astercloud/aster/pkg/middleware"
 	"github.com/astercloud/aster/pkg/provider"
+	"github.com/astercloud/aster/pkg/sandbox"
+	"github.com/astercloud/aster/pkg/store"
 	"github.com/astercloud/aster/pkg/tools"
+	"github.com/astercloud/aster/pkg/tools/builtin"
 	"github.com/astercloud/aster/pkg/types"
 )
 
 func main() {
 	ctx := context.Background()
 
-	// 1. 创建 HITL 中间件
-	hitlMW, err := createHITLMiddleware()
-	if err != nil {
-		log.Fatalf("Failed to create HITL middleware: %v", err)
-	}
-
-	// 2. 创建文件系统中间件（提供文件操作工具）
-	backend := backends.NewStateBackend()
-	filesMW := middleware.NewFilesystemMiddleware(&middleware.FilesystemMiddlewareConfig{
-		Backend:    backend,
-		TokenLimit: 20000,
-	})
-
-	// 3. 注册中间件
-	stack := middleware.NewStack()
-	stack.Use(hitlMW)
-	stack.Use(filesMW)
-
-	// 4. 创建 LLM Provider
-	apiKey := os.Getenv("OPENAI_API_KEY")
+	// 检查API Key
+	apiKey := os.Getenv("ANTHROPIC_API_KEY")
 	if apiKey == "" {
-		log.Fatal("OPENAI_API_KEY environment variable is required")
+		log.Fatal("ANTHROPIC_API_KEY environment variable is required")
 	}
 
-	llm, err := provider.NewOpenAIProvider(&provider.OpenAIProviderConfig{
-		APIKey: apiKey,
-		Model:  "gpt-4",
+	// 1. 注册 HITL 中间件到全局注册表
+	middleware.DefaultRegistry.Register("hitl", func(config *middleware.MiddlewareFactoryConfig) (middleware.Middleware, error) {
+		return createHITLMiddleware()
 	})
+
+	// 2. 创建工具注册表并注册内置工具
+	toolRegistry := tools.NewRegistry()
+	builtin.RegisterAll(toolRegistry)
+
+	// 3. 创建Sandbox工厂
+	sandboxFactory := sandbox.NewFactory()
+
+	// 4. 创建Provider工厂
+	providerFactory := &provider.AnthropicFactory{}
+
+	// 5. 创建Store
+	storePath := ".aster-hitl"
+	jsonStore, err := store.NewJSONStore(storePath)
 	if err != nil {
-		log.Fatalf("Failed to create provider: %v", err)
+		log.Fatalf("Failed to create store: %v", err)
 	}
 
-	// 5. 创建 Agent 配置
-	config := &agent.Config{
-		Name:         "HITL-Demo-Agent",
-		Description:  "演示 Human-in-the-Loop 功能的 Agent",
+	// 6. 创建模板注册表
+	templateRegistry := agent.NewTemplateRegistry()
+
+	// 注册HITL演示模板
+	templateRegistry.Register(&types.AgentTemplateDefinition{
+		ID:           "hitl-demo",
+		Model:        "claude-sonnet-4-5",
 		SystemPrompt: buildSystemPrompt(),
-		Tools: []tools.Tool{
-			// 添加一个危险的 shell 工具用于演示
-			&tools.ShellTool{
-				Name:        "Bash",
-				Description: "Execute shell commands",
-			},
-		},
+		Tools:        []interface{}{"Bash", "Read", "Write"},
+	})
+
+	// 7. 创建依赖
+	deps := &agent.Dependencies{
+		Store:            jsonStore,
+		SandboxFactory:   sandboxFactory,
+		ToolRegistry:     toolRegistry,
+		ProviderFactory:  providerFactory,
+		TemplateRegistry: templateRegistry,
 	}
 
-	// 6. 创建 Agent
-	ag, err := agent.Create(ctx, config, &agent.Dependencies{
-		Provider:        llm,
-		Backend:         backend,
-		MiddlewareStack: stack,
-	})
+	// 8. 创建Agent配置（使用中间件名称字符串）
+	config := &types.AgentConfig{
+		TemplateID: "hitl-demo",
+		ModelConfig: &types.ModelConfig{
+			Provider: "anthropic",
+			Model:    "claude-sonnet-4-5",
+			APIKey:   apiKey,
+		},
+		Sandbox: &types.SandboxConfig{
+			Kind:    types.SandboxKindLocal,
+			WorkDir: "./workspace-hitl",
+		},
+		Middlewares: []string{"hitl", "filesystem"},
+	}
+
+	// 9. 创建Agent
+	ag, err := agent.Create(ctx, config, deps)
 	if err != nil {
 		log.Fatalf("Failed to create agent: %v", err)
 	}
-	defer ag.Close()
+	defer func() {
+		if err := ag.Close(); err != nil {
+			log.Printf("Failed to close agent: %v", err)
+		}
+	}()
 
-	// 7. 运行演示场景
+	// 10. 运行演示场景
 	runDemo(ctx, ag)
 }
 
@@ -221,7 +240,7 @@ func promptForDecision(action middleware.ActionRequest, config middleware.Interr
 
 	fmt.Print("\n你的选择: ")
 	var choice string
-	fmt.Scanln(&choice)
+	_, _ = fmt.Scanln(&choice)
 
 	switch strings.ToLower(strings.TrimSpace(choice)) {
 	case "a", "approve":
@@ -233,7 +252,7 @@ func promptForDecision(action middleware.ActionRequest, config middleware.Interr
 	case "r", "reject":
 		fmt.Print("拒绝原因 (可选): ")
 		var reason string
-		fmt.Scanln(&reason)
+		_, _ = fmt.Scanln(&reason)
 		if reason == "" {
 			reason = "用户拒绝"
 		}
@@ -262,7 +281,7 @@ func promptForHighRiskDecision(action middleware.ActionRequest) ([]middleware.De
 
 	fmt.Print("\n确认: ")
 	var confirm string
-	fmt.Scanln(&confirm)
+	_, _ = fmt.Scanln(&confirm)
 
 	if confirm == "CONFIRM" {
 		return []middleware.Decision{{
@@ -286,7 +305,7 @@ func promptForEdit(action middleware.ActionRequest) ([]middleware.Decision, erro
 		fmt.Print("新值 (按回车保持不变): ")
 
 		var newValue string
-		fmt.Scanln(&newValue)
+		_, _ = fmt.Scanln(&newValue)
 
 		if newValue != "" {
 			editedInput[key] = newValue
@@ -334,7 +353,7 @@ func runDemo(ctx context.Context, ag *agent.Agent) {
 	fmt.Println("🎯 Human-in-the-Loop (HITL) 功能演示")
 	fmt.Println(strings.Repeat("=", 70))
 	fmt.Println("\n本演示将展示 HITL 中间件如何拦截和审核敏感操作。")
-	fmt.Println("你将看到不同风险级别的操作如何被处理。\n")
+	fmt.Println("你将看到不同风险级别的操作如何被处理。")
 
 	scenarios := []struct {
 		name    string
@@ -359,9 +378,7 @@ func runDemo(ctx context.Context, ag *agent.Agent) {
 		fmt.Printf("用户请求: %s\n", scenario.message)
 		fmt.Println(strings.Repeat("-", 70))
 
-		result, err := ag.Chat(ctx, scenario.message, &types.ChatOptions{
-			MaxIterations: 3,
-		})
+		result, err := ag.Chat(ctx, scenario.message)
 
 		if err != nil {
 			fmt.Printf("❌ 错误: %v\n", err)
@@ -374,7 +391,7 @@ func runDemo(ctx context.Context, ag *agent.Agent) {
 		// 询问是否继续
 		if i < len(scenarios)-1 {
 			fmt.Print("\n按回车继续下一个场景...")
-			fmt.Scanln()
+			_, _ = fmt.Scanln()
 		}
 	}
 

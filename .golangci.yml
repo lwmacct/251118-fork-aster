@@ -1,6 +1,10 @@
+version: "2"
+
 run:
   tests: false
   timeout: 5m
+  skip-dirs:
+    - examples
 
 linters:
   enable:
@@ -14,14 +18,9 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-dirs:
+    - examples
   exclude-rules:
-    - path: examples/
-      linters:
-        - errcheck
-        - govet
-        - ineffassign
-        - staticcheck
-        - unused
     - path: _test\.go
       linters:
         - typecheck
