@@ -17,6 +17,14 @@ navigation: false
   </div>
 </div>
 
+<div class="text-center py-2 px-4 mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg">
+  <p class="text-sm text-gray-600 dark:text-gray-400">
+    当前版本: <strong>v0.12.1</strong> |
+    <a href="/about/release-notes" class="text-primary-600 hover:underline">更新日志</a> |
+    <a href="https://github.com/astercloud/aster/releases" target="_blank" class="text-primary-600 hover:underline">下载地址</a>
+  </p>
+</div>
+
 ## ✨ 核心特性
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
@@ -47,6 +55,11 @@ navigation: false
 </div>
 
 ## 🚀 快速开始
+
+### 前置要求
+
+- Go 1.24+
+- API 密钥 (Anthropic/OpenAI/DeepSeek)
 
 ### 安装
 
