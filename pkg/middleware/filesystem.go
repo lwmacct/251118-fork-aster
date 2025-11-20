@@ -77,23 +77,18 @@ func NewFilesystemMiddleware(config *FilesystemMiddlewareConfig) *FilesystemMidd
 func (m *FilesystemMiddleware) createFilesystemTools() []tools.Tool {
 	var fsTools []tools.Tool
 
-	// 基础工具: Read, Write
-	if tool, err := builtin.NewReadTool(nil); err == nil {
-		fsTools = append(fsTools, tool)
-	}
-	if tool, err := builtin.NewWriteTool(nil); err == nil {
-		fsTools = append(fsTools, tool)
-	}
+	// 创建基础工具
+	readTool, _ := builtin.NewReadTool(nil)
+	fsTools = append(fsTools, readTool)
 
-	// 如果有 backend,添加增强工具
+	writeTool, _ := builtin.NewWriteTool(nil)
+	fsTools = append(fsTools, writeTool)
+
+	// 创建增强工具（如果有 backend）
 	if m.backend != nil {
-		// Ls
 		fsTools = append(fsTools, &LsTool{backend: m.backend, middleware: m})
-		// Edit
 		fsTools = append(fsTools, &EditTool{backend: m.backend, middleware: m})
-		// Glob
 		fsTools = append(fsTools, &GlobTool{backend: m.backend, middleware: m})
-		// Grep
 		fsTools = append(fsTools, &GrepTool{backend: m.backend, middleware: m})
 	}
 

@@ -26,6 +26,14 @@ func TestMain(m *testing.M) {
 func setupPostgresContainer(t *testing.T) (service *Service, cleanup func()) {
 	t.Helper()
 
+	// 检查是否在 CI 环境或需要跳过集成测试
+	if testing.Short() {
+		t.Skip("Skipping PostgreSQL integration test in short mode")
+	}
+	if os.Getenv("SKIP_INTEGRATION_TESTS") != "" {
+		t.Skip("Skipping PostgreSQL integration test (SKIP_INTEGRATION_TESTS is set)")
+	}
+
 	ctx := context.Background()
 
 	// 创建 PostgreSQL 容器
