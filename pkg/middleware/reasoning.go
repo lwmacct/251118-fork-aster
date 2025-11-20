@@ -274,27 +274,6 @@ Example:
 `
 }
 
-// containsReasoningMarkers 检查文本是否包含推理标记
-func containsReasoningMarkers(text string) bool {
-	markers := []string{
-		"step 1:",
-		"step 2:",
-		"reasoning:",
-		"thought process:",
-		"let me think",
-		"first,",
-		"second,",
-		"finally,",
-	}
 
-	textLower := text
-	for _, marker := range markers {
-		if containsString(textLower, marker) {
-			return true
-		}
-	}
-
-	return false
-}
 
 

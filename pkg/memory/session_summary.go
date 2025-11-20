@@ -315,7 +315,7 @@ func (m *SessionSummaryManager) GetSummaryText(sessionID string) string {
 	}
 
 	if len(summary.ActionItems) > 0 {
-		text += fmt.Sprintf("\n行动项：\n")
+		text += "\n行动项：\n"
 		for _, item := range summary.ActionItems {
 			text += fmt.Sprintf("- %s\n", item)
 		}
