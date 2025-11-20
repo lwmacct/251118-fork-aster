@@ -3,6 +3,7 @@ package stars
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/astercloud/aster/pkg/agent"
 	"github.com/astercloud/aster/pkg/cosmos"
@@ -339,4 +340,8 @@ func TestStars_History(t *testing.T) {
 			t.Errorf("Expected text 'Hello', got '%s'", msg.Text)
 		}
 	}
+
+	// 给异步 goroutine 时间完成（Send 方法使用了 go func）
+	// 这样可以避免临时目录清理失败
+	time.Sleep(100 * time.Millisecond)
 }
