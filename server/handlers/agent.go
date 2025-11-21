@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/astercloud/aster/pkg/agent"
@@ -312,26 +314,480 @@ func (h *AgentHandler) GetStats(c *gin.Context) {
 	})
 }
 
+// Run runs an agent with a message
+func (h *AgentHandler) Run(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	var req struct {
+		Message string                 `json:"message" binding:"required"`
+		Context map[string]interface{} `json:"context"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "bad_request",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Get agent record
+	var agentRecord AgentRecord
+	if err := (*h.store).Get(ctx, "agents", id, &agentRecord); err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "not_found",
+					"message": "Agent not found",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "internal_error",
+				"message": "Failed to get agent: " + err.Error(),
+			},
+		})
+		return
+	}
+
+	// Create agent instance
+	ag, err := agent.Create(ctx, agentRecord.Config, h.deps)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "internal_error",
+				"message": "Failed to create agent: " + err.Error(),
+			},
+		})
+		return
+	}
+	defer func() { _ = ag.Close() }()
+
+	// Send message
+	if err := ag.Send(ctx, req.Message); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "internal_error",
+				"message": "Failed to run agent: " + err.Error(),
+			},
+		})
+		return
+	}
+
+	logging.Info(ctx, "agent.run", map[string]interface{}{
+		"agent_id": id,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"status":  "running",
+			"message": "Agent task started",
+		},
+	})
+}
+
+// Send sends a message to an agent
+func (h *AgentHandler) Send(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	var req struct {
+		Message string `json:"message" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "bad_request",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Get agent record
+	var agentRecord AgentRecord
+	if err := (*h.store).Get(ctx, "agents", id, &agentRecord); err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "not_found",
+					"message": "Agent not found",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "internal_error",
+				"message": "Failed to get agent: " + err.Error(),
+			},
+		})
+		return
+	}
+
+	// Create agent instance
+	ag, err := agent.Create(ctx, agentRecord.Config, h.deps)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "internal_error",
+				"message": "Failed to create agent: " + err.Error(),
+			},
+		})
+		return
+	}
+	defer func() { _ = ag.Close() }()
+
+	// Send message
+	if err := ag.Send(ctx, req.Message); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "internal_error",
+				"message": "Failed to send message: " + err.Error(),
+			},
+		})
+		return
+	}
+
+	logging.Info(ctx, "agent.send", map[string]interface{}{
+		"agent_id": id,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"message": "Message sent successfully",
+		},
+	})
+}
+
+// GetStatus retrieves agent status
+func (h *AgentHandler) GetStatus(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	// Get agent record
+	var agentRecord AgentRecord
+	if err := (*h.store).Get(ctx, "agents", id, &agentRecord); err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "not_found",
+					"message": "Agent not found",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "internal_error",
+				"message": "Failed to get agent: " + err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"agent_id": id,
+			"status":   agentRecord.Status,
+		},
+	})
+}
+
+// Resume resumes an agent from storage
+func (h *AgentHandler) Resume(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	// Get agent record
+	var agentRecord AgentRecord
+	if err := (*h.store).Get(ctx, "agents", id, &agentRecord); err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "not_found",
+					"message": "Agent not found",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "internal_error",
+				"message": "Failed to get agent: " + err.Error(),
+			},
+		})
+		return
+	}
+
+	// Create agent instance (will load from storage)
+	ag, err := agent.Create(ctx, agentRecord.Config, h.deps)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "internal_error",
+				"message": "Failed to resume agent: " + err.Error(),
+			},
+		})
+		return
+	}
+	defer func() { _ = ag.Close() }()
+
+	logging.Info(ctx, "agent.resumed", map[string]interface{}{
+		"agent_id": id,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"agent_id": ag.ID(),
+			"status":   ag.Status(),
+		},
+	})
+}
+
 // Chat handles chat requests
 func (h *AgentHandler) Chat(c *gin.Context) {
-	// TODO: Implement chat logic from cmd/aster
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error": gin.H{
-			"code":    "not_implemented",
-			"message": "Chat endpoint not yet implemented",
-		},
+	ctx := c.Request.Context()
+	
+	var req struct {
+		TemplateID    string                 `json:"template_id" binding:"required"`
+		Input         string                 `json:"input" binding:"required"`
+		ModelConfig   *types.ModelConfig     `json:"model_config"`
+		Sandbox       *types.SandboxConfig   `json:"sandbox"`
+		Middlewares   []string               `json:"middlewares"`
+		Metadata      map[string]interface{} `json:"metadata"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "bad_request",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Create agent configuration
+	cfg := &types.AgentConfig{
+		TemplateID:  req.TemplateID,
+		ModelConfig: req.ModelConfig,
+		Sandbox:     req.Sandbox,
+		Middlewares: req.Middlewares,
+		Metadata:    req.Metadata,
+	}
+	
+	// If ModelConfig is provided but missing API key, try to fill from environment
+	if cfg.ModelConfig != nil && cfg.ModelConfig.APIKey == "" {
+		provider := cfg.ModelConfig.Provider
+		var apiKey string
+		switch provider {
+		case "deepseek":
+			apiKey = os.Getenv("DEEPSEEK_API_KEY")
+		case "anthropic":
+			apiKey = os.Getenv("ANTHROPIC_API_KEY")
+		case "openai":
+			apiKey = os.Getenv("OPENAI_API_KEY")
+		default:
+			apiKey = os.Getenv(strings.ToUpper(provider) + "_API_KEY")
+		}
+		if apiKey != "" {
+			cfg.ModelConfig.APIKey = apiKey
+		}
+	}
+
+	// Create agent instance
+	ag, err := agent.Create(ctx, cfg, h.deps)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "agent_creation_failed",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Execute chat
+	result, err := ag.Chat(ctx, req.Input)
+	if err != nil {
+		logging.Error(ctx, "chat.failed", map[string]interface{}{
+			"agent_id": ag.ID(),
+			"error":    err.Error(),
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "chat_failed",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	logging.Info(ctx, "chat.completed", map[string]interface{}{
+		"agent_id":    ag.ID(),
+		"text_length": len(result.Text),
+		"status":      result.Status,
+	})
+
+	// Return response
+	c.JSON(http.StatusOK, gin.H{
+		"success":  true,
+		"agent_id": ag.ID(),
+		"text":     result.Text,
+		"output":   result.Text,
+		"status":   result.Status,
 	})
 }
 
 // StreamChat handles streaming chat requests
 func (h *AgentHandler) StreamChat(c *gin.Context) {
-	// TODO: Implement streaming chat logic
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error": gin.H{
-			"code":    "not_implemented",
-			"message": "Stream chat endpoint not yet implemented",
-		},
+	ctx := c.Request.Context()
+	
+	var req struct {
+		TemplateID    string                 `json:"template_id" binding:"required"`
+		Input         string                 `json:"input" binding:"required"`
+		ModelConfig   *types.ModelConfig     `json:"model_config"`
+		Sandbox       *types.SandboxConfig   `json:"sandbox"`
+		Middlewares   []string               `json:"middlewares"`
+		Metadata      map[string]interface{} `json:"metadata"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "bad_request",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Create agent configuration
+	cfg := &types.AgentConfig{
+		TemplateID:  req.TemplateID,
+		ModelConfig: req.ModelConfig,
+		Sandbox:     req.Sandbox,
+		Middlewares: req.Middlewares,
+		Metadata:    req.Metadata,
+	}
+	
+	// Fill API key from environment if missing
+	if cfg.ModelConfig != nil && cfg.ModelConfig.APIKey == "" {
+		provider := cfg.ModelConfig.Provider
+		var apiKey string
+		switch provider {
+		case "deepseek":
+			apiKey = os.Getenv("DEEPSEEK_API_KEY")
+		case "anthropic":
+			apiKey = os.Getenv("ANTHROPIC_API_KEY")
+		case "openai":
+			apiKey = os.Getenv("OPENAI_API_KEY")
+		default:
+			apiKey = os.Getenv(strings.ToUpper(provider) + "_API_KEY")
+		}
+		if apiKey != "" {
+			cfg.ModelConfig.APIKey = apiKey
+		}
+	}
+
+	// Create agent instance
+	ag, err := agent.Create(ctx, cfg, h.deps)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "agent_creation_failed",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+	defer func() { _ = ag.Close() }()
+
+	// Set SSE headers
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no")
+
+	// Stream events to client
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "streaming_not_supported",
+				"message": "Streaming not supported",
+			},
+		})
+		return
+	}
+
+	// Use Stream iterator
+	for event, err := range ag.Stream(ctx, req.Input) {
+		if err != nil {
+			logging.Error(ctx, "stream.error", map[string]interface{}{
+				"agent_id": ag.ID(),
+				"error":    err.Error(),
+			})
+			c.SSEvent("error", gin.H{
+				"code":    "stream_error",
+				"message": err.Error(),
+			})
+			flusher.Flush()
+			break
+		}
+		
+		if event != nil {
+			// Extract text content from event
+			var textContent string
+			for _, block := range event.Content.ContentBlocks {
+				if tb, ok := block.(*types.TextBlock); ok {
+					textContent += tb.Text
+				}
+			}
+			
+			if textContent != "" {
+				c.SSEvent("message", gin.H{
+					"type": "text_delta",
+					"text": textContent,
+				})
+				flusher.Flush()
+			}
+		}
+	}
+
+	logging.Info(ctx, "stream.completed", map[string]interface{}{
+		"agent_id": ag.ID(),
 	})
 }

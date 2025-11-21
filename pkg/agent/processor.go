@@ -505,22 +505,34 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 				switch deltaType {
 				case "text_delta":
 					text, _ := delta["text"].(string)
-					if currentBlockIndex >= 0 {
-						for len(assistantContent) <= currentBlockIndex {
-							assistantContent = append(assistantContent, nil)
-						}
-						if assistantContent[currentBlockIndex] == nil {
-							assistantContent[currentBlockIndex] = &types.TextBlock{Text: ""}
-							textBuffers[currentBlockIndex] = ""
-						}
-						if _, exists := textBuffers[currentBlockIndex]; !exists {
-							textBuffers[currentBlockIndex] = ""
-						}
-						textBuffers[currentBlockIndex] += text
-						if block, ok := assistantContent[currentBlockIndex].(*types.TextBlock); ok {
-							block.Text = textBuffers[currentBlockIndex]
+					// 如果 currentBlockIndex 未初始化，使用 chunk.Index 或默认为 0
+					if currentBlockIndex < 0 {
+						currentBlockIndex = chunk.Index
+						if currentBlockIndex < 0 {
+							currentBlockIndex = 0
 						}
 					}
+					
+					// 确保有足够的空间
+					for len(assistantContent) <= currentBlockIndex {
+						assistantContent = append(assistantContent, nil)
+					}
+					
+					// 如果块还未初始化，创建新的文本块
+					if assistantContent[currentBlockIndex] == nil {
+						assistantContent[currentBlockIndex] = &types.TextBlock{Text: ""}
+						textBuffers[currentBlockIndex] = ""
+					}
+					
+					// 累积文本
+					if _, exists := textBuffers[currentBlockIndex]; !exists {
+						textBuffers[currentBlockIndex] = ""
+					}
+					textBuffers[currentBlockIndex] += text
+					if block, ok := assistantContent[currentBlockIndex].(*types.TextBlock); ok {
+						block.Text = textBuffers[currentBlockIndex]
+					}
+					
 					// 发送文本增量事件
 					a.eventBus.EmitProgress(&types.ProgressTextChunkEvent{
 						Step:  a.stepCount,
