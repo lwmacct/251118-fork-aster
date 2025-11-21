@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AsterUI - 可用聊天界面</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/marked@11.0.0/marked.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    
+    .chat-header {
+      padding: 20px;
+      background: #3b82f6;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .chat-header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #f9fafb;
+    }
+    
+    .message {
+      margin-bottom: 16px;
+      display: flex;
+      gap: 12px;
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .message.user {
+      flex-direction: row-reverse;
+    }
+    
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .message.user .message-avatar {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .message-content {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      line-height: 1.5;
+    }
+    
+    .message.user .message-content {
+      background: #3b82f6;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .message.assistant .message-content {
+      background: white;
+      color: #111827;
+      border: 1px solid #e5e7eb;
+      border-bottom-left-radius: 4px;
+    }
+    
+    .message-time {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+    
+    .message.user .message-time {
+      color: rgba(255,255,255,0.7);
+    }
+    
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 12px;
+    }
+    
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9ca3af;
+      animation: typing 1.4s infinite;
+    }
+    
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-10px); }
+    }
+    
+    .chat-input {
+      padding: 20px;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+    }
+    
+    .input-wrapper {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .input-wrapper textarea {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      resize: none;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+    
+    .input-wrapper textarea:focus {
+      border-color: #3b82f6;
+    }
+    
+    .send-button {
+      padding: 12px 24px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    
+    .send-button:hover {
+      background: #2563eb;
+    }
+    
+    .send-button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    
+    .quick-replies {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .quick-reply {
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    
+    .quick-reply:hover {
+      background: #f3f4f6;
+      border-color: #3b82f6;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #9ca3af;
+    }
+    
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="chat-container">
+      <!-- Header -->
+      <div class="chat-header">
+        <div class="message-avatar">🤖</div>
+        <div>
+          <h1>AI 助手</h1>
+          <div style="font-size: 12px; opacity: 0.9;">{{ isConnected ? '在线' : '离线' }}</div>
+        </div>
+      </div>
+      
+      <!-- Messages -->
+      <div class="chat-messages" ref="messagesContainer">
+        <div v-if="messages.length === 0" class="empty-state">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+          </svg>
+          <p>开始对话吧！</p>
+        </div>
+        
+        <div v-for="message in messages" :key="message.id" :class="['message', message.role]">
+          <div class="message-avatar">
+            {{ message.role === 'user' ? '👤' : '🤖' }}
+          </div>
+          <div>
+            <div class="message-content" v-html="renderMarkdown(message.content)"></div>
+            <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+          </div>
+        </div>
+        
+        <div v-if="isTyping" class="message assistant">
+          <div class="message-avatar">🤖</div>
+          <div class="message-content">
+            <div class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Input -->
+      <div class="chat-input">
+        <div v-if="quickReplies.length > 0" class="quick-replies">
+          <button v-for="reply in quickReplies" :key="reply" 
+                  @click="sendQuickReply(reply)" 
+                  class="quick-reply">
+            {{ reply }}
+          </button>
+        </div>
+        
+        <div class="input-wrapper">
+          <textarea 
+            v-model="inputText"
+            @keydown.enter.exact.prevent="sendMessage"
+            placeholder="输入消息... (Enter 发送，Shift+Enter 换行)"
+            rows="1"
+            :disabled="isTyping"
+          ></textarea>
+          <button @click="sendMessage" :disabled="!inputText.trim() || isTyping" class="send-button">
+            发送
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, nextTick, onMounted } = Vue;
+    
+    createApp({
+      setup() {
+        const messages = ref([]);
+        const inputText = ref('');
+        const isTyping = ref(false);
+        const isConnected = ref(true);
+        const messagesContainer = ref(null);
+        const quickReplies = ref(['你好', '帮我写代码', '解释一下', '继续']);
+        
+        const sendMessage = async () => {
+          if (!inputText.value.trim()) return;
+          
+          // 添加用户消息
+          const userMessage = {
+            id: Date.now(),
+            role: 'user',
+            content: inputText.value,
+            timestamp: Date.now()
+          };
+          messages.value.push(userMessage);
+          
+          const userInput = inputText.value;
+          inputText.value = '';
+          
+          // 滚动到底部
+          await nextTick();
+          scrollToBottom();
+          
+          // 显示打字指示器
+          isTyping.value = true;
+          
+          try {
+            // 调用 Aster 后端 API
+            const response = await fetch('http://localhost:8080/v1/agents/chat', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': 'dev-key-12345', // 开发环境默认 API key
+              },
+              body: JSON.stringify({
+                template_id: 'chat',
+                input: userInput,
+                model_config: {
+                  provider: 'deepseek',
+                  model: 'deepseek-chat',
+                  // API key 会从后端环境变量自动填充
+                }
+              })
+            });
+            
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // 添加 AI 响应
+            const aiMessage = {
+              id: Date.now() + 1,
+              role: 'assistant',
+              content: data.text || data.output || '抱歉，我没有收到有效的响应。',
+              timestamp: Date.now()
+            };
+            messages.value.push(aiMessage);
+            
+          } catch (error) {
+            console.error('API Error:', error);
+            
+            // 添加错误消息
+            const errorMessage = {
+              id: Date.now() + 1,
+              role: 'assistant',
+              content: `❌ **连接失败**\n\n${error.message}\n\n请确保：\n1. Aster 后端服务正在运行 (http://localhost:8080)\n2. 已配置 Agent 模板\n3. 网络连接正常\n\n启动后端：\n\`\`\`bash\ngo run ./cmd/aster-server\n\`\`\``,
+              timestamp: Date.now()
+            };
+            messages.value.push(errorMessage);
+          } finally {
+            isTyping.value = false;
+            await nextTick();
+            scrollToBottom();
+          }
+        };
+        
+        const sendQuickReply = (text) => {
+          inputText.value = text;
+          sendMessage();
+        };
+        
+        const scrollToBottom = () => {
+          if (messagesContainer.value) {
+            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+          }
+        };
+        
+        const renderMarkdown = (text) => {
+          if (typeof marked !== 'undefined') {
+            return marked.parse(text);
+          }
+          return text.replace(/\n/g, '<br>');
+        };
+        
+        const formatTime = (timestamp) => {
+          const date = new Date(timestamp);
+          return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        };
+        
+        onMounted(() => {
+          // 欢迎消息
+          setTimeout(() => {
+            messages.value.push({
+              id: Date.now(),
+              role: 'assistant',
+              content: '👋 欢迎使用 AsterUI！\n\n这是一个**连接真实后端**的聊天界面。\n\n**后端状态**: ' + (isConnected.value ? '🟢 准备就绪' : '🔴 未连接') + '\n\n**使用方法**:\n1. 确保 Aster 后端运行在 http://localhost:8080\n2. 输入消息并发送\n3. AI 会通过后端 API 响应\n\n**启动后端**:\n```bash\ngo run ./cmd/aster-server\n```\n\n现在就试试发送消息吧！',
+              timestamp: Date.now()
+            });
+            scrollToBottom();
+            
+            // 检查后端连接
+            checkBackendConnection();
+          }, 500);
+        });
+        
+        const checkBackendConnection = async () => {
+          try {
+            const response = await fetch('http://localhost:8080/health', {
+              method: 'GET',
+              mode: 'cors',
+              headers: {
+                'X-API-Key': 'dev-key-12345'
+              }
+            });
+            isConnected.value = response.ok;
+          } catch (error) {
+            isConnected.value = false;
+            console.log('后端未连接:', error.message);
+          }
+        };
+        
+        return {
+          messages,
+          inputText,
+          isTyping,
+          isConnected,
+          messagesContainer,
+          quickReplies,
+          sendMessage,
+          sendQuickReply,
+          renderMarkdown,
+          formatTime
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

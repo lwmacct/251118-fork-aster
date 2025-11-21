@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AsterUI - 完整功能演示</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+    }
+
+    .demo-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .page-header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .page-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+      font-size: 16px;
+      color: #6b7280;
+    }
+
+    .demo-tabs {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .tab-buttons {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 20px;
+    }
+
+    .tab-button {
+      padding: 16px 24px;
+      border: none;
+      background: none;
+      color: #6b7280;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-button:hover {
+      color: #111827;
+    }
+
+    .tab-button.active {
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
+    }
+
+    .tab-content {
+      padding: 24px;
+      min-height: 600px;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .feature-card {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .feature-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .feature-description {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .demo-message {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      border: 2px solid #e5e7eb;
+      margin-top: 16px;
+    }
+
+    .demo-message h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 12px;
+    }
+
+    .demo-message p {
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .demo-message code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      color: #3b82f6;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <div class="page-header">
+      <h1 class="page-title">🚀 AsterUI 完整功能演示</h1>
+      <p class="page-subtitle">探索 AsterUI 的所有功能和组件</p>
+    </div>
+
+    <div class="demo-tabs">
+      <div class="tab-buttons">
+        <button class="tab-button active" data-tab="chat">💬 聊天</button>
+        <button class="tab-button" data-tab="messages">📨 消息类型</button>
+        <button class="tab-button" data-tab="agents">🤖 Agent 管理</button>
+        <button class="tab-button" data-tab="rooms">👥 Room 协作</button>
+        <button class="tab-button" data-tab="components">🧩 通用组件</button>
+        <button class="tab-button" data-tab="utils">🛠️ 工具函数</button>
+      </div>
+
+      <div class="tab-content">
+        <!-- Chat Tab -->
+        <div class="tab-panel active" data-panel="chat">
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-title">基础聊天</div>
+              <div class="feature-description">完整的聊天界面，支持文本消息、快捷回复</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-title">流式响应</div>
+              <div class="feature-description">打字机效果，实时反馈</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-title">暗色模式</div>
+              <div class="feature-description">自动/手动切换暗色主题</div>
+            </div>
+          </div>
+          <div id="chat-demo"></div>
+        </div>
+
+        <!-- Messages Tab -->
+        <div class="tab-panel" data-panel="messages">
+          <div class="action-buttons">
+            <button class="btn btn-primary" onclick="showImageMessage()">📷 图片消息</button>
+            <button class="btn btn-primary" onclick="showCardMessage()">🎴 卡片消息</button>
+            <button class="btn btn-primary" onclick="showListMessage()">📋 列表消息</button>
+            <button class="btn btn-primary" onclick="showThinkingMessage()">🧠 思考过程</button>
+            <button class="btn btn-primary" onclick="showSystemMessage()">ℹ️ 系统消息</button>
+          </div>
+          <div id="messages-demo"></div>
+        </div>
+
+        <!-- Agents Tab -->
+        <div class="tab-panel" data-panel="agents">
+          <div class="action-buttons">
+            <button class="btn btn-primary" onclick="showAgentForm()">➕ 创建 Agent</button>
+            <button class="btn btn-secondary" onclick="refreshAgents()">🔄 刷新列表</button>
+          </div>
+          <div id="agents-demo"></div>
+        </div>
+
+        <!-- Rooms Tab -->
+        <div class="tab-panel" data-panel="rooms">
+          <div class="action-buttons">
+            <button class="btn btn-primary" onclick="createRoom()">➕ 创建 Room</button>
+            <button class="btn btn-secondary" onclick="refreshRooms()">🔄 刷新列表</button>
+          </div>
+          <div id="rooms-demo"></div>
+        </div>
+
+        <!-- Components Tab -->
+        <div class="tab-panel" data-panel="components">
+          <div class="action-buttons">
+            <button class="btn btn-primary" onclick="showModal()">📦 模态框</button>
+            <button class="btn btn-primary" onclick="showLoading()">⏳ 加载指示器</button>
+            <button class="btn btn-primary" onclick="showNotification()">🔔 通知</button>
+            <button class="btn btn-primary" onclick="showEmpty()">📭 空状态</button>
+          </div>
+          <div id="components-demo"></div>
+        </div>
+
+        <!-- Utils Tab -->
+        <div class="tab-panel" data-panel="utils">
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-title">useLocalStorage</div>
+              <div class="feature-description">响应式本地存储</div>
+              <button class="btn btn-secondary" onclick="testLocalStorage()">测试</button>
+            </div>
+            <div class="feature-card">
+              <div class="feature-title">useDebounce</div>
+              <div class="feature-description">防抖处理</div>
+              <button class="btn btn-secondary" onclick="testDebounce()">测试</button>
+            </div>
+            <div class="feature-card">
+              <div class="feature-title">useClipboard</div>
+              <div class="feature-description">剪贴板操作</div>
+              <button class="btn btn-secondary" onclick="testClipboard()">测试</button>
+            </div>
+            <div class="feature-card">
+              <div class="feature-title">useNotification</div>
+              <div class="feature-description">通知管理</div>
+              <button class="btn btn-secondary" onclick="testNotification()">测试</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createApp } from 'vue';
+    import { Chat } from '../src/components/Chat';
+    import { AgentList } from '../src/components/Agent';
+    import { RoomList } from '../src/components/Room';
+    import { useNotification } from '../src/composables/useNotification';
+
+    // Tab switching
+    document.querySelectorAll('.tab-button').forEach(button => {
+      button.addEventListener('click', () => {
+        const tab = button.dataset.tab;
+        
+        // Update buttons
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        button.classList.add('active');
+        
+        // Update panels
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelector(`[data-panel="${tab}"]`).classList.add('active');
+      });
+    });
+
+    // Chat Demo
+    const chatApp = createApp({
+      components: { Chat },
+      template: '<Chat :config="config" />',
+      data() {
+        return {
+          config: {
+            title: 'AI 助手',
+            subtitle: '在线',
+            placeholder: '输入消息...',
+            showHeader: true,
+            quickReplies: [
+              { id: '1', text: '你好', label: '打招呼' },
+              { id: '2', text: '帮我写代码', label: '写代码' },
+            ],
+          },
+        };
+      },
+    });
+    chatApp.mount('#chat-demo');
+
+    // Agents Demo
+    const agentsApp = createApp({
+      components: { AgentList },
+      template: '<AgentList :agents="agents" @create="handleCreate" />',
+      data() {
+        return {
+          agents: [
+            {
+              id: '1',
+              name: 'Claude Assistant',
+              description: '基于 Claude Sonnet 4 的智能助手',
+              status: 'idle',
+              metadata: { model: 'claude-sonnet-4', provider: 'Anthropic' },
+            },
+          ],
+        };
+      },
+      methods: {
+        handleCreate() {
+          alert('创建 Agent');
+        },
+      },
+    });
+    agentsApp.mount('#agents-demo');
+
+    // Rooms Demo
+    const roomsApp = createApp({
+      components: { RoomList },
+      template: '<RoomList :rooms="rooms" @create="handleCreate" />',
+      data() {
+        return {
+          rooms: [
+            {
+              id: '1',
+              name: 'Team Chat',
+              members: [],
+              createdAt: Date.now(),
+            },
+          ],
+        };
+      },
+      methods: {
+        handleCreate() {
+          alert('创建 Room');
+        },
+      },
+    });
+    roomsApp.mount('#rooms-demo');
+
+    // Global functions
+    const { success, error, info, warning } = useNotification();
+
+    // Message demo functions
+    window.showImageMessage = () => {
+      const demo = document.getElementById('messages-demo');
+      demo.innerHTML = '<div class="demo-message"><h3>📷 图片消息</h3><p>ImageMessage 组件用于显示图片消息，支持预览、下载等功能。</p><p>查看: <code>src/components/Message/ImageMessage.vue</code></p></div>';
+    };
+
+    window.showCardMessage = () => {
+      const demo = document.getElementById('messages-demo');
+      demo.innerHTML = '<div class="demo-message"><h3>🎴 卡片消息</h3><p>CardMessage 组件用于显示结构化的卡片消息，包含标题、描述、字段和操作按钮。</p><p>查看: <code>src/components/Message/CardMessage.vue</code></p></div>';
+    };
+
+    window.showListMessage = () => {
+      const demo = document.getElementById('messages-demo');
+      demo.innerHTML = '<div class="demo-message"><h3>📋 列表消息</h3><p>ListMessage 组件用于显示列表形式的消息，适合展示多个选项或结果。</p><p>查看: <code>src/components/Message/ListMessage.vue</code></p></div>';
+    };
+
+    window.showThinkingMessage = () => {
+      const demo = document.getElementById('messages-demo');
+      demo.innerHTML = '<div class="demo-message"><h3>🧠 思考过程</h3><p>ThinkingMessage 组件用于显示 AI 的思考过程，包括推理步骤、工具调用等。</p><p>查看: <code>src/components/Message/ThinkingMessage.vue</code></p></div>';
+    };
+
+    window.showSystemMessage = () => {
+      const demo = document.getElementById('messages-demo');
+      demo.innerHTML = '<div class="demo-message"><h3>ℹ️ 系统消息</h3><p>SystemMessage 组件用于显示系统级别的消息，如连接状态、错误提示等。</p><p>查看: <code>src/components/Message/SystemMessage.vue</code></p></div>';
+    };
+
+    // Agent demo functions
+    window.showAgentForm = () => {
+      const demo = document.getElementById('agents-demo');
+      demo.innerHTML = '<div class="demo-message"><h3>➕ 创建 Agent</h3><p>AgentForm 组件用于创建和编辑 Agent 配置。</p><p>查看: <code>src/components/Agent/AgentForm.vue</code></p></div>';
+    };
+
+    window.refreshAgents = () => {
+      info('刷新 Agent 列表');
+    };
+
+    // Common component functions
+    window.showModal = () => alert('模态框功能 - 查看 Modal.vue 组件');
+    window.showLoading = () => alert('加载指示器 - 查看 LoadingSpinner.vue 组件');
+    window.showNotification = () => success('这是一条通知消息！');
+    window.showEmpty = () => alert('空状态 - 查看 EmptyState.vue 组件');
+
+    window.testLocalStorage = () => {
+      info('LocalStorage 测试 - 查看控制台');
+      console.log('useLocalStorage 示例代码已准备');
+    };
+
+    window.testDebounce = () => {
+      info('Debounce 测试 - 防抖延迟 300ms');
+    };
+
+    window.testClipboard = () => {
+      navigator.clipboard.writeText('AsterUI 测试文本').then(() => {
+        success('文本已复制到剪贴板！');
+      });
+    };
+
+    window.testNotification = () => {
+      success('成功通知', '操作成功');
+      setTimeout(() => error('错误通知', '操作失败'), 1000);
+      setTimeout(() => warning('警告通知', '请注意'), 2000);
+      setTimeout(() => info('信息通知', '提示信息'), 3000);
+    };
+  </script>
+</body>
+</html>

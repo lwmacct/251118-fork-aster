@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AsterUI - 高级消息类型演示</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+    }
+
+    .demo-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .page-header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+
+    .demo-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .demo-card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #fafafa;
+    }
+
+    .demo-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .demo-card-body {
+      padding: 20px;
+      min-height: 300px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-new {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-beta {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .controls h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #374151;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    @media (max-width: 768px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <div class="page-header">
+      <h1 class="page-title">🎨 高级消息类型演示</h1>
+      <p class="page-subtitle">展示 AsterUI 支持的各种消息类型：图片、卡片、列表、思考过程、系统消息</p>
+    </div>
+
+    <div class="controls">
+      <h3>💡 快速测试</h3>
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="sendImageMessage()">📷 发送图片消息</button>
+        <button class="btn btn-primary" onclick="sendCardMessage()">🎴 发送卡片消息</button>
+        <button class="btn btn-primary" onclick="sendListMessage()">📋 发送列表消息</button>
+        <button class="btn btn-primary" onclick="sendThinkingMessage()">🧠 发送思考过程</button>
+        <button class="btn btn-primary" onclick="sendSystemMessage()">ℹ️ 发送系统消息</button>
+        <button class="btn btn-secondary" onclick="clearMessages()">🗑️ 清空消息</button>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <!-- Image Message Demo -->
+      <div class="demo-card">
+        <div class="demo-card-header">
+          <div class="demo-card-title">
+            📷 图片消息
+            <span class="badge badge-new">New</span>
+          </div>
+        </div>
+        <div class="demo-card-body" id="image-demo"></div>
+      </div>
+
+      <!-- Card Message Demo -->
+      <div class="demo-card">
+        <div class="demo-card-header">
+          <div class="demo-card-title">
+            🎴 卡片消息
+            <span class="badge badge-new">New</span>
+          </div>
+        </div>
+        <div class="demo-card-body" id="card-demo"></div>
+      </div>
+
+      <!-- List Message Demo -->
+      <div class="demo-card">
+        <div class="demo-card-header">
+          <div class="demo-card-title">
+            📋 列表消息
+            <span class="badge badge-new">New</span>
+          </div>
+        </div>
+        <div class="demo-card-body" id="list-demo"></div>
+      </div>
+
+      <!-- Thinking Message Demo -->
+      <div class="demo-card">
+        <div class="demo-card-header">
+          <div class="demo-card-title">
+            🧠 思考过程
+            <span class="badge badge-beta">Beta</span>
+          </div>
+        </div>
+        <div class="demo-card-body" id="thinking-demo"></div>
+      </div>
+
+      <!-- System Message Demo -->
+      <div class="demo-card">
+        <div class="demo-card-header">
+          <div class="demo-card-title">
+            ℹ️ 系统消息
+          </div>
+        </div>
+        <div class="demo-card-body" id="system-demo"></div>
+      </div>
+
+      <!-- Full Chat Demo -->
+      <div class="demo-card" style="grid-column: 1 / -1;">
+        <div class="demo-card-header">
+          <div class="demo-card-title">
+            💬 完整对话演示
+          </div>
+        </div>
+        <div class="demo-card-body" id="full-chat-demo" style="min-height: 500px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createApp } from 'vue';
+    import ImageMessage from '../src/components/Message/ImageMessage.vue';
+    import CardMessage from '../src/components/Message/CardMessage.vue';
+    import ListMessage from '../src/components/Message/ListMessage.vue';
+    import ThinkingMessage from '../src/components/Message/ThinkingMessage.vue';
+    import SystemMessage from '../src/components/Message/SystemMessage.vue';
+    import Chat from '../src/components/Chat/Chat.vue';
+
+    // Image Message Demo
+    const imageApp = createApp({
+      components: { ImageMessage },
+      template: `
+        <ImageMessage 
+          :message="message"
+          @preview="handlePreview"
+        />
+      `,
+      data() {
+        return {
+          message: {
+            id: '1',
+            type: 'image',
+            role: 'user',
+            content: {
+              url: 'https://picsum.photos/400/300',
+              alt: '示例图片',
+              caption: '这是一张美丽的风景照片',
+              metadata: {
+                size: 245760,
+                dimensions: { width: 400, height: 300 }
+              }
+            },
+            createdAt: Date.now()
+          }
+        };
+      },
+      methods: {
+        handlePreview(url) {
+          window.open(url, '_blank');
+        }
+      }
+    });
+    imageApp.mount('#image-demo');
+
+    // Card Message Demo
+    const cardApp = createApp({
+      components: { CardMessage },
+      template: `
+        <CardMessage 
+          :message="message"
+          @action="handleAction"
+        />
+      `,
+      data() {
+        return {
+          message: {
+            id: '2',
+            type: 'card',
+            role: 'assistant',
+            content: {
+              title: 'Aster Framework',
+              subtitle: 'AI Agent 开发框架',
+              description: '一个强大的 AI Agent 开发框架，支持多 Agent 协作、工作流编排、记忆管理等功能。',
+              image: {
+                url: 'https://picsum.photos/400/200',
+                alt: 'Aster Framework'
+              },
+              fields: [
+                { label: '版本', value: 'v0.13.0' },
+                { label: '语言', value: 'Go + TypeScript' },
+                { label: '许可证', value: 'MIT' }
+              ],
+              actions: [
+                { label: '查看文档', action: 'docs', style: 'primary', icon: 'link' },
+                { label: '下载', action: 'download', style: 'secondary', icon: 'download' }
+              ],
+              footer: '最后更新: 2024-11-21'
+            },
+            createdAt: Date.now()
+          }
+        };
+      },
+      methods: {
+        handleAction(action) {
+          alert(`点击了: ${action.label}`);
+        }
+      }
+    });
+    cardApp.mount('#card-demo');
+
+    // List Message Demo
+    const listApp = createApp({
+      components: { ListMessage },
+      template: `
+        <ListMessage 
+          :message="message"
+          @itemClick="handleItemClick"
+          @footerAction="handleFooterAction"
+        />
+      `,
+      data() {
+        return {
+          message: {
+            id: '3',
+            type: 'list',
+            role: 'assistant',
+            content: {
+              title: '推荐的 AI 模型',
+              items: [
+                {
+                  title: 'Claude Sonnet 4',
+                  description: '最新的 Claude 模型，性能强大',
+                  icon: '🤖',
+                  metadata: { provider: 'Anthropic', price: '$3/M tokens' },
+                  action: 'select'
+                },
+                {
+                  title: 'GPT-4 Turbo',
+                  description: 'OpenAI 的旗舰模型',
+                  icon: '🧠',
+                  metadata: { provider: 'OpenAI', price: '$10/M tokens' },
+                  action: 'select'
+                },
+                {
+                  title: 'Gemini Pro',
+                  description: 'Google 的多模态模型',
+                  icon: '✨',
+                  metadata: { provider: 'Google', price: '$2/M tokens' },
+                  action: 'select'
+                }
+              ],
+              footer: {
+                text: '查看更多模型',
+                action: 'view-more'
+              }
+            },
+            createdAt: Date.now()
+          }
+        };
+      },
+      methods: {
+        handleItemClick(item) {
+          alert(`选择了: ${item.title}`);
+        },
+        handleFooterAction() {
+          alert('查看更多模型');
+        }
+      }
+    });
+    listApp.mount('#list-demo');
+
+    // Thinking Message Demo
+    const thinkingApp = createApp({
+      components: { ThinkingMessage },
+      template: `
+        <ThinkingMessage 
+          :steps="message.content.steps"
+          :isActive="message.content.isActive"
+          :summary="message.content.summary"
+        />
+      `,
+      data() {
+        return {
+          message: {
+            id: '4',
+            type: 'thinking',
+            role: 'assistant',
+            content: {
+              steps: [
+                {
+                  id: '1',
+                  type: 'reasoning',
+                  content: '用户想要查询天气信息，我需要调用天气 API',
+                  timestamp: Date.now() - 3000
+                },
+                {
+                  id: '2',
+                  type: 'tool_call',
+                  tool: {
+                    name: 'get_weather',
+                    args: { city: '北京', unit: 'celsius' }
+                  },
+                  timestamp: Date.now() - 2000
+                },
+                {
+                  id: '3',
+                  type: 'tool_result',
+                  result: {
+                    temperature: 15,
+                    condition: '晴天',
+                    humidity: 45
+                  },
+                  timestamp: Date.now() - 1000
+                },
+                {
+                  id: '4',
+                  type: 'decision',
+                  content: '已获取天气数据，准备生成回复',
+                  timestamp: Date.now()
+                }
+              ],
+              isActive: false,
+              summary: '成功获取北京天气信息'
+            },
+            createdAt: Date.now()
+          }
+        };
+      }
+    });
+    thinkingApp.mount('#thinking-demo');
+
+    // System Message Demo
+    const systemApp = createApp({
+      components: { SystemMessage },
+      template: `
+        <div class="space-y-3">
+          <SystemMessage 
+            v-for="msg in messages"
+            :key="msg.id"
+            :message="msg"
+          />
+        </div>
+      `,
+      data() {
+        return {
+          messages: [
+            {
+              id: '1',
+              type: 'system',
+              role: 'system',
+              content: { text: '会话已开始', type: 'info' },
+              createdAt: Date.now()
+            },
+            {
+              id: '2',
+              type: 'system',
+              role: 'system',
+              content: { text: '消息发送成功', type: 'success' },
+              createdAt: Date.now()
+            },
+            {
+              id: '3',
+              type: 'system',
+              role: 'system',
+              content: { text: '网络连接不稳定', type: 'warning' },
+              createdAt: Date.now()
+            },
+            {
+              id: '4',
+              type: 'system',
+              role: 'system',
+              content: { text: '发送失败，请重试', type: 'error' },
+              createdAt: Date.now()
+            }
+          ]
+        };
+      }
+    });
+    systemApp.mount('#system-demo');
+
+    // Full Chat Demo
+    const chatApp = createApp({
+      components: { Chat },
+      template: '<Chat :config="config" />',
+      data() {
+        return {
+          config: {
+            title: '高级消息演示',
+            subtitle: '支持多种消息类型',
+            placeholder: '输入消息...',
+            showHeader: true,
+            showAvatar: true,
+            quickReplies: [
+              { id: '1', text: '发送图片', label: '图片' },
+              { id: '2', text: '发送卡片', label: '卡片' },
+              { id: '3', text: '发送列表', label: '列表' }
+            ]
+          }
+        };
+      }
+    });
+    chatApp.mount('#full-chat-demo');
+
+    // Global functions
+    window.sendImageMessage = function() {
+      alert('图片消息功能演示 - 请查看左上角的图片消息示例');
+    };
+
+    window.sendCardMessage = function() {
+      alert('卡片消息功能演示 - 请查看右上角的卡片消息示例');
+    };
+
+    window.sendListMessage = function() {
+      alert('列表消息功能演示 - 请查看左中的列表消息示例');
+    };
+
+    window.sendThinkingMessage = function() {
+      alert('思考过程功能演示 - 请查看右中的思考过程示例');
+    };
+
+    window.sendSystemMessage = function() {
+      alert('系统消息功能演示 - 请查看底部的系统消息示例');
+    };
+
+    window.clearMessages = function() {
+      if (confirm('确定要清空所有消息吗？')) {
+        location.reload();
+      }
+    };
+  </script>
+</body>
+</html>

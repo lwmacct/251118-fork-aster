@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AsterUI - 完整演示</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+    }
+
+    .demo-container {
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 300px;
+      background: white;
+      border-right: 1px solid #e5e7eb;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #111827;
+    }
+
+    .config-section {
+      margin-bottom: 24px;
+    }
+
+    .config-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #374151;
+    }
+
+    .config-item {
+      margin-bottom: 12px;
+    }
+
+    .config-item label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #6b7280;
+      cursor: pointer;
+    }
+
+    .config-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+
+    .config-item input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .config-item select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .button {
+      flex: 1;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .button-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .button-primary:hover {
+      background: #2563eb;
+    }
+
+    .button-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .button-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #app {
+      height: 100%;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+
+    .theme-toggle:hover {
+      background: #f9fafb;
+    }
+
+    .dark .theme-toggle {
+      background: #1f2937;
+      border-color: #374151;
+    }
+
+    .dark .sidebar {
+      background: #1f2937;
+      border-color: #374151;
+    }
+
+    .dark .sidebar h2,
+    .dark .config-section h3 {
+      color: #f9fafb;
+    }
+
+    .dark .config-item label {
+      color: #9ca3af;
+    }
+
+    .dark .config-item input[type="text"],
+    .dark .config-item select {
+      background: #111827;
+      border-color: #374151;
+      color: #f9fafb;
+    }
+
+    .dark .button-secondary {
+      background: #374151;
+      color: #f9fafb;
+    }
+
+    .dark .button-secondary:hover {
+      background: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <h2>🎨 AsterUI 配置面板</h2>
+
+      <div class="config-section">
+        <h3>基础配置</h3>
+        <div class="config-item">
+          <label>
+            <input type="text" id="title" value="AI 助手" placeholder="标题">
+          </label>
+        </div>
+        <div class="config-item">
+          <label>
+            <input type="text" id="subtitle" value="在线" placeholder="副标题">
+          </label>
+        </div>
+        <div class="config-item">
+          <label>
+            <input type="text" id="placeholder" value="输入消息..." placeholder="输入框占位符">
+          </label>
+        </div>
+      </div>
+
+      <div class="config-section">
+        <h3>显示选项</h3>
+        <div class="config-item">
+          <label>
+            <input type="checkbox" id="showHeader" checked>
+            显示头部
+          </label>
+        </div>
+        <div class="config-item">
+          <label>
+            <input type="checkbox" id="showAvatar" checked>
+            显示头像
+          </label>
+        </div>
+        <div class="config-item">
+          <label>
+            <input type="checkbox" id="showTimestamp" checked>
+            显示时间戳
+          </label>
+        </div>
+        <div class="config-item">
+          <label>
+            <input type="checkbox" id="autoScroll" checked>
+            自动滚动
+          </label>
+        </div>
+      </div>
+
+      <div class="config-section">
+        <h3>功能开关</h3>
+        <div class="config-item">
+          <label>
+            <input type="checkbox" id="enableImage">
+            启用图片上传
+          </label>
+        </div>
+        <div class="config-item">
+          <label>
+            <input type="checkbox" id="enableVoice">
+            启用语音输入
+          </label>
+        </div>
+      </div>
+
+      <div class="config-section">
+        <h3>快捷回复</h3>
+        <div class="config-item">
+          <label>
+            <input type="checkbox" id="showQuickReplies" checked>
+            显示快捷回复
+          </label>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="button button-primary" onclick="applyConfig()">应用配置</button>
+        <button class="button button-secondary" onclick="resetConfig()">重置</button>
+      </div>
+
+      <div class="button-group">
+        <button class="button button-secondary" onclick="clearMessages()">清空消息</button>
+        <button class="button button-secondary" onclick="addTestMessage()">测试消息</button>
+      </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container">
+      <div id="app"></div>
+    </div>
+
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+      <svg id="theme-icon-light" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+      </svg>
+      <svg id="theme-icon-dark" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+      </svg>
+    </button>
+  </div>
+
+  <script type="module">
+    import { createApp } from 'vue';
+    import Chat from '../src/components/Chat/Chat.vue';
+
+    let app;
+    let currentConfig = {
+      title: 'AI 助手',
+      subtitle: '在线',
+      placeholder: '输入消息...',
+      showHeader: true,
+      showAvatar: true,
+      showTimestamp: true,
+      autoScroll: true,
+      enableImage: false,
+      enableVoice: false,
+      quickReplies: [
+        { id: '1', text: '你好', label: '打招呼' },
+        { id: '2', text: '帮我写一段代码', label: '写代码' },
+        { id: '3', text: '解释一下这个概念', label: '解释' },
+      ],
+    };
+
+    function initApp(config) {
+      if (app) {
+        app.unmount();
+      }
+
+      app = createApp({
+        components: { Chat },
+        template: '<Chat :config="config" />',
+        data() {
+          return { config };
+        },
+      });
+
+      app.mount('#app');
+    }
+
+    window.applyConfig = function() {
+      currentConfig = {
+        title: document.getElementById('title').value,
+        subtitle: document.getElementById('subtitle').value,
+        placeholder: document.getElementById('placeholder').value,
+        showHeader: document.getElementById('showHeader').checked,
+        showAvatar: document.getElementById('showAvatar').checked,
+        showTimestamp: document.getElementById('showTimestamp').checked,
+        autoScroll: document.getElementById('autoScroll').checked,
+        enableImage: document.getElementById('enableImage').checked,
+        enableVoice: document.getElementById('enableVoice').checked,
+        quickReplies: document.getElementById('showQuickReplies').checked ? [
+          { id: '1', text: '你好', label: '打招呼' },
+          { id: '2', text: '帮我写一段代码', label: '写代码' },
+          { id: '3', text: '解释一下这个概念', label: '解释' },
+        ] : [],
+      };
+
+      initApp(currentConfig);
+    };
+
+    window.resetConfig = function() {
+      document.getElementById('title').value = 'AI 助手';
+      document.getElementById('subtitle').value = '在线';
+      document.getElementById('placeholder').value = '输入消息...';
+      document.getElementById('showHeader').checked = true;
+      document.getElementById('showAvatar').checked = true;
+      document.getElementById('showTimestamp').checked = true;
+      document.getElementById('autoScroll').checked = true;
+      document.getElementById('enableImage').checked = false;
+      document.getElementById('enableVoice').checked = false;
+      document.getElementById('showQuickReplies').checked = true;
+      applyConfig();
+    };
+
+    window.toggleTheme = function() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      
+      document.getElementById('theme-icon-light').style.display = isDark ? 'none' : 'block';
+      document.getElementById('theme-icon-dark').style.display = isDark ? 'block' : 'none';
+      
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    };
+
+    // Initialize theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.getElementById('theme-icon-light').style.display = 'none';
+      document.getElementById('theme-icon-dark').style.display = 'block';
+    }
+
+    // Initialize app
+    initApp(currentConfig);
+  </script>
+</body>
+</html>
