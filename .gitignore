@@ -198,3 +198,5 @@ proto/gen/
 # 编译产物
 /aster
 /aster-server
+.kiro
+article-writer-web-service/
