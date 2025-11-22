@@ -208,7 +208,7 @@ const renderedContent = computed(() => {
 }
 
 .message-actions {
-  @apply hidden group-hover:flex gap-1 absolute -top-8 right-0 bg-surface border border-border rounded-lg shadow-lg p-1;
+  @apply hidden gap-1 absolute -top-8 right-0 bg-surface border border-border rounded-lg shadow-lg p-1;
 }
 
 .message-bubble:hover .message-actions {

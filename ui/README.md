@@ -1,36 +1,55 @@
-# @aster/ui
+# Aster Agent UI 组件库
 
-重构后的 `ui` 目录是一个 **ChatUI 风格的 Agent 体验站**：既可以作为销售/合作演示，也可以直接供前端团队参考 SDK 与代码结构。站点整合了 Hero、能力亮点、可切换的 Playground、Builder 指南以及文档链接，所有内容都运行在单一的 Vue 3 + Vite 应用中。
+**Version 0.15.0** | 专为 AI Agent 应用设计的 Vue 3 组件库
 
-## 目录结构
+## 🤖 什么是 Aster Agent UI？
 
+Aster Agent UI 是一个专门为 AI Agent 应用设计的组件库，提供了构建 Agent 管理、对话、工作流等功能所需的所有 UI 组件。既可以作为销售/合作演示，也可以直接供前端团队参考 SDK 与代码结构。
+
+## ✨ 核心特性
+
+- 🤖 **Agent 专属** - 专为 AI Agent 场景设计的组件
+- 💬 **对话界面** - 完整的 Agent 对话体验  
+- 🔄 **工作流** - Agent 工作流可视化
+- 👥 **多 Agent** - 支持多 Agent 协作
+- 🧠 **思考过程** - Agent 推理过程可视化
+- 🎨 **现代设计** - 简洁美观的界面
+- 🌙 **深色模式** - 完整的暗色主题
+- 💪 **TypeScript** - 完整的类型定义
+
+## 🚀 快速开始
+
+### 前提条件
+
+- Node.js 16+ 
+- Go 1.21+（如果需要运行后端）
+
+### 1. 启动后端服务器
+
+在项目根目录：
+
+```bash
+PROVIDER=deepseek \
+MODEL=deepseek-chat \
+DEEPSEEK_API_KEY=your-api-key \
+go run ./cmd/aster-server
 ```
-ui/
-├── src/
-│   ├── App.vue             # ChatUI 风格的单页站点
-│   ├── components/         # AsterChat 及配套 UI 组件
-│   ├── composables/        # useChat、useAsterClient 等逻辑封装
-│   ├── types/              # 类型定义（消息、Agent、配置）
-│   ├── utils/              # 通用工具方法
-│   └── main.ts             # Vite 入口
-├── public/                 # 可选静态资源
-├── package.json
-├── tailwind.config.js
-├── tsconfig*.json
-└── vite.config.ts
-```
 
-> 旧的 `demo-chat.html` / `demo-streaming.html` 已被清理，相关体验已经并入新的 landing site 与 `AsterChat` 组件。
-
-## 快速开始
+### 2. 启动前端 UI
 
 ```bash
 cd ui
 npm install
-npm run dev      # http://localhost:3000
+npm run dev
 ```
 
-构建生产包：
+### 3. 访问应用
+
+打开浏览器访问 http://localhost:3001
+
+**注意：** 前端需要配置正确的 API Key 才能连接后端。详见 [配置指南](./SETUP_GUIDE.md)。
+
+### 构建生产包
 
 ```bash
 npm run build
@@ -38,73 +57,106 @@ npm run build
 
 发布时会生成 `dist/`，其中包含 `aster-ui.es.js`、`aster-ui.umd.js`、`style.css` 与类型声明。
 
-## AsterChat 配置示例
+## 🎯 快速导航
+
+启动开发服务器后，访问以下页面：
+
+- **[首页](http://localhost:3000/)** - 组件库导航和快速入口
+- **[Agent 聊天演示](http://localhost:3000/agent-demo)** - 完整的 Agent 对话体验
+- **[交互式文档](http://localhost:3000/docs)** - 组件文档 + 实时 Demo
+- **[组件展示](http://localhost:3000/components)** - 所有组件的视觉效果
+- **[Agent 管理](http://localhost:3000/agents)** - Agent 创建和配置
+- **[工作流](http://localhost:3000/workflows)** - 工作流可视化
+- **[协作房间](http://localhost:3000/rooms)** - 多 Agent 协作
+- **[项目管理](http://localhost:3000/projects)** - AI 写作项目管理
+- **[Landing Page](http://localhost:3000/landing)** - ChatUI 风格的产品展示页
+
+## 📦 组件分类
+
+### 🤖 Agent 组件
+- **AgentCard** - Agent 信息卡片
+- **AgentDashboard** - Agent 管理仪表板
+- **AgentChatSession** - Agent 对话会话
+- **ThinkingBlock** - 思考过程可视化（含人工审批）
+- **WorkflowTimeline** - 工作流时间线（含快捷操作）
+
+### 📁 项目组件
+- **ProjectCard** - 项目信息卡片
+- **ProjectList** - 项目列表（含筛选）
+
+### ✏️ 编辑器组件
+- **EditorPanel** - Markdown 编辑器（含预览）
+
+### 💬 对话组件
+- **Chat** - 聊天容器
+- **Bubble** - 消息气泡
+- **MultimodalInput** - 多模态输入
+- **MessageStatus** - 消息状态
+
+### 🎨 基础组件
+- **Button** - 按钮
+- **Avatar** - 头像
+- **Icon** - 图标
+- **Card** - 卡片
+
+## 📖 文档资源
+
+### 🚀 快速开始
+- [状态更新](./STATUS_UPDATE.md) - 最新状态和问题解决 🆕
+- [配置指南](./SETUP_GUIDE.md) - 完整的环境配置和启动说明 ⭐
+- [快速测试](./QUICK_TEST.md) - 验证系统是否正常工作 ⭐
+- [快速入门指南](./QUICK_START.md) - 5 分钟上手
+- [故障排除](./TROUBLESHOOTING.md) - 常见问题解决方案
+
+### 📚 学习资源
+- [完整使用示例](./COMPLETE_EXAMPLE.md) - 构建 AI 写作助手
+- [组件文档](./src/docs/README.md) - 完整的组件 API
+- [ChatUI 组件指南](./CHATUI_GUIDE.md) - 对话组件使用
+
+### 📊 项目状态
+- [最终完成报告](./FINAL_REPORT.md) - 项目总览和成就 🎉
+- [开发进度报告](./PROGRESS_REPORT.md) - 87.5% 完成
+- [实现总结](./IMPLEMENTATION_SUMMARY.md) - 技术细节
+- [缺失功能清单](./MISSING_FEATURES.md) - 待实现功能
+
+## 🔧 与 Aster 后端集成
 
 ```vue
-<script setup lang="ts">
-import { AsterChat } from '@aster/ui';
-import '@aster/ui/style.css';
+<script setup>
+import { useAsterClient } from '@/composables/useAsterClient';
 
-const httpConfig = {
-  apiUrl: 'http://localhost:8080',
-  apiKey: 'demo-key',
-  agentId: 'builder',
-  enableThinking: true,
-  enableApproval: true,
-  demoMode: false,           // 设为 false 即可调用真实后端
-};
+const { client } = useAsterClient();
+
+// 获取 Agent 列表
+const agents = await client.agents.list();
+
+// 与 Agent 对话
+const response = await client.agents.chat(agentId, {
+  message: 'Hello',
+  stream: false,
+});
 </script>
-
-<template>
-  <AsterChat :config="httpConfig" />
-</template>
 ```
 
-Landing 页面默认将 `demoMode` 设为 `true`，因此在没有 Aster Server 的情况下依旧可以演示完整的交互；切换为 `false` 后，会将请求发送给 `@aster/client-js`，并更新连接状态提示。
+## 📊 组件统计
 
-### 常用配置项
+- **总组件数：** 33+
+- **Agent 专属：** 6 个
+- **对话组件：** 9 个
+- **基础组件：** 4 个
+- **表单组件：** 4 个
+- **布局组件：** 8 个
+- **反馈组件：** 6 个
 
-| 字段 | 说明 |
-| ---- | ---- |
-| `demoMode` | 是否启用内置 mock（演示用）。 |
-| `agentProfile` | Hero/Playground 中展示的 Agent 名称、描述与头像。 |
-| `enableImage` / `enableVoice` | 控制底部输入区的拓展能力。 |
-| `onApproveAction` / `onRejectAction` | 接入人工审批流程，配合 `ThinkingBlock` 组件展示工具调用细节。 |
+## 🤝 贡献
 
-更多字段请参考 `src/types/chat.ts`。
-
-## 体验站模块
-
-1. **Hero**：指标、亮点与实时 AsterChat 预览。
-2. **Capability Spectrum**：参考 ChatUI 的信息结构展示产品能力。
-3. **Playground**：HTTP / Streaming 双模式，可切换 demo 配置。
-4. **Builder Stories**：按步骤解释如何在业务中落地。
-5. **Documentation & Assets**：链接到安装、API、主题定制等文档。
-
-以上模块均在 `App.vue` 中使用纯数据驱动，方便按业务场景定制文案或替换链接。
-
-## 连接真实 Aster Server
-
-1. 启动后端：`go run ./cmd/aster-server`.
-2. 编辑 `App.vue` 中 `demoModes` 或在业务页面中传入 `demoMode: false`。
-3. 配置 `apiUrl` / `wsUrl` / `apiKey` 即可完成连通。
-
-`useAsterClient` 已封装 HTTP + WebSocket（当前 WS 仍为 TODO，接口已预留），`useChat` 则负责消息管理、mock 模式以及 Loading/思考态的处理。
-
-## 主题与风格
-
-- Tailwind 用于原子化样式，`tailwind.config.js` 中扩展了 `primary/surface/background` 等语义色。
-- 全局字体统一使用 `Inter`，并提供若干渐变背景、发光效果以匹配 ChatUI 的视觉风格。
-- `src/style.css` 中包含滚动条、Markdown 渲染、动画等通用样式，可按品牌需要调整。
-
-## 贡献
-
-欢迎在 `ui/` 目录继续扩展组件或改进站点布局。提交 PR 前请运行：
+欢迎提交 Issue 和 Pull Request！提交前请运行：
 
 ```bash
 npm run build
+npm run type-check
 ```
 
-## 许可证
+## 📄 许可证
 
 MIT License © Aster Cloud

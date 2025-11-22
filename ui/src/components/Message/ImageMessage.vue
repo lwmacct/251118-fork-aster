@@ -116,7 +116,11 @@ function openPreview() {
 }
 
 .image-preview-btn {
-  @apply absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity;
+  @apply absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-lg opacity-0 transition-opacity;
+}
+
+.image-container:hover .image-preview-btn {
+  @apply opacity-100;
 }
 
 .image-wrapper:hover .image-preview-btn {

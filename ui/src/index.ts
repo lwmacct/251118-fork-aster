@@ -113,5 +113,11 @@ export type {
 // ============================================
 // Version Info
 // ============================================
-export const version = '1.0.0';
+export const version = '0.15.0';
 export const name = 'AsterUI';
+
+// ============================================
+// Project Components
+// ============================================
+export { default as ProjectCard } from './components/Project/ProjectCard.vue';
+export { default as ProjectList } from './components/Project/ProjectList.vue';

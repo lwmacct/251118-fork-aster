@@ -1,266 +1,221 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="agent-form">
-    <!-- Basic Info -->
-    <div class="form-section">
-      <h3 class="section-title">基本信息</h3>
-      
-      <div class="form-field">
-        <label class="field-label">名称 *</label>
+  <div class="agent-form">
+    <form @submit.prevent="handleSubmit" class="form-content">
+      <!-- Name -->
+      <div class="form-group">
+        <label for="name" class="form-label">Agent 名称</label>
         <input
+          id="name"
           v-model="formData.name"
           type="text"
+          class="form-input"
           placeholder="输入 Agent 名称"
-          class="field-input"
           required
         />
       </div>
-      
-      <div class="form-field">
-        <label class="field-label">描述</label>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label for="description" class="form-label">描述</label>
         <textarea
+          id="description"
           v-model="formData.description"
-          placeholder="输入 Agent 描述"
-          class="field-textarea"
+          class="form-input"
           rows="3"
-        ></textarea>
-      </div>
-      
-      <div class="form-field">
-        <label class="field-label">头像 URL</label>
-        <input
-          v-model="formData.avatar"
-          type="url"
-          placeholder="https://example.com/avatar.jpg"
-          class="field-input"
+          placeholder="描述 Agent 的功能和用途"
         />
       </div>
-    </div>
-    
-    <!-- Model Config -->
-    <div class="form-section">
-      <h3 class="section-title">模型配置</h3>
-      
-      <div class="form-field">
-        <label class="field-label">提供商 *</label>
-        <select v-model="formData.provider" class="field-select" required>
-          <option value="">选择提供商</option>
-          <option value="anthropic">Anthropic</option>
-          <option value="openai">OpenAI</option>
-          <option value="google">Google</option>
+
+      <!-- Template ID -->
+      <div class="form-group">
+        <label for="template" class="form-label">模板</label>
+        <select
+          id="template"
+          v-model="formData.template_id"
+          class="form-input"
+          required
+        >
+          <option value="">选择模板</option>
+          <option value="chat">聊天助手</option>
+          <option value="writer">写作助手</option>
+          <option value="coder">编程助手</option>
+          <option value="analyst">数据分析师</option>
         </select>
       </div>
-      
-      <div class="form-field">
-        <label class="field-label">模型 *</label>
-        <select v-model="formData.model" class="field-select" required>
-          <option value="">选择模型</option>
-          <optgroup v-if="formData.provider === 'anthropic'" label="Anthropic">
-            <option value="claude-sonnet-4">Claude Sonnet 4</option>
-            <option value="claude-opus-4">Claude Opus 4</option>
-          </optgroup>
-          <optgroup v-if="formData.provider === 'openai'" label="OpenAI">
-            <option value="gpt-4-turbo">GPT-4 Turbo</option>
-            <option value="gpt-4">GPT-4</option>
-          </optgroup>
-          <optgroup v-if="formData.provider === 'google'" label="Google">
-            <option value="gemini-pro">Gemini Pro</option>
-            <option value="gemini-ultra">Gemini Ultra</option>
-          </optgroup>
-        </select>
-      </div>
-      
-      <div class="form-field">
-        <label class="field-label">Temperature</label>
-        <div class="range-field">
-          <input
-            v-model.number="formData.temperature"
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            class="field-range"
-          />
-          <span class="range-value">{{ formData.temperature }}</span>
+
+      <!-- Model Config -->
+      <div class="form-section">
+        <h3 class="section-title">模型配置</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="provider" class="form-label">提供商</label>
+            <select
+              id="provider"
+              v-model="formData.model_config.provider"
+              class="form-input"
+            >
+              <option value="anthropic">Anthropic</option>
+              <option value="openai">OpenAI</option>
+              <option value="deepseek">DeepSeek</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="model" class="form-label">模型</label>
+            <input
+              id="model"
+              v-model="formData.model_config.model"
+              type="text"
+              class="form-input"
+              placeholder="claude-3-5-sonnet-20241022"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="temperature" class="form-label">Temperature</label>
+            <input
+              id="temperature"
+              v-model.number="formData.model_config.temperature"
+              type="number"
+              step="0.1"
+              min="0"
+              max="2"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="max_tokens" class="form-label">Max Tokens</label>
+            <input
+              id="max_tokens"
+              v-model.number="formData.model_config.max_tokens"
+              type="number"
+              class="form-input"
+            />
+          </div>
         </div>
       </div>
-      
-      <div class="form-field">
-        <label class="field-label">Max Tokens</label>
-        <input
-          v-model.number="formData.maxTokens"
-          type="number"
-          min="1"
-          max="100000"
-          placeholder="4096"
-          class="field-input"
-        />
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <button
+          type="button"
+          @click="$emit('cancel')"
+          class="btn-secondary"
+        >
+          取消
+        </button>
+        <button
+          type="submit"
+          :disabled="loading"
+          class="btn-primary"
+        >
+          {{ loading ? '创建中...' : (agent ? '更新' : '创建') }}
+        </button>
       </div>
-    </div>
-    
-    <!-- System Prompt -->
-    <div class="form-section">
-      <h3 class="section-title">系统提示词</h3>
-      
-      <div class="form-field">
-        <textarea
-          v-model="formData.systemPrompt"
-          placeholder="输入系统提示词..."
-          class="field-textarea"
-          rows="5"
-        ></textarea>
-      </div>
-    </div>
-    
-    <!-- Actions -->
-    <div class="form-actions">
-      <button
-        type="button"
-        @click="$emit('cancel')"
-        class="btn-cancel"
-      >
-        取消
-      </button>
-      <button
-        type="submit"
-        :disabled="!isValid || submitting"
-        class="btn-submit"
-      >
-        <LoadingSpinner v-if="submitting" size="sm" color="white" />
-        <span v-else>{{ isEdit ? '保存' : '创建' }}</span>
-      </button>
-    </div>
-  </form>
+    </form>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import LoadingSpinner from '../Common/LoadingSpinner.vue';
+import { ref, watch } from 'vue';
 import type { Agent } from '@/types';
 
 interface Props {
   agent?: Agent;
-  submitting?: boolean;
+  loading?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  loading: false,
+});
 
 const emit = defineEmits<{
   submit: [data: any];
   cancel: [];
 }>();
 
-const isEdit = computed(() => !!props.agent);
-
 const formData = ref({
-  name: props.agent?.name || '',
-  description: props.agent?.description || '',
-  avatar: props.agent?.avatar || '',
-  provider: props.agent?.metadata?.provider || '',
-  model: props.agent?.metadata?.model || '',
-  temperature: props.agent?.metadata?.temperature || 0.7,
-  maxTokens: props.agent?.metadata?.maxTokens || 4096,
-  systemPrompt: props.agent?.metadata?.systemPrompt || '',
+  name: '',
+  description: '',
+  template_id: '',
+  model_config: {
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet-20241022',
+    temperature: 1.0,
+    max_tokens: 4096,
+  },
+  metadata: {},
 });
 
-const isValid = computed(() => {
-  return formData.value.name.trim() !== '' &&
-         formData.value.provider !== '' &&
-         formData.value.model !== '';
-});
-
-function handleSubmit() {
-  if (!isValid.value) return;
-  
-  const data = {
-    name: formData.value.name,
-    description: formData.value.description,
-    avatar: formData.value.avatar,
-    metadata: {
-      provider: formData.value.provider,
-      model: formData.value.model,
-      temperature: formData.value.temperature,
-      maxTokens: formData.value.maxTokens,
-      systemPrompt: formData.value.systemPrompt,
-    },
-  };
-  
-  emit('submit', data);
-}
-
-// 监听 agent 变化
-watch(() => props.agent, (newAgent) => {
-  if (newAgent) {
+// Load agent data if editing
+watch(() => props.agent, (agent) => {
+  if (agent) {
     formData.value = {
-      name: newAgent.name || '',
-      description: newAgent.description || '',
-      avatar: newAgent.avatar || '',
-      provider: newAgent.metadata?.provider || '',
-      model: newAgent.metadata?.model || '',
-      temperature: newAgent.metadata?.temperature || 0.7,
-      maxTokens: newAgent.metadata?.maxTokens || 4096,
-      systemPrompt: newAgent.metadata?.systemPrompt || '',
+      name: agent.name,
+      description: agent.description || '',
+      template_id: agent.metadata?.template_id || '',
+      model_config: {
+        provider: agent.metadata?.provider || 'anthropic',
+        model: agent.metadata?.model || 'claude-3-5-sonnet-20241022',
+        temperature: agent.metadata?.temperature || 1.0,
+        max_tokens: agent.metadata?.max_tokens || 4096,
+      },
+      metadata: agent.metadata || {},
     };
   }
 }, { immediate: true });
+
+const handleSubmit = () => {
+  emit('submit', formData.value);
+};
 </script>
 
 <style scoped>
 .agent-form {
+  @apply max-w-2xl mx-auto;
+}
+
+.form-content {
   @apply space-y-6;
 }
 
 .form-section {
-  @apply space-y-4;
+  @apply space-y-4 p-4 bg-surface dark:bg-surface-dark rounded-lg border border-border dark:border-border-dark;
 }
 
 .section-title {
-  @apply text-lg font-semibold text-text dark:text-text-dark pb-2 border-b border-border dark:border-border-dark;
+  @apply text-lg font-semibold text-text dark:text-text-dark mb-4;
 }
 
-.form-field {
+.form-group {
   @apply space-y-2;
 }
 
-.field-label {
+.form-row {
+  @apply grid grid-cols-2 gap-4;
+}
+
+.form-label {
   @apply block text-sm font-medium text-text dark:text-text-dark;
 }
 
-.field-input,
-.field-select,
-.field-textarea {
-  @apply w-full px-3 py-2 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors;
-}
-
-.field-textarea {
-  @apply resize-none;
-}
-
-.range-field {
-  @apply flex items-center gap-3;
-}
-
-.field-range {
-  @apply flex-1;
-}
-
-.range-value {
-  @apply text-sm font-medium text-text dark:text-text-dark min-w-[3rem] text-right;
+.form-input {
+  @apply w-full px-3 py-2 bg-background dark:bg-background-dark border border-border dark:border-border-dark rounded-lg text-text dark:text-text-dark focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-light;
 }
 
 .form-actions {
-  @apply flex justify-end gap-3 pt-4 border-t border-border dark:border-border-dark;
+  @apply flex justify-end gap-3 pt-4;
 }
 
-.btn-cancel,
-.btn-submit {
-  @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+.btn-primary {
+  @apply px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-.btn-cancel {
-  @apply bg-background dark:bg-background-dark hover:bg-border dark:hover:bg-border-dark text-text dark:text-text-dark border border-border dark:border-border-dark;
-}
-
-.btn-submit {
-  @apply bg-primary hover:bg-primary-hover text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2;
+.btn-secondary {
+  @apply px-4 py-2 bg-background dark:bg-background-dark hover:bg-border dark:hover:bg-border-dark text-text dark:text-text-dark border border-border dark:border-border-dark rounded-lg font-medium transition-colors;
 }
 </style>

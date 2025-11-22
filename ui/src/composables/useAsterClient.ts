@@ -13,12 +13,176 @@ export interface AsterClientConfig {
 }
 
 export function useAsterClient(config: AsterClientConfig = {}) {
-  const baseUrl = config.baseUrl || 'http://localhost:8080';
-  // 创建 Aster Client
-  const client = new aster({
-    baseUrl,
-    apiKey: config.apiKey,
-  });
+  const baseUrl = config.baseUrl || import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  const apiKey = config.apiKey || import.meta.env.VITE_API_KEY || '';
+  
+  // 构建请求头
+  const buildHeaders = (additionalHeaders: Record<string, string> = {}) => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...additionalHeaders,
+    };
+    
+    // 如果有 API Key，添加到请求头
+    if (apiKey) {
+      headers['X-API-Key'] = apiKey;
+    }
+    
+    return headers;
+  };
+  
+  // 创建 Aster Client 并添加 agent 管理方法
+  const client = {
+    ...new aster({
+      baseUrl,
+      apiKey,
+    }),
+    agents: {
+      async list() {
+        const response = await fetch(`${baseUrl}/v1/agents`, {
+          headers: buildHeaders(),
+        });
+        return response.json();
+      },
+      async get(id: string) {
+        const response = await fetch(`${baseUrl}/v1/agents/${id}`, {
+          headers: buildHeaders(),
+        });
+        return response.json();
+      },
+      async create(data: any) {
+        const response = await fetch(`${baseUrl}/v1/agents`, {
+          method: 'POST',
+          headers: buildHeaders(),
+          body: JSON.stringify(data),
+        });
+        return response.json();
+      },
+      async update(id: string, data: any) {
+        const response = await fetch(`${baseUrl}/v1/agents/${id}`, {
+          method: 'PUT',
+          headers: buildHeaders(),
+          body: JSON.stringify(data),
+        });
+        return response.json();
+      },
+      async delete(id: string) {
+        const response = await fetch(`${baseUrl}/v1/agents/${id}`, {
+          method: 'DELETE',
+          headers: buildHeaders(),
+        });
+        return response.status === 204 ? { success: true } : response.json();
+      },
+      async chat(id: string, message: string) {
+        const response = await fetch(`${baseUrl}/v1/agents/${id}/send`, {
+          method: 'POST',
+          headers: buildHeaders(),
+          body: JSON.stringify({ message }),
+        });
+        return response.json();
+      },
+      // 直接聊天（无需预先创建 Agent）
+      async chatDirect(message: string, templateId: string = 'chat') {
+        const response = await fetch(`${baseUrl}/v1/agents/chat`, {
+          method: 'POST',
+          headers: buildHeaders(),
+          body: JSON.stringify({
+            template_id: templateId,
+            input: message,
+          }),
+        });
+        return response.json();
+      },
+    },
+    workflows: {
+      async list() {
+        const response = await fetch(`${baseUrl}/v1/workflows`, {
+          headers: buildHeaders(),
+        });
+        return response.json();
+      },
+      async get(id: string) {
+        const response = await fetch(`${baseUrl}/v1/workflows/${id}`, {
+          headers: buildHeaders(),
+        });
+        return response.json();
+      },
+      async create(data: any) {
+        const response = await fetch(`${baseUrl}/v1/workflows`, {
+          method: 'POST',
+          headers: buildHeaders(),
+          body: JSON.stringify(data),
+        });
+        return response.json();
+      },
+      async update(id: string, data: any) {
+        const response = await fetch(`${baseUrl}/v1/workflows/${id}`, {
+          method: 'PATCH',
+          headers: buildHeaders(),
+          body: JSON.stringify(data),
+        });
+        return response.json();
+      },
+      async delete(id: string) {
+        const response = await fetch(`${baseUrl}/v1/workflows/${id}`, {
+          method: 'DELETE',
+          headers: buildHeaders(),
+        });
+        return response.status === 204 ? { success: true } : response.json();
+      },
+      async execute(id: string) {
+        const response = await fetch(`${baseUrl}/v1/workflows/${id}/execute`, {
+          method: 'POST',
+          headers: buildHeaders(),
+        });
+        return response.json();
+      },
+    },
+    rooms: {
+      async list() {
+        const response = await fetch(`${baseUrl}/v1/rooms`, {
+          headers: buildHeaders(),
+        });
+        return response.json();
+      },
+      async get(id: string) {
+        const response = await fetch(`${baseUrl}/v1/rooms/${id}`, {
+          headers: buildHeaders(),
+        });
+        return response.json();
+      },
+      async create(data: any) {
+        const response = await fetch(`${baseUrl}/v1/rooms`, {
+          method: 'POST',
+          headers: buildHeaders(),
+          body: JSON.stringify(data),
+        });
+        return response.json();
+      },
+      async delete(id: string) {
+        const response = await fetch(`${baseUrl}/v1/rooms/${id}`, {
+          method: 'DELETE',
+          headers: buildHeaders(),
+        });
+        return response.status === 204 ? { success: true } : response.json();
+      },
+      async join(id: string, data: any) {
+        const response = await fetch(`${baseUrl}/v1/rooms/${id}/join`, {
+          method: 'POST',
+          headers: buildHeaders(),
+          body: JSON.stringify(data),
+        });
+        return response.json();
+      },
+      async leave(id: string) {
+        const response = await fetch(`${baseUrl}/v1/rooms/${id}/leave`, {
+          method: 'POST',
+          headers: buildHeaders(),
+        });
+        return response.json();
+      },
+    },
+  };
 
   // WebSocket 状态
   const ws = ref<WebSocketClient | null>(null);

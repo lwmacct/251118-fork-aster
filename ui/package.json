@@ -1,6 +1,6 @@
 {
   "name": "@aster/ui",
-  "version": "1.0.0",
+  "version": "0.15.0",
   "description": "Universal AI Agent UI SDK for Aster Framework - Production Ready",
   "type": "module",
   "main": "dist/aster-ui.umd.js",
@@ -37,21 +37,22 @@
   "author": "Aster Team",
   "license": "MIT",
   "dependencies": {
-    "vue": "^3.4.0",
-    "pinia": "^2.1.7",
+    "@aster/client-js": "file:../client-sdks/client-js",
     "marked": "^11.0.0",
-    "@aster/client-js": "file:../client-sdks/client-js"
+    "pinia": "^2.1.7",
+    "vue": ">=3.3.0",
+    "vue-router": "^4.6.3"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
     "@vue/tsconfig": "^0.5.0",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.8",
-    "vue-tsc": "^1.8.27",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
-    "vite-plugin-dts": "^3.7.0"
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8",
+    "vite-plugin-dts": "^3.7.0",
+    "vue-tsc": "^1.8.27"
   },
   "peerDependencies": {
     "vue": ">=3.3.0"
