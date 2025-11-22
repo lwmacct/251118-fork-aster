@@ -5,10 +5,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/astercloud/aster/pkg/tools/builtin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func getTool[T any](t *testing.T, mw *SubAgentMiddleware, name string) T {
+	t.Helper()
+	var zero T
+	for _, tool := range mw.Tools() {
+		if tool.Name() == name {
+			typed, ok := tool.(T)
+			require.True(t, ok, "tool %s has unexpected type", name)
+			return typed
+		}
+	}
+	t.Fatalf("tool %s not found", name)
+	return zero
+}
 
 // TestSubAgentMiddleware_AsyncExecution 测试异步执行
 func TestSubAgentMiddleware_AsyncExecution(t *testing.T) {
@@ -39,16 +52,7 @@ func TestSubAgentMiddleware_AsyncExecution(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mw.manager)
 
-	// 获取 task 工具
-	tools := mw.Tools()
-	var taskTool *TaskTool
-	for _, tool := range tools {
-		if tool.Name() == "task" {
-			taskTool = tool.(*TaskTool)
-			break
-		}
-	}
-	require.NotNil(t, taskTool)
+	taskTool := getTool[*TaskTool](t, mw, "task")
 
 	// 测试异步执行
 	ctx := context.Background()
@@ -70,14 +74,7 @@ func TestSubAgentMiddleware_AsyncExecution(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// 查询任务状态
-	var queryTool *QuerySubagentTool
-	for _, tool := range tools {
-		if tool.Name() == "query_subagent" {
-			queryTool = tool.(*QuerySubagentTool)
-			break
-		}
-	}
-	require.NotNil(t, queryTool)
+	queryTool := getTool[*QuerySubagentTool](t, mw, "query_subagent")
 
 	queryResult, err := queryTool.Execute(ctx, map[string]interface{}{
 		"task_id": taskID,
@@ -92,191 +89,210 @@ func TestSubAgentMiddleware_AsyncExecution(t *testing.T) {
 
 // TestSubAgentMiddleware_QuerySubagent 测试查询子代理
 func TestSubAgentMiddleware_QuerySubagent(t *testing.T) {
-	// 创建模拟管理器
-	manager := builtin.NewFileSubagentManager()
+	specs := []SubAgentSpec{
+		{
+			Name:        "test-agent",
+			Description: "测试查询",
+		},
+	}
 
-	// 创建中间件
+	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+			time.Sleep(50 * time.Millisecond)
+			return "result: " + description, nil
+		}
+		return NewSimpleSubAgent(spec.Name, spec.Prompt, execFn), nil
+	}
+
 	mw, err := NewSubAgentMiddleware(&SubAgentMiddlewareConfig{
-		Manager:     manager,
+		Specs:       specs,
+		Factory:     factory,
 		EnableAsync: true,
 	})
 	require.NoError(t, err)
 
-	// 启动一个子代理
+	taskTool := getTool[*TaskTool](t, mw, "task")
 	ctx := context.Background()
-	config := &builtin.SubagentConfig{
-		Type:    "test",
-		Prompt:  "echo 'Hello World'",
-		Timeout: 5 * time.Second,
-	}
-
-	instance, err := manager.StartSubagent(ctx, config)
+	taskResult, err := taskTool.Execute(ctx, map[string]interface{}{
+		"description":   "Query status",
+		"subagent_type": "test-agent",
+		"async":         true,
+	}, nil)
 	require.NoError(t, err)
 
-	// 等待一会儿
-	time.Sleep(100 * time.Millisecond)
+	taskMap := taskResult.(map[string]interface{})
+	taskID := taskMap["task_id"].(string)
 
-	// 查询状态
-	tools := mw.Tools()
-	var queryTool *QuerySubagentTool
-	for _, tool := range tools {
-		if tool.Name() == "query_subagent" {
-			queryTool = tool.(*QuerySubagentTool)
-			break
-		}
-	}
-	require.NotNil(t, queryTool)
+	time.Sleep(150 * time.Millisecond)
 
+	queryTool := getTool[*QuerySubagentTool](t, mw, "query_subagent")
 	result, err := queryTool.Execute(ctx, map[string]interface{}{
-		"task_id": instance.ID,
+		"task_id": taskID,
 	}, nil)
 	require.NoError(t, err)
 
 	resultMap := result.(map[string]interface{})
 	assert.True(t, resultMap["ok"].(bool))
-	assert.Equal(t, instance.ID, resultMap["task_id"])
-	assert.NotEmpty(t, resultMap["status"])
+	assert.Equal(t, taskID, resultMap["task_id"])
+	assert.Equal(t, "completed", resultMap["status"])
+	assert.Contains(t, resultMap["output"].(string), "result")
 }
 
 // TestSubAgentMiddleware_StopSubagent 测试停止子代理
 func TestSubAgentMiddleware_StopSubagent(t *testing.T) {
-	// 创建模拟管理器
-	manager := builtin.NewFileSubagentManager()
+	specs := []SubAgentSpec{
+		{
+			Name:        "slow-agent",
+			Description: "可停止的子代理",
+		},
+	}
 
-	// 创建中间件
+	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+			ticker := time.NewTicker(50 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return "", ctx.Err()
+				case <-ticker.C:
+				}
+			}
+		}
+		return NewSimpleSubAgent(spec.Name, spec.Prompt, execFn), nil
+	}
+
 	mw, err := NewSubAgentMiddleware(&SubAgentMiddlewareConfig{
-		Manager:     manager,
+		Specs:       specs,
+		Factory:     factory,
 		EnableAsync: true,
 	})
 	require.NoError(t, err)
 
-	// 启动一个长时间运行的子代理
+	taskTool := getTool[*TaskTool](t, mw, "task")
 	ctx := context.Background()
-	config := &builtin.SubagentConfig{
-		Type:    "test",
-		Prompt:  "sleep 10",
-		Timeout: 30 * time.Second,
-	}
-
-	instance, err := manager.StartSubagent(ctx, config)
+	taskResult, err := taskTool.Execute(ctx, map[string]interface{}{
+		"description":   "long running",
+		"subagent_type": "slow-agent",
+		"async":         true,
+	}, nil)
 	require.NoError(t, err)
 
-	// 等待启动
-	time.Sleep(100 * time.Millisecond)
-
-	// 停止子代理
-	tools := mw.Tools()
-	var stopTool *StopSubagentTool
-	for _, tool := range tools {
-		if tool.Name() == "stop_subagent" {
-			stopTool = tool.(*StopSubagentTool)
-			break
-		}
-	}
-	require.NotNil(t, stopTool)
+	taskID := taskResult.(map[string]interface{})["task_id"].(string)
+	stopTool := getTool[*StopSubagentTool](t, mw, "stop_subagent")
 
 	result, err := stopTool.Execute(ctx, map[string]interface{}{
-		"task_id": instance.ID,
+		"task_id": taskID,
 	}, nil)
 	require.NoError(t, err)
 
 	resultMap := result.(map[string]interface{})
 	assert.True(t, resultMap["ok"].(bool))
-	assert.Equal(t, instance.ID, resultMap["task_id"])
+	assert.Equal(t, taskID, resultMap["task_id"])
 
-	// 验证状态
-	status, err := manager.GetSubagent(instance.ID)
+	queryTool := getTool[*QuerySubagentTool](t, mw, "query_subagent")
+	statusResult, err := queryTool.Execute(ctx, map[string]interface{}{
+		"task_id": taskID,
+	}, nil)
 	require.NoError(t, err)
-	assert.Equal(t, "stopped", status.Status)
+
+	status := statusResult.(map[string]interface{})
+	assert.Equal(t, "stopped", status["status"])
 }
 
 // TestSubAgentMiddleware_ResumeSubagent 测试恢复子代理
 func TestSubAgentMiddleware_ResumeSubagent(t *testing.T) {
-	// 创建模拟管理器
-	manager := builtin.NewFileSubagentManager()
+	specs := []SubAgentSpec{
+		{
+			Name:        "resumable-agent",
+			Description: "支持恢复的子代理",
+		},
+	}
 
-	// 创建中间件
+	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+			select {
+			case <-ctx.Done():
+				return "", ctx.Err()
+			case <-time.After(500 * time.Millisecond):
+				return "resumed task completed", nil
+			}
+		}
+		return NewSimpleSubAgent(spec.Name, spec.Prompt, execFn), nil
+	}
+
 	mw, err := NewSubAgentMiddleware(&SubAgentMiddlewareConfig{
-		Manager:     manager,
+		Specs:       specs,
+		Factory:     factory,
 		EnableAsync: true,
 	})
 	require.NoError(t, err)
 
-	// 启动并停止一个子代理
+	taskTool := getTool[*TaskTool](t, mw, "task")
 	ctx := context.Background()
-	config := &builtin.SubagentConfig{
-		Type:    "test",
-		Prompt:  "echo 'test'",
-		Timeout: 5 * time.Second,
-	}
-
-	instance, err := manager.StartSubagent(ctx, config)
+	taskResult, err := taskTool.Execute(ctx, map[string]interface{}{
+		"description":   "needs resume",
+		"subagent_type": "resumable-agent",
+		"async":         true,
+	}, nil)
 	require.NoError(t, err)
 
-	time.Sleep(100 * time.Millisecond)
-
-	err = manager.StopSubagent(instance.ID)
+	taskID := taskResult.(map[string]interface{})["task_id"].(string)
+	stopTool := getTool[*StopSubagentTool](t, mw, "stop_subagent")
+	_, err = stopTool.Execute(ctx, map[string]interface{}{"task_id": taskID}, nil)
 	require.NoError(t, err)
 
-	// 恢复子代理
-	tools := mw.Tools()
-	var resumeTool *ResumeSubagentTool
-	for _, tool := range tools {
-		if tool.Name() == "resume_subagent" {
-			resumeTool = tool.(*ResumeSubagentTool)
-			break
-		}
-	}
-	require.NotNil(t, resumeTool)
-
+	resumeTool := getTool[*ResumeSubagentTool](t, mw, "resume_subagent")
 	result, err := resumeTool.Execute(ctx, map[string]interface{}{
-		"task_id": instance.ID,
+		"task_id": taskID,
 	}, nil)
 	require.NoError(t, err)
 
 	resultMap := result.(map[string]interface{})
 	assert.True(t, resultMap["ok"].(bool))
-	assert.Equal(t, instance.ID, resultMap["old_task_id"])
+	assert.Equal(t, taskID, resultMap["old_task_id"])
 	assert.NotEmpty(t, resultMap["new_task_id"])
 }
 
 // TestSubAgentMiddleware_ListSubagents 测试列出子代理
 func TestSubAgentMiddleware_ListSubagents(t *testing.T) {
-	// 创建模拟管理器
-	manager := builtin.NewFileSubagentManager()
+	specs := []SubAgentSpec{
+		{
+			Name:        "worker",
+			Description: "测试列出子代理",
+		},
+	}
 
-	// 创建中间件
+	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+			time.Sleep(50 * time.Millisecond)
+			return "done", nil
+		}
+		return NewSimpleSubAgent(spec.Name, spec.Prompt, execFn), nil
+	}
+
 	mw, err := NewSubAgentMiddleware(&SubAgentMiddlewareConfig{
-		Manager:     manager,
+		Specs:       specs,
+		Factory:     factory,
 		EnableAsync: true,
 	})
 	require.NoError(t, err)
 
-	// 启动多个子代理
+	taskTool := getTool[*TaskTool](t, mw, "task")
 	ctx := context.Background()
+
 	for i := 0; i < 3; i++ {
-		config := &builtin.SubagentConfig{
-			Type:    "test",
-			Prompt:  "echo 'test'",
-			Timeout: 5 * time.Second,
-		}
-		_, err := manager.StartSubagent(ctx, config)
+		_, err := taskTool.Execute(ctx, map[string]interface{}{
+			"description":   "list job",
+			"subagent_type": "worker",
+			"async":         true,
+		}, nil)
 		require.NoError(t, err)
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
-	// 列出所有子代理
-	tools := mw.Tools()
-	var listTool *ListSubagentsTool
-	for _, tool := range tools {
-		if tool.Name() == "list_subagents" {
-			listTool = tool.(*ListSubagentsTool)
-			break
-		}
-	}
-	require.NotNil(t, listTool)
-
+	listTool := getTool[*ListSubagentsTool](t, mw, "list_subagents")
 	result, err := listTool.Execute(ctx, map[string]interface{}{}, nil)
 	require.NoError(t, err)
 
@@ -314,15 +330,7 @@ func TestSubAgentMiddleware_SyncVsAsync(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	tools := mw.Tools()
-	var taskTool *TaskTool
-	for _, tool := range tools {
-		if tool.Name() == "task" {
-			taskTool = tool.(*TaskTool)
-			break
-		}
-	}
-	require.NotNil(t, taskTool)
+	taskTool := getTool[*TaskTool](t, mw, "task")
 
 	ctx := context.Background()
 

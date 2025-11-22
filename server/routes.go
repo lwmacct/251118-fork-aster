@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/astercloud/aster/pkg/core"
 	"github.com/astercloud/aster/server/handlers"
 	"github.com/gin-gonic/gin"
 )
@@ -17,9 +18,13 @@ func (s *Server) registerAgentRoutes(rg *gin.RouterGroup) {
 		agents.GET("/:id", h.Get)
 		agents.PATCH("/:id", h.Update)
 		agents.DELETE("/:id", h.Delete)
+		agents.POST("/:id/run", h.Run)
+		agents.POST("/:id/send", h.Send)
 		agents.POST("/chat", h.Chat)
 		agents.POST("/chat/stream", h.StreamChat)
+		agents.GET("/:id/status", h.GetStatus)
 		agents.GET("/:id/stats", h.GetStats)
+		agents.POST("/:id/resume", h.Resume)
 	}
 }
 
@@ -240,5 +245,50 @@ func (s *Server) registerSystemRoutes(rg *gin.RouterGroup) {
 		system.POST("/reload", h.Reload)
 		system.POST("/gc", h.RunGC)
 		system.POST("/backup", h.Backup)
+	}
+
+	// Pool routes
+	s.registerPoolRoutes(rg)
+
+	// Room routes
+	s.registerRoomRoutes(rg)
+}
+
+// registerPoolRoutes registers pool-related routes
+func (s *Server) registerPoolRoutes(rg *gin.RouterGroup) {
+	h := handlers.NewPoolHandler(s.store, s.deps.AgentDeps)
+
+	pool := rg.Group("/pool")
+	{
+		pool.POST("/agents", h.CreateAgent)
+		pool.GET("/agents", h.ListAgents)
+		pool.GET("/agents/:id", h.GetAgent)
+		pool.POST("/agents/:id/resume", h.ResumeAgent)
+		pool.DELETE("/agents/:id", h.RemoveAgent)
+		pool.GET("/stats", h.GetStats)
+	}
+}
+
+// registerRoomRoutes registers room-related routes
+func (s *Server) registerRoomRoutes(rg *gin.RouterGroup) {
+	// Create a pool for rooms
+	pool := core.NewPool(&core.PoolOptions{
+		Dependencies: s.deps.AgentDeps,
+		MaxAgents:    100,
+	})
+
+	h := handlers.NewRoomHandler(s.store, pool)
+
+	rooms := rg.Group("/rooms")
+	{
+		rooms.POST("", h.Create)
+		rooms.GET("", h.List)
+		rooms.GET("/:id", h.Get)
+		rooms.DELETE("/:id", h.Delete)
+		rooms.POST("/:id/join", h.Join)
+		rooms.POST("/:id/leave", h.Leave)
+		rooms.POST("/:id/say", h.Say)
+		rooms.GET("/:id/members", h.GetMembers)
+		rooms.GET("/:id/history", h.GetHistory)
 	}
 }

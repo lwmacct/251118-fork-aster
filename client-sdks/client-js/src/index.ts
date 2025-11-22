@@ -53,11 +53,15 @@ export { TelemetryResource } from './resources/telemetry';
 export { EvalResource } from './resources/eval';
 
 // 主客户端类
-export { AsterClient, createClient } from './client';
-export type { AsterClientConfig } from './client';
+export { aster, createClient } from './client';
+export type { asterConfig } from './client';
+
+// 向后兼容的别名
+export { aster as AsterClient } from './client';
+export type { asterConfig as AsterClientConfig } from './client';
 
 // ============================================================================
-// 原有接口
+// 原有接口（向后兼容）
 // ============================================================================
 
 export interface ChatRequest {
@@ -86,40 +90,9 @@ export interface ChatResponse {
 
 /**
  * 旧版客户端选项（v0.1.0）
- * @deprecated 请使用 ClientOptions（从 BaseResource 导入）
+ * @deprecated 请使用 AsterClient（从 './client' 导入）
  */
 export interface LegacyClientOptions {
   baseUrl: string;
   fetchImpl?: typeof fetch;
-}
-
-export class AsterClient {
-  private baseUrl: string;
-  private fetchImpl: typeof fetch;
-
-  constructor(options: LegacyClientOptions) {
-    this.baseUrl = options.baseUrl.replace(/\/+$/, "");
-    this.fetchImpl = options.fetchImpl ?? fetch;
-  }
-
-  /**
-   * Perform a synchronous chat call.
-   */
-  async chat(request: ChatRequest, signal?: AbortSignal): Promise<ChatResponse> {
-    const resp = await this.fetchImpl(`${this.baseUrl}/v1/agents/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(request),
-      signal
-    });
-
-    if (!resp.ok) {
-      throw new Error(`HTTP error ${resp.status}`);
-    }
-
-    const data = (await resp.json()) as ChatResponse;
-    return data;
-  }
 }

@@ -41,6 +41,7 @@ type SubagentConfig struct {
 	ID          string            `json:"id"`
 	Type        string            `json:"type"` // "general-purpose", "Explore", "Plan", "statusline-setup"
 	Prompt      string            `json:"prompt"`
+	ParentContext map[string]interface{} `json:"parent_context,omitempty"`
 	Model       string            `json:"model,omitempty"`
 	WorkDir     string            `json:"work_dir,omitempty"`
 	Env         map[string]string `json:"env,omitempty"`

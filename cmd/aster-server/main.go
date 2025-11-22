@@ -40,14 +40,40 @@ func main() {
 
 	// Initialize template registry
 	templateRegistry := agent.NewTemplateRegistry()
-	// TODO: Register builtin templates
+	
+	// Register builtin templates
+	registerDefaultTemplates(templateRegistry)
 
-	// Initialize router
-	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
+	// Initialize router with environment-based configuration
+	provider := os.Getenv("PROVIDER")
+	if provider == "" {
+		provider = "anthropic"
+	}
+	model := os.Getenv("MODEL")
+	if model == "" {
+		if provider == "deepseek" {
+			model = "deepseek-chat"
+		} else {
+			model = "claude-sonnet-4-5"
+		}
+	}
+	
+	var apiKey string
+	switch provider {
+	case "deepseek":
+		apiKey = os.Getenv("DEEPSEEK_API_KEY")
+	case "anthropic":
+		apiKey = os.Getenv("ANTHROPIC_API_KEY")
+	case "openai":
+		apiKey = os.Getenv("OPENAI_API_KEY")
+	default:
+		apiKey = os.Getenv(provider + "_API_KEY")
+	}
+	
 	defaultModel := &types.ModelConfig{
-		Provider: "anthropic",
-		Model:    "claude-sonnet-4-5",
-		APIKey:   anthropicKey,
+		Provider: provider,
+		Model:    model,
+		APIKey:   apiKey,
 	}
 	routes := []router.StaticRouteEntry{
 		{Task: "chat", Priority: router.PriorityQuality, Model: defaultModel},
@@ -113,4 +139,48 @@ func main() {
 	}
 
 	fmt.Println("✅ Server exited properly")
+}
+
+// registerDefaultTemplates registers builtin agent templates
+func registerDefaultTemplates(registry *agent.TemplateRegistry) {
+	// Get provider and model from environment, with fallbacks
+	provider := os.Getenv("PROVIDER")
+	if provider == "" {
+		provider = "anthropic"
+	}
+	
+	model := os.Getenv("MODEL")
+	if model == "" {
+		if provider == "deepseek" {
+			model = "deepseek-chat"
+		} else {
+			model = "claude-sonnet-4"
+		}
+	}
+	
+	// Register "chat" template - simple chat agent
+	registry.Register(&types.AgentTemplateDefinition{
+		ID:           "chat",
+		Model:        model,
+		SystemPrompt: "You are a helpful AI assistant. Respond to user queries in a clear and concise manner.",
+		Tools:        "*", // Enable all tools
+	})
+	
+	// Register "default-agent" template (alias for chat)
+	registry.Register(&types.AgentTemplateDefinition{
+		ID:           "default-agent",
+		Model:        model,
+		SystemPrompt: "You are a helpful AI assistant.",
+		Tools:        "*",
+	})
+	
+	// Register "code-assistant" template
+	registry.Register(&types.AgentTemplateDefinition{
+		ID:           "code-assistant",
+		Model:        model,
+		SystemPrompt: "You are an expert programming assistant. Help users with code, debugging, and technical questions.",
+		Tools:        "*",
+	})
+	
+	fmt.Printf("✅ Registered default templates (Provider: %s, Model: %s)\n", provider, model)
 }

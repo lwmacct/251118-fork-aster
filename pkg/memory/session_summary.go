@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,11 +21,11 @@ type SessionSummary struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// 详细信息
-	Topics     []string          `json:"topics"`      // 讨论的主题
-	KeyPoints  []string          `json:"key_points"`  // 关键要点
-	Decisions  []string          `json:"decisions"`   // 做出的决策
-	ActionItems []string         `json:"action_items"` // 行动项
-	Metadata   map[string]interface{} `json:"metadata"`
+	Topics      []string               `json:"topics"`       // 讨论的主题
+	KeyPoints   []string               `json:"key_points"`   // 关键要点
+	Decisions   []string               `json:"decisions"`    // 做出的决策
+	ActionItems []string               `json:"action_items"` // 行动项
+	Metadata    map[string]interface{} `json:"metadata"`
 
 	// 统计信息
 	MessageCount int `json:"message_count"` // 消息数量
@@ -335,7 +336,7 @@ func (m *SessionSummaryManager) buildPrompt(messages []types.Message) string {
 
 	// 替换占位符
 	prompt := m.config.SummaryPrompt
-	prompt = replaceString(prompt, "{{MESSAGES}}", messagesText)
+	prompt = strings.ReplaceAll(prompt, "{{MESSAGES}}", messagesText)
 
 	return prompt
 }
@@ -430,47 +431,60 @@ func (m *SessionSummaryManager) estimateTokens(messages []types.Message) int {
 
 // 辅助函数
 
-func replaceString(s, old, new string) string {
-	// 简单的字符串替换
-	result := ""
-	for {
-		idx := indexOf(s, old)
-		if idx == -1 {
-			result += s
-			break
-		}
-		result += s[:idx] + new
-		s = s[idx+len(old):]
-	}
-	return result
-}
-
-func indexOf(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
-}
-
 func extractJSON(content string) string {
-	// 尝试提取 JSON（可能在代码块中）
-	start := indexOf(content, "{")
-	end := lastIndexOf(content, "}")
+	// 尝试提取 JSON（可能在代码块中或包含额外文本）
 
-	if start != -1 && end != -1 && end > start {
+	// 首先尝试找到 JSON 对象的开始和结束
+	start := strings.Index(content, "{")
+	if start == -1 {
+		return content
+	}
+
+	// 使用简单的括号匹配来找到对应的结束括号
+	depth := 0
+	inString := false
+	escaped := false
+
+	for i := start; i < len(content); i++ {
+		ch := content[i]
+
+		// 处理转义字符
+		if escaped {
+			escaped = false
+			continue
+		}
+
+		if ch == '\\' {
+			escaped = true
+			continue
+		}
+
+		// 处理字符串
+		if ch == '"' {
+			inString = !inString
+			continue
+		}
+
+		// 只在非字符串内部计数括号
+		if !inString {
+			switch ch {
+			case '{':
+				depth++
+			case '}':
+				depth--
+				if depth == 0 {
+					// 找到匹配的结束括号
+					return content[start : i+1]
+				}
+			}
+		}
+	}
+
+	// 如果没有找到匹配的括号，使用原来的简单方法
+	end := strings.LastIndex(content, "}")
+	if end != -1 && end > start {
 		return content[start : end+1]
 	}
 
 	return content
-}
-
-func lastIndexOf(s, substr string) int {
-	for i := len(s) - len(substr); i >= 0; i-- {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
 }

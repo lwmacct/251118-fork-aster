@@ -83,25 +83,26 @@ func NewSubAgentMiddleware(config *SubAgentMiddlewareConfig) (*SubAgentMiddlewar
 		defaultTimeout = 1 * time.Hour
 	}
 
-	// 创建或使用提供的管理器
-	var manager builtin.SubagentManager
-	if config.Manager != nil {
-		manager = config.Manager
-	} else if config.EnableProcessIsolation || config.EnableAsync {
-		// 如果启用进程隔离或异步执行，使用 FileSubagentManager
-		manager = builtin.NewFileSubagentManager()
-		log.Printf("[SubAgentMiddleware] Using FileSubagentManager for process isolation/async execution")
-	}
-
 	m := &SubAgentMiddleware{
 		BaseMiddleware:         NewBaseMiddleware("subagent", 200),
 		agents:                 make(map[string]SubAgent),
 		factory:                config.Factory,
-		manager:                manager,
 		enableParallel:         config.EnableParallel,
 		enableAsync:            config.EnableAsync,
 		enableProcessIsolation: config.EnableProcessIsolation,
 		defaultTimeout:         defaultTimeout,
+	}
+
+	// 创建或使用提供的管理器
+	switch {
+	case config.Manager != nil:
+		m.manager = config.Manager
+	case config.EnableProcessIsolation:
+		m.manager = builtin.NewFileSubagentManager()
+		log.Printf("[SubAgentMiddleware] Using FileSubagentManager for process isolation/async execution")
+	case config.EnableAsync:
+		m.manager = newGoroutineSubagentManager(m)
+		log.Printf("[SubAgentMiddleware] Using in-memory async manager")
 	}
 
 	// 默认启用 general-purpose 子代理
@@ -324,9 +325,10 @@ func (t *TaskTool) executeSync(ctx context.Context, subagentType, description st
 func (t *TaskTool) executeAsync(ctx context.Context, subagentType, description string, parentContext map[string]interface{}, timeout time.Duration) (interface{}, error) {
 	// 构建子代理配置
 	config := &builtin.SubagentConfig{
-		Type:    subagentType,
-		Prompt:  description,
-		Timeout: timeout,
+		Type:          subagentType,
+		Prompt:        description,
+		Timeout:       timeout,
+		ParentContext: parentContext,
 		Metadata: map[string]string{
 			"subagent_type": subagentType,
 			"description":   description,
