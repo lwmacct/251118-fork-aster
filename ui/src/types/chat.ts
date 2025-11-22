@@ -4,16 +4,34 @@
 
 import type { Message, QuickReply, Suggestion } from './message';
 
+export interface AgentProfile {
+  name: string;
+  description?: string;
+  avatar?: string;
+  status?: 'idle' | 'thinking' | 'busy' | 'error';
+}
+
 export interface ChatConfig {
   // Agent 配置
   agentId?: string;
   roomId?: string;
   workflowId?: string;
+  title?: string;
+  subtitle?: string;
+  showHeader?: boolean;
+  emptyText?: string;
 
   // 连接配置
   apiUrl?: string;
   wsUrl?: string;
   apiKey?: string;
+  
+  // 模型配置
+  modelConfig?: {
+    provider?: string;
+    model?: string;
+    api_key?: string;
+  };
 
   // 功能开关
   enableThinking?: boolean;
@@ -29,6 +47,10 @@ export interface ChatConfig {
   welcomeMessage?: string | Message;
   quickReplies?: QuickReply[];
   suggestions?: Suggestion[];
+  agentProfile?: AgentProfile;
+  demoMode?: boolean;
+  demoResponses?: string[];
+  demoDelay?: number;
   
   // 主题配置
   theme?: 'light' | 'dark' | 'auto';
@@ -46,6 +68,8 @@ export interface ChatConfig {
   onError?: (error: Error) => void;
   onQuickReplyClick?: (reply: QuickReply) => void;
   onSuggestionClick?: (suggestion: Suggestion) => void;
+  onApproveAction?: (requestId: string) => void;
+  onRejectAction?: (requestId: string) => void;
 }
 
 export interface ChatState {

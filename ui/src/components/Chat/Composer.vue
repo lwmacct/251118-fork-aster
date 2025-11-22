@@ -220,9 +220,10 @@ defineExpose({
 
 .composer-input {
   @apply w-full px-4 py-3 bg-background border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all;
-  @apply text-sm leading-relaxed;
+  @apply text-sm leading-relaxed text-text dark:text-text-dark;
   min-height: 44px;
   max-height: 120px;
+  color: #e5e7eb;
 }
 
 .composer-input:disabled {

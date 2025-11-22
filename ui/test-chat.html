@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Chat Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #4a9eff;
+    }
+    .status {
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      background: #16213e;
+    }
+    .status.connected { background: #0f3460; border-left: 4px solid #4a9eff; }
+    .messages {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      min-height: 400px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .message {
+      margin-bottom: 15px;
+      padding: 12px;
+      border-radius: 8px;
+    }
+    .message.user {
+      background: #0f3460;
+      margin-left: 20%;
+    }
+    .message.assistant {
+      background: #1e3a5f;
+      margin-right: 20%;
+    }
+    .message.system {
+      background: #2a2a3e;
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+    .input-area {
+      display: flex;
+      gap: 10px;
+    }
+    input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #0f3460;
+      border-radius: 8px;
+      background: #16213e;
+      color: #eee;
+      font-size: 16px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #4a9eff;
+    }
+    button {
+      padding: 12px 24px;
+      background: #4a9eff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #3a8eef;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Aster WebSocket Chat Test</h1>
+    
+    <div id="status" class="status">
+      连接状态: <span id="statusText">未连接</span>
+    </div>
+
+    <div id="messages" class="messages"></div>
+
+    <div class="input-area">
+      <input 
+        type="text" 
+        id="input" 
+        placeholder="输入消息..." 
+        disabled
+      />
+      <button id="sendBtn" disabled>发送</button>
+    </div>
+  </div>
+
+  <script>
+    const WS_URL = 'ws://localhost:8080/v1/ws';
+    let ws = null;
+    
+    const statusEl = document.getElementById('status');
+    const statusTextEl = document.getElementById('statusText');
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function addMessage(role, text) {
+      const msgEl = document.createElement('div');
+      msgEl.className = `message ${role}`;
+      msgEl.textContent = text;
+      messagesEl.appendChild(msgEl);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function setStatus(connected) {
+      if (connected) {
+        statusEl.className = 'status connected';
+        statusTextEl.textContent = '已连接';
+        inputEl.disabled = false;
+        sendBtn.disabled = false;
+      } else {
+        statusEl.className = 'status';
+        statusTextEl.textContent = '未连接';
+        inputEl.disabled = true;
+        sendBtn.disabled = true;
+      }
+    }
+
+    function connect() {
+      addMessage('system', '正在连接 WebSocket...');
+      
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        addMessage('system', '✅ WebSocket 已连接');
+        setStatus(true);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          console.log('📥 收到消息:', msg);
+
+          if (msg.type === 'text_delta' && msg.payload?.text) {
+            // 追加到最后一条 assistant 消息
+            const lastMsg = messagesEl.lastElementChild;
+            if (lastMsg && lastMsg.classList.contains('assistant')) {
+              lastMsg.textContent += msg.payload.text;
+            } else {
+              addMessage('assistant', msg.payload.text);
+            }
+          } else if (msg.type === 'chat_start') {
+            addMessage('system', `🤖 Agent ${msg.payload.agent_id} 开始回复...`);
+            addMessage('assistant', '');
+          } else if (msg.type === 'chat_complete') {
+            addMessage('system', '✅ 回复完成');
+          } else if (msg.type === 'error') {
+            addMessage('system', `❌ 错误: ${msg.payload?.message || '未知错误'}`);
+          }
+        } catch (error) {
+          console.error('解析消息失败:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket 错误:', error);
+        addMessage('system', '❌ WebSocket 错误');
+      };
+
+      ws.onclose = () => {
+        addMessage('system', '🔌 WebSocket 已断开');
+        setStatus(false);
+        
+        // 5秒后重连
+        setTimeout(() => {
+          addMessage('system', '尝试重新连接...');
+          connect();
+        }, 5000);
+      };
+    }
+
+    function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+      addMessage('user', text);
+      inputEl.value = '';
+
+      const message = {
+        type: 'chat',
+        payload: {
+          template_id: 'chat',
+          input: text,
+          model_config: {
+            provider: 'deepseek',
+            model: 'deepseek-chat'
+          }
+        }
+      };
+
+      console.log('📤 发送消息:', message);
+      ws.send(JSON.stringify(message));
+    }
+
+    // 事件监听
+    sendBtn.addEventListener('click', sendMessage);
+    inputEl.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // 启动连接
+    connect();
+  </script>
+</body>
+</html>

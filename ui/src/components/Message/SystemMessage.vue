@@ -25,10 +25,10 @@
 </template>
 
 <script setup lang="ts">
-import type { Message } from '@/types';
+import type { SystemMessage as SystemMessageType } from '@/types';
 
 interface Props {
-  message: Message;
+  message: SystemMessageType;
 }
 
 defineProps<Props>();

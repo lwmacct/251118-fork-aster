@@ -20,6 +20,16 @@ export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'error';
 /**
  * 基础消息接口
  */
+export interface Attachment {
+  id: string;
+  type: 'image' | 'file' | 'link';
+  name?: string;
+  url?: string;
+  preview?: string;
+  size?: number;
+  metadata?: Record<string, any>;
+}
+
 export interface BaseMessage {
   id: string;
   type: MessageType;
@@ -27,6 +37,9 @@ export interface BaseMessage {
   createdAt: number;
   status?: MessageStatus;
   user?: User;
+  attachments?: Attachment[];
+  metadata?: Record<string, any>;
+  thoughts?: ThinkingEvent[];
 }
 
 /**
@@ -167,6 +180,17 @@ export interface ToolResult {
   id: string;
   toolCallId: string;
   result: any;
+}
+
+export interface ThinkingEvent {
+  id?: string;
+  stage?: string;
+  timestamp: number;
+  reasoning?: string;
+  decision?: string;
+  toolCall?: ToolCall;
+  toolResult?: { result: any };
+  approvalRequest?: ApprovalRequest;
 }
 
 export interface ApprovalRequest {

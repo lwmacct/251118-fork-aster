@@ -82,7 +82,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import MessageBubble from './MessageBubble.vue';
-import { formatTime } from '@/utils/format';
 import type { Message, ChatConfig } from '@/types';
 
 interface Props {
@@ -168,7 +167,8 @@ function handleScroll() {
 }
 
 // Scroll to bottom
-function scrollToBottom(smooth = true) {
+function scrollToBottom(smoothOrEvent: boolean | Event = true) {
+  const smooth = typeof smoothOrEvent === 'boolean' ? smoothOrEvent : true;
   if (!containerRef.value) return;
 
   containerRef.value.scrollTo({

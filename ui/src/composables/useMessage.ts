@@ -3,7 +3,7 @@
  * 消息处理和格式化逻辑
  */
 
-import { computed, type Ref } from 'vue';
+import { computed } from 'vue';
 import type { Message } from '@/types';
 import { formatTime, truncate } from '@/utils/format';
 import { extractPlainText, hasCodeBlock } from '@/utils/markdown';

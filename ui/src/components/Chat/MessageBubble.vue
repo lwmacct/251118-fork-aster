@@ -21,7 +21,7 @@
       <div
         :class="[
           'message-bubble-content',
-          message.role === 'user' ? 'bg-primary text-white' : 'bg-surface text-primary border border-border'
+          message.role === 'user' ? 'bg-primary text-white' : 'bg-surface dark:bg-surface-dark text-text dark:text-text-dark border border-border dark:border-border-dark'
         ]"
       >
         <!-- Text Content -->

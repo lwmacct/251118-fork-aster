@@ -3,7 +3,13 @@
     "allow": [
       "Bash(golangci-lint config verify:*)",
       "Bash(golangci-lint migrate:*)",
-      "Bash(golangci-lint run:*)"
+      "Bash(golangci-lint run:*)",
+      "Bash(go test:*)",
+      "Bash(go fmt:*)",
+      "Bash(go tool cover:*)",
+      "Bash(npm run dev)",
+      "Bash(go build:*)",
+      "Bash(./aster-server:*)"
     ],
     "deny": [],
     "ask": []

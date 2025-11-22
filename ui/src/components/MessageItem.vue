@@ -22,7 +22,7 @@
           'rounded-lg px-4 py-3 shadow-sm',
           message.role === 'user'
             ? 'bg-primary text-white'
-            : 'bg-surface text-primary border border-border'
+            : 'bg-surface dark:bg-surface-dark text-text dark:text-text-dark border border-border dark:border-border-dark'
         ]"
       >
         <!-- Attachments -->
@@ -59,7 +59,7 @@
             message.role === 'user' ? 'text-white/70' : 'text-secondary'
           ]"
         >
-          {{ formatTime(message.timestamp) }}
+          {{ formatTime(message.createdAt) }}
         </div>
       </div>
     </div>
@@ -88,15 +88,23 @@ defineEmits<{
 
 const renderedContent = computed(() => {
   if (!props.message.content) return '';
+  let raw = '';
+  if (typeof props.message.content === 'string') {
+    raw = props.message.content;
+  } else if ('text' in props.message.content && typeof props.message.content.text === 'string') {
+    raw = props.message.content.text;
+  } else {
+    raw = JSON.stringify(props.message.content, null, 2);
+  }
   try {
-    return marked.parse(props.message.content);
+    return marked.parse(raw);
   } catch (error) {
-    return props.message.content;
+    return raw;
   }
 });
 
-const formatTime = (timestamp: number) => {
-  const date = new Date(timestamp);
+const formatTime = (timestamp?: number) => {
+  const date = new Date(timestamp || Date.now());
   return date.toLocaleTimeString('zh-CN', {
     hour: '2-digit',
     minute: '2-digit',

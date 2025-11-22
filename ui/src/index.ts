@@ -55,8 +55,7 @@ export { default as WorkflowCard } from './components/Workflow/WorkflowCard.vue'
 // Functional Composables (Phase 1)
 // ============================================
 export { useChat } from './composables/useChat';
-export { useMessage } from './composables/useMessage';
-export { useMessageList } from './composables/useMessageList';
+export { useMessage, useMessageList } from './composables/useMessage';
 export { useScroll } from './composables/useScroll';
 export { useDarkMode } from './composables/useDarkMode';
 

@@ -90,12 +90,13 @@
         <div class="flex-1 relative">
           <textarea
             v-model="currentInput"
+            @input="() => console.log('📝 Input changed:', currentInput)"
             @keydown.enter.exact.prevent="handleSend"
             :placeholder="config.placeholder || '输入消息...'"
             :disabled="!isConnected || isThinking"
-            class="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none bg-background"
+            class="w-full px-4 py-3 rounded-lg border border-border dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none bg-background dark:bg-background-dark text-text dark:text-text-dark"
             rows="1"
-            style="max-height: 120px;"
+            style="max-height: 120px; color: #e5e7eb;"
           />
         </div>
 
@@ -104,6 +105,7 @@
           @click="handleSend"
           :disabled="!currentInput.trim() || !isConnected || isThinking"
           class="p-3 rounded-lg bg-primary text-white hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          :title="`发送 (Enter) - 输入: ${currentInput.length} 字符, 连接: ${isConnected}, 思考: ${isThinking}`"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
@@ -127,7 +129,7 @@
 import { ref, watch, nextTick, onMounted } from 'vue';
 import { useChat } from '@/composables/useChat';
 import MessageItem from './MessageItem.vue';
-import type { ChatConfig, Agent } from '@/types';
+import type { ChatConfig } from '@/types';
 
 interface Props {
   config: ChatConfig;
@@ -143,7 +145,6 @@ const {
   agent,
   isThinking,
   isConnected,
-  currentInput,
   sendMessage,
   approveAction,
   rejectAction,
@@ -152,11 +153,23 @@ const {
 const messagesContainer = ref<HTMLElement>();
 const fileInput = ref<HTMLInputElement>();
 const isListening = ref(false);
+const currentInput = ref('');
 
-const handleSend = () => {
-  if (currentInput.value.trim()) {
-    sendMessage(currentInput.value);
-  }
+console.log('🎯 AsterChat component loaded - VERSION 2.0');
+console.log('🎯 Initial state:', {
+  isConnected: isConnected.value,
+  isThinking: isThinking.value,
+  messagesCount: messages.value.length,
+});
+
+const handleSend = async () => {
+  const text = currentInput.value.trim();
+  if (!text) return;
+  
+  console.log('🚀 handleSend called with:', text);
+  currentInput.value = '';
+  await sendMessage(text);
+  console.log('✅ sendMessage completed');
 };
 
 const handleApprove = (requestId: string) => {

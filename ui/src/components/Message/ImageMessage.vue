@@ -56,13 +56,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { Message } from '@/types';
+import type { ImageMessage as ImageMessageType } from '@/types';
+import { formatFileSize } from '@/utils/format';
 
 interface Props {
-  message: Message;
+  message: ImageMessageType;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 const emit = defineEmits<{
   preview: [url: string];
@@ -82,12 +83,6 @@ function handleError() {
 
 function openPreview() {
   emit('preview', props.message.content.url);
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 </script>
 

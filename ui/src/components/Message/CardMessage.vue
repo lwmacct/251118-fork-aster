@@ -62,10 +62,10 @@
 </template>
 
 <script setup lang="ts">
-import type { Message } from '@/types';
+import type { CardMessage as CardMessageType } from '@/types';
 
 interface Props {
-  message: Message;
+  message: CardMessageType;
 }
 
 defineProps<Props>();

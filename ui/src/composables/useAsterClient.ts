@@ -3,9 +3,8 @@
  * 封装 @aster/client-js SDK 供 Vue3 使用
  */
 
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onUnmounted } from 'vue';
 import { aster, WebSocketClient, SubscriptionManager } from '@aster/client-js';
-import type { StreamEvent, EventEnvelope } from '@aster/client-js';
 
 export interface AsterClientConfig {
   baseUrl?: string;
@@ -15,8 +14,6 @@ export interface AsterClientConfig {
 
 export function useAsterClient(config: AsterClientConfig = {}) {
   const baseUrl = config.baseUrl || 'http://localhost:8080';
-  const wsUrl = config.wsUrl || 'ws://localhost:8080/ws';
-
   // 创建 Aster Client
   const client = new aster({
     baseUrl,
@@ -31,6 +28,9 @@ export function useAsterClient(config: AsterClientConfig = {}) {
   // 初始化 WebSocket
   const initWebSocket = async () => {
     try {
+      // 构建 WebSocket URL
+      const wsUrl = config.wsUrl || baseUrl.replace(/^http/, 'ws') + '/v1/ws';
+      
       ws.value = new WebSocketClient({
         maxReconnectAttempts: 5,
         reconnectDelay: 1000,
@@ -42,9 +42,11 @@ export function useAsterClient(config: AsterClientConfig = {}) {
       
       subscriptionManager.value = new SubscriptionManager(ws.value);
       
-      console.log('✓ Aster WebSocket connected');
+      console.log('✅ Aster WebSocket connected to', wsUrl);
+      console.log('✅ ws.value:', ws.value);
+      console.log('✅ isConnected.value:', isConnected.value);
     } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
+      console.error('❌ Failed to connect WebSocket:', error);
       isConnected.value = false;
     }
   };
@@ -70,10 +72,6 @@ export function useAsterClient(config: AsterClientConfig = {}) {
   };
 
   // 生命周期
-  onMounted(() => {
-    initWebSocket();
-  });
-
   onUnmounted(() => {
     disconnect();
   });

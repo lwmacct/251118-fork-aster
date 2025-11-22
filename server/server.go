@@ -10,6 +10,7 @@ import (
 	"github.com/astercloud/aster/pkg/agent"
 	"github.com/astercloud/aster/pkg/store"
 	"github.com/astercloud/aster/server/auth"
+	"github.com/astercloud/aster/server/handlers"
 	"github.com/astercloud/aster/server/observability"
 	"github.com/astercloud/aster/server/ratelimit"
 	"github.com/gin-gonic/gin"
@@ -193,6 +194,9 @@ func (s *Server) setupMiddleware() {
 
 // setupRoutes configures all routes
 func (s *Server) setupRoutes() {
+	// Static files (UI SDK demos) - no auth required
+	s.router.Static("/ui", "./ui")
+	
 	// Health check endpoint (no auth required)
 	if s.config.Observability.HealthCheck.Enabled {
 		s.router.GET(s.config.Observability.HealthCheck.Endpoint, s.healthCheck)
@@ -202,6 +206,10 @@ func (s *Server) setupRoutes() {
 	if s.config.Observability.Metrics.Enabled {
 		s.router.GET(s.config.Observability.Metrics.Endpoint, s.metricsHandler)
 	}
+
+	// WebSocket endpoint (no auth middleware - handles auth internally)
+	wsHandler := handlers.NewWebSocketHandler(s.store, s.deps.AgentDeps)
+	s.router.GET("/v1/ws", wsHandler.HandleWebSocket)
 
 	// API v1 routes (with authentication)
 	v1 := s.router.Group("/v1")

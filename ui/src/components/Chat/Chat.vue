@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import MessageList from './MessageList.vue';
 import QuickReplies from './QuickReplies.vue';
 import Composer from './Composer.vue';
