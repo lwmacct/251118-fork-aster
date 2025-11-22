@@ -49,23 +49,23 @@
         <section id="chat" class="component-section">
           <h2 class="section-title">对话组件</h2>
           
-          <div id="demo-bubble" class="demo-card">
+          <div id="demo-bubble" class="demo-card" @click="showComponentDoc('bubble')">
             <div class="demo-header">
               <h3 class="demo-title">Bubble - 消息气泡</h3>
               <p v-if="hasDoc('bubble')" class="demo-description">
                 {{ getDocDescription('bubble') }}
               </p>
             </div>
-            <div class="demo-content">
+            <div class="demo-content" @click.stop>
               <Flex direction="column" gap="md">
                 <Bubble content="你好！我是 Aster Agent" position="left" />
                 <Bubble content="很高兴认识你" position="right" status="sent" />
               </Flex>
             </div>
             <div v-if="hasDoc('bubble')" class="demo-footer">
-              <router-link :to="`/docs/bubble`" class="view-docs-link">
+              <button class="view-docs-link" @click.stop="showComponentDoc('bubble')">
                 查看完整文档 →
-              </router-link>
+              </button>
             </div>
           </div>
 
@@ -160,14 +160,14 @@
         <section id="basic" class="component-section">
           <h2 class="section-title">基础组件</h2>
           
-          <div id="demo-button" class="demo-card">
+          <div id="demo-button" class="demo-card" @click="showComponentDoc('button')">
             <div class="demo-header">
               <h3 class="demo-title">Button - 按钮</h3>
               <p v-if="hasDoc('button')" class="demo-description">
                 {{ getDocDescription('button') }}
               </p>
             </div>
-            <div class="demo-content">
+            <div class="demo-content" @click.stop>
               <Flex gap="md" wrap>
                 <Button variant="primary">主要按钮</Button>
                 <Button variant="secondary">次要按钮</Button>
@@ -176,15 +176,20 @@
               </Flex>
             </div>
             <div v-if="hasDoc('button')" class="demo-footer">
-              <router-link :to="`/docs/button`" class="view-docs-link">
+              <button class="view-docs-link" @click.stop="showComponentDoc('button')">
                 查看完整文档 →
-              </router-link>
+              </button>
             </div>
           </div>
 
-          <div id="demo-avatar" class="demo-card">
-            <h3 class="demo-title">Avatar - 头像</h3>
-            <div class="demo-content">
+          <div id="demo-avatar" class="demo-card" @click="showComponentDoc('avatar')">
+            <div class="demo-header">
+              <h3 class="demo-title">Avatar - 头像</h3>
+              <p v-if="hasDoc('avatar')" class="demo-description">
+                {{ getDocDescription('avatar') }}
+              </p>
+            </div>
+            <div class="demo-content" @click.stop>
               <Flex gap="md" align="center">
                 <Avatar alt="User" size="xs" />
                 <Avatar alt="Agent" size="sm" status="online" />
@@ -192,6 +197,11 @@
                 <Avatar alt="AI" size="lg" />
                 <Avatar alt="System" size="xl" status="offline" />
               </Flex>
+            </div>
+            <div v-if="hasDoc('avatar')" class="demo-footer">
+              <button class="view-docs-link" @click.stop="showComponentDoc('avatar')">
+                查看完整文档 →
+              </button>
             </div>
           </div>
 
@@ -695,6 +705,55 @@
             </div>
           </div>
         </section>
+
+        <!-- 内联文档显示区域 -->
+        <section v-if="selectedComponent" class="doc-section">
+          <div class="doc-container">
+            <div class="doc-header">
+              <div class="doc-title-area">
+                <h2 class="doc-title">
+                  {{ getComponent(selectedComponent)?.name || selectedComponent }}
+                </h2>
+                <button
+                  @click="selectedComponent = null"
+                  class="close-doc-btn"
+                  aria-label="关闭文档"
+                >
+                  ✕
+                </button>
+              </div>
+              <div class="doc-actions">
+                <router-link
+                  v-if="hasDoc(selectedComponent)"
+                  :to="`/docs/${selectedComponent}`"
+                  class="external-doc-link"
+                  target="_blank"
+                >
+                  在新窗口打开文档 ↗
+                </router-link>
+              </div>
+            </div>
+
+            <div class="doc-content">
+              <div v-if="hasDoc(selectedComponent)" class="markdown-content">
+                <div v-html="renderMarkdown(getFullDoc(selectedComponent))"></div>
+              </div>
+              <div v-else class="no-doc-content">
+                <div class="no-doc-icon">📝</div>
+                <h3>文档开发中</h3>
+                <p>该组件的详细文档正在编写中，敬请期待。</p>
+                <div class="no-doc-suggestions">
+                  <p>您可以：</p>
+                  <ul>
+                    <li>查看组件的基础演示</li>
+                    <li>在组件源代码中了解 Props 接口</li>
+                    <li>参考其他类似组件的文档</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </ScrollView>
     </div>
   </div>
@@ -710,8 +769,9 @@ import {
 } from '@/components/ChatUI';
 
 // 批量导入所有 Markdown 文档
-const docModules = import.meta.glob('@/docs/components/*.md', {
-  as: 'raw',
+const docModules = import.meta.glob('@/src/docs/components/*.md', {
+  query: '?raw',
+  import: 'default',
   eager: true
 });
 
@@ -860,6 +920,63 @@ const getDocDescription = (key: string): string => {
 const hasDoc = (key: string): boolean => {
   return !!docs[key];
 };
+
+// 获取完整的文档内容
+const getFullDoc = (key: string): string => {
+  return docs[key] || '';
+};
+
+// 当前选中的组件（用于显示文档）
+const selectedComponent = ref<string | null>(null);
+
+// 显示组件文档
+const showComponentDoc = (key: string) => {
+  selectedComponent.value = selectedComponent.value === key ? null : key;
+};
+
+// 获取组件对象
+const getComponent = (key: string) => {
+  return allComponents.find(comp => comp.key === key) || null;
+};
+
+// 简单的 Markdown 渲染函数
+const renderMarkdown = (markdown: string): string => {
+  if (!markdown) return '';
+
+  return markdown
+    // 处理标题
+    .replace(/^### (.+)$/gm, '<h3 class="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold text-gray-900 dark:text-white mt-8 mb-6">$1</h1>')
+    // 处理粗体和斜体
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // 处理行内代码
+    .replace(/`([^`]+)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono text-gray-800 dark:text-gray-200">$1</code>')
+    // 处理代码块
+    .replace(/```(\w+)?\n([\s\S]+?)```/g, '<pre class="bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code>$2</code></pre>')
+    // 处理段落
+    .split('\n\n')
+    .map(paragraph => {
+      const trimmed = paragraph.trim();
+      if (trimmed.startsWith('<h') || trimmed.startsWith('<pre') || trimmed.startsWith('<code>')) {
+        return trimmed;
+      }
+      if (trimmed.startsWith('- ')) {
+        // 处理列表
+        const items = trimmed.split('\n').map(item =>
+          item.replace(/^- (.+)$/, '<li class="ml-4">$1</li>')
+        ).join('');
+        return `<ul class="list-disc space-y-1 my-3">${items}</ul>`;
+      }
+      if (trimmed) {
+        return `<p class="text-gray-700 dark:text-gray-300 my-3 leading-relaxed">${trimmed}</p>`;
+      }
+      return '';
+    })
+    .filter(Boolean)
+    .join('\n');
+};
 </script>
 
 <style scoped>
@@ -961,5 +1078,128 @@ const hasDoc = (key: string): boolean => {
   50% {
     @apply ring-opacity-100;
   }
+}
+
+/* 文档显示区域样式 */
+.doc-section {
+  @apply mt-12 mb-8;
+}
+
+.doc-container {
+  @apply bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm;
+}
+
+.doc-header {
+  @apply flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700;
+}
+
+.doc-title-area {
+  @apply flex items-center gap-4;
+}
+
+.doc-title {
+  @apply text-2xl font-bold text-gray-900 dark:text-white m-0;
+}
+
+.close-doc-btn {
+  @apply w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors;
+}
+
+.doc-actions {
+  @apply flex items-center gap-3;
+}
+
+.external-doc-link {
+  @apply text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium transition-colors;
+}
+
+.doc-content {
+  @apply p-6;
+}
+
+.markdown-content {
+  @apply max-w-none;
+}
+
+.markdown-content h1 {
+  @apply text-3xl font-bold text-gray-900 dark:text-white mt-8 mb-6;
+}
+
+.markdown-content h2 {
+  @apply text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4;
+}
+
+.markdown-content h3 {
+  @apply text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3;
+}
+
+.markdown-content p {
+  @apply text-gray-700 dark:text-gray-300 my-3 leading-relaxed;
+}
+
+.markdown-content code {
+  @apply bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono text-gray-800 dark:text-gray-200;
+}
+
+.markdown-content pre {
+  @apply bg-gray-900 dark:bg-gray-950 text-gray-100 p-4 rounded-lg overflow-x-auto my-4;
+}
+
+.markdown-content pre code {
+  @apply bg-transparent px-0 py-0 text-gray-100;
+}
+
+.markdown-content ul {
+  @apply list-disc space-y-1 my-3 ml-4;
+}
+
+/* 无文档内容样式 */
+.no-doc-content {
+  @apply text-center py-12 space-y-4;
+}
+
+.no-doc-icon {
+  @apply text-4xl mb-4;
+}
+
+.no-doc-content h3 {
+  @apply text-xl font-semibold text-gray-900 dark:text-white mb-2;
+}
+
+.no-doc-content p {
+  @apply text-gray-600 dark:text-gray-400 max-w-md mx-auto;
+}
+
+.no-doc-suggestions {
+  @apply mt-8 text-left max-w-md mx-auto;
+}
+
+.no-doc-suggestions p {
+  @apply font-medium text-gray-900 dark:text-white mb-2;
+}
+
+.no-doc-suggestions ul {
+  @apply list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400;
+}
+
+/* 组件卡片可点击样式 */
+.demo-card {
+  @apply cursor-pointer transition-all duration-200 hover:shadow-md hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50;
+}
+
+.demo-card:hover {
+  @apply transform -translate-y-0.5;
+}
+
+.demo-content {
+  @apply cursor-auto;
+}
+
+.view-docs-link {
+  @apply text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium transition-colors bg-transparent border-none p-0 cursor-pointer;
+}
+
+.view-docs-link:hover {
+  @apply underline;
 }
 </style>

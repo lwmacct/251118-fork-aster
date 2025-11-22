@@ -27,7 +27,7 @@
             <div
               v-for="comp in category.components"
               :key="comp.key"
-              :class="['nav-item', { active: currentComponent.value === comp.key }]"
+              :class="['nav-item', { active: currentComponent === comp.key }]"
               @click="selectComponent(comp.key)"
             >
               {{ comp.name }}
@@ -42,9 +42,9 @@
           <div class="docs-content">
             <!-- Button 文档 -->
             <DocViewer
-              v-if="currentComponent.value === 'button'"
+              v-if="currentComponent === 'button'"
               :content="buttonDoc"
-              :code="buttonCode"
+              :code="getComponentCode('button')"
             >
               <template #demo>
                 <DemoSection title="基础用法">
@@ -78,9 +78,9 @@
 
             <!-- Bubble 文档 -->
             <DocViewer
-              v-else-if="currentComponent.value === 'bubble'"
+              v-else-if="currentComponent === 'bubble'"
               :content="bubbleDoc"
-              :code="bubbleCode"
+              :code="getComponentCode('bubble')"
             >
               <template #demo>
                 <DemoSection title="基础用法">
@@ -109,9 +109,9 @@
 
             <!-- Avatar 文档 -->
             <DocViewer
-              v-else-if="currentComponent.value === 'avatar'"
+              v-else-if="currentComponent === 'avatar'"
               :content="avatarDoc"
-              :code="avatarCode"
+              :code="getComponentCode('avatar')"
             >
               <template #demo>
                 <DemoSection title="不同尺寸">
@@ -135,14 +135,14 @@
             </DocViewer>
 
             <!-- 通用组件文档 -->
-            <div v-else-if="currentComponent.value" class="component-doc-page">
-              <h1 class="doc-title">{{ getComponentName(currentComponent.value) }}</h1>
-              <p class="doc-subtitle">{{ getComponentDescription(currentComponent.value) }}</p>
-              
+            <div v-else-if="currentComponent" class="component-doc-page">
+              <h1 class="doc-title">{{ getComponentName(currentComponent) }}</h1>
+              <p class="doc-subtitle">{{ getComponentDescription(currentComponent) }}</p>
+
               <div class="doc-section">
                 <h2 class="section-title">基础用法</h2>
                 <div class="code-block">
-                  <pre><code>{{ getComponentCode(currentComponent.value) }}</code></pre>
+                  <pre><code>{{ getComponentCode(currentComponent) }}</code></pre>
                 </div>
               </div>
               
@@ -362,63 +362,15 @@ const getComponentDescription = (key: string) => {
 
 // 获取组件示例代码
 const getComponentCode = (key: string) => {
-  const codes: Record<string, string> = {
-    'chat': `<template>
-  <Chat :messages="messages" @send="handleSend" />
-</template>
+  const compName = getComponentName(key).split(' ')[0];
+  return `// ${getComponentName(key)} 基础用法
+// 使用示例:
+import { ${compName} } from '@/components/ChatUI';
 
-<script setup>
-import { Chat } from '@/components/ChatUI';
-const messages = ref([]);
-<\/script>`,
-    'bubble': `<template>
-  <Bubble content="你好！" position="left" />
-</template>
-
-<script setup>
-import { Bubble } from '@/components/ChatUI';
-<\/script>`,
-    'button': `<template>
-  <Button variant="primary">主要按钮</Button>
-</template>
-
-<script setup>
-import { Button } from '@/components/ChatUI';
-<\/script>`,
-  };
-  return codes[key] || `<template>
-  <${getComponentName(key).split(' ')[0]} />
-</template>
-
-<script setup>
-import { ${getComponentName(key).split(' ')[0]} } from '@/components/ChatUI';
-<\/script>`;
+// 在模板中使用:
+// &lt;${compName} /&gt;`;
 };
 
-// 示例代码
-const buttonCode = `<template>
-  <Button variant="primary">主要按钮</Button>
-</template>
-
-<script setup>
-import { Button } from '@/components/ChatUI';
-<\/script>`;
-
-const bubbleCode = `<template>
-  <Bubble content="你好！" position="left" />
-</template>
-
-<script setup>
-import { Bubble } from '@/components/ChatUI';
-<\/script>`;
-
-const avatarCode = `<template>
-  <Avatar alt="User" size="md" status="online" />
-</template>
-
-<script setup>
-import { Avatar } from '@/components/ChatUI';
-<\/script>`;
 </script>
 
 <style scoped>

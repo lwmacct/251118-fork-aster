@@ -87,6 +87,9 @@ const toggle = () => {
 
 .sidebar-content {
   @apply flex-1 overflow-y-auto p-4;
+  max-height: calc(100vh - 120px);
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sidebar.collapsed .sidebar-content {
