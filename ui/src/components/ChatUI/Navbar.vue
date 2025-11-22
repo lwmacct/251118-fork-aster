@@ -1,15 +1,18 @@
 <template>
   <nav class="navbar">
     <div class="navbar-brand">
-      <slot name="brand">
+      <router-link to="/" class="brand-link" v-if="shouldShowHomeLink">
+        <span class="brand-text">{{ title }}</span>
+      </router-link>
+      <slot name="brand" v-else>
         <span class="brand-text">{{ title }}</span>
       </slot>
     </div>
-    
+
     <div class="navbar-menu">
       <slot name="menu"></slot>
     </div>
-    
+
     <div class="navbar-actions">
       <slot name="actions"></slot>
     </div>
@@ -17,12 +20,27 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute } from 'vue-router';
+import { computed } from 'vue';
+
 interface Props {
   title?: string;
+  showHomeLink?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   title: 'Aster Agent',
+  showHomeLink: true,
+});
+
+const route = useRoute();
+
+// 默认显示首页链接，除非明确禁用或者已经在首页
+const shouldShowHomeLink = computed(() => {
+  if (props.showHomeLink !== undefined) {
+    return props.showHomeLink;
+  }
+  return route.path !== '/';
 });
 </script>
 
@@ -35,8 +53,17 @@ withDefaults(defineProps<Props>(), {
   @apply flex items-center gap-3;
 }
 
+.brand-link {
+  @apply hover:opacity-80 transition-opacity duration-200;
+  text-decoration: none;
+}
+
+.brand-link:hover .brand-text {
+  @apply text-blue-600 dark:text-blue-400;
+}
+
 .brand-text {
-  @apply text-xl font-bold text-gray-900 dark:text-white;
+  @apply text-xl font-bold text-gray-900 dark:text-white transition-colors duration-200;
 }
 
 .navbar-menu {
