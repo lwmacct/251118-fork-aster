@@ -47,11 +47,54 @@
         @reject="handleReject"
       />
 
-      <div v-if="isThinking && messages[messages.length - 1]?.role === 'assistant'" class="flex items-center gap-2 text-sm text-primary animate-pulse">
+      <div v-if="isThinking" class="flex items-center gap-2 text-sm text-primary animate-pulse">
         <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
         </svg>
         <span>思考中...</span>
+      </div>
+
+      <div v-if="toolRunsList.length" class="tool-stream mt-6 space-y-3">
+        <div class="flex items-center gap-2 text-sm text-secondary">
+          <span class="font-semibold text-primary">工具执行</span>
+          <span class="text-xs">实时状态</span>
+        </div>
+        <div
+          v-for="run in toolRunsList"
+          :key="run.tool_call_id"
+          class="p-3 rounded-lg border border-border bg-surface/60"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-semibold text-primary">{{ run.name || 'Tool' }}</div>
+            <div :class="['text-xs px-2 py-1 rounded', run.state]">{{ run.state }}</div>
+          </div>
+          <div class="h-2 w-full bg-border rounded">
+            <div class="h-2 bg-primary rounded" :style="{ width: `${Math.round((run.progress || 0) * 100)}%` }"></div>
+          </div>
+          <div class="flex items-center justify-between text-xs text-secondary mt-1">
+            <span>{{ Math.round((run.progress || 0) * 100) }}%</span>
+            <span v-if="run.message">{{ run.message }}</span>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button
+              v-if="run.cancelable && run.state === 'executing'"
+              @click="controlTool(run.tool_call_id, 'cancel')"
+              class="px-2 py-1 rounded bg-red-500 text-white text-xs"
+            >取消</button>
+            <button
+              v-if="run.pausable && run.state === 'executing'"
+              @click="controlTool(run.tool_call_id, 'pause')"
+              class="px-2 py-1 rounded bg-amber-500 text-white text-xs"
+            >暂停</button>
+            <button
+              v-if="run.pausable && run.state === 'paused'"
+              @click="controlTool(run.tool_call_id, 'resume')"
+              class="px-2 py-1 rounded bg-emerald-500 text-white text-xs"
+            >继续</button>
+          </div>
+          <pre v-if="run.result" class="mt-2 text-xs bg-background rounded p-2 overflow-x-auto">{{ formatResult(run.result) }}</pre>
+          <pre v-if="run.error" class="mt-2 text-xs text-red-500">Error: {{ run.error }}</pre>
+        </div>
       </div>
     </div>
 
@@ -59,7 +102,21 @@
     <div class="aster-chat-input p-4 border-t border-border bg-surface">
       <div class="flex items-end gap-3">
         <!-- Attachments -->
-        <div v-if="config.enableImage || config.enableVoice" class="flex items-center gap-2">
+        <div v-if="config.enableImage || config.enableVoice || config.enableTodos" class="flex items-center gap-2">
+          <button
+            v-if="config.enableTodos"
+            @click="showTodoTool = !showTodoTool"
+            :class="[
+              'p-2 rounded-lg transition-colors',
+              showTodoTool ? 'bg-blue-500 text-white' : 'hover:bg-background text-secondary hover:text-primary'
+            ]"
+            title="任务管理"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+          </button>
+
           <button
             v-if="config.enableImage"
             @click="handleImageUpload"
@@ -70,7 +127,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
           </button>
-          
+
           <button
             v-if="config.enableVoice"
             @click="toggleVoice"
@@ -122,6 +179,36 @@
       class="hidden"
       @change="handleFileChange"
     />
+
+    <!-- TodoTool Modal -->
+    <div
+      v-if="showTodoTool"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="showTodoTool = false"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">任务管理</h3>
+          <button
+            @click="showTodoTool = false"
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="flex-1 overflow-hidden">
+          <TodoTool
+            :ws-url="config.apiUrl ? config.apiUrl.replace('http', 'ws') + '/ws' : 'ws://localhost:8080/ws'"
+            :session-id="'chat-session-' + Date.now()"
+            @todo-created="handleTodoCreated"
+            @todo-updated="handleTodoUpdated"
+            @todo-deleted="handleTodoDeleted"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -129,6 +216,7 @@
 import { ref, watch, nextTick, onMounted } from 'vue';
 import { useChat } from '@/composables/useChat';
 import MessageItem from './MessageItem.vue';
+import TodoTool from './Tools/TodoTool.vue';
 import type { ChatConfig } from '@/types';
 
 interface Props {
@@ -148,18 +236,26 @@ const {
   sendMessage,
   approveAction,
   rejectAction,
+  toolRunsList,
+  controlTool,
 } = useChat(props.config);
 
 const messagesContainer = ref<HTMLElement>();
 const fileInput = ref<HTMLInputElement>();
 const isListening = ref(false);
 const currentInput = ref('');
+const showTodoTool = ref(false);
 
 console.log('🎯 AsterChat component loaded - VERSION 2.0');
 console.log('🎯 Initial state:', {
   isConnected: isConnected.value,
   isThinking: isThinking.value,
   messagesCount: messages.value.length,
+});
+
+// 监听thinking状态变化
+watch(isThinking, (newVal, oldVal) => {
+  console.log('🤔 Thinking state changed:', { from: oldVal, to: newVal });
 });
 
 const handleSend = async () => {
@@ -212,6 +308,30 @@ watch(messages, async () => {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
   }
 }, { deep: true });
+
+// TodoTool event handlers
+const handleTodoCreated = (todo: any) => {
+  console.log('Todo created:', todo);
+  // 可以在这里添加通知或聊天消息提示
+};
+
+const handleTodoUpdated = (todo: any) => {
+  console.log('Todo updated:', todo);
+  // 可以在这里添加通知或聊天消息提示
+};
+
+const handleTodoDeleted = (id: string) => {
+  console.log('Todo deleted:', id);
+  // 可以在这里添加通知或聊天消息提示
+};
+
+const formatResult = (res: any) => {
+  try {
+    return typeof res === 'string' ? res : JSON.stringify(res, null, 2);
+  } catch {
+    return String(res);
+  }
+};
 
 onMounted(() => {
   // Load welcome message if configured

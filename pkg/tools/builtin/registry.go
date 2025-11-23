@@ -27,6 +27,7 @@ func RegisterAll(registry *tools.Registry) {
 	registry.Register("KillShell", NewKillShellTool)
 	registry.Register("Task", NewTaskTool)
 	registry.Register("ExitPlanMode", NewExitPlanModeTool)
+	registry.Register("DemoLongTask", NewDemoLongTaskTool)
 
 	// 语义搜索工具
 	registry.Register("SemanticSearch", NewSemanticSearchTool)

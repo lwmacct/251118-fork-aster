@@ -19,7 +19,6 @@
         <!-- 思考气泡 -->
         <ThinkBubble
           v-else-if="msg.type === 'thinking'"
-          :content="msg.content"
         />
         
         <!-- 打字中指示器 -->
@@ -212,7 +211,7 @@ watch(() => props.messages, () => {
 
 <style scoped>
 .chatui-container {
-  @apply flex flex-col h-full bg-white dark:bg-gray-900;
+  @apply flex flex-col h-full bg-surface dark:bg-surface-dark;
 }
 
 .chatui-messages {
@@ -233,7 +232,7 @@ watch(() => props.messages, () => {
 }
 
 .chatui-composer {
-  @apply border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800;
+  @apply border-t border-border dark:border-border-dark bg-surface dark:bg-surface-dark;
 }
 
 .composer-input-wrapper {
@@ -249,7 +248,7 @@ watch(() => props.messages, () => {
 }
 
 .composer-textarea {
-  @apply w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white;
+  @apply w-full px-4 py-2 bg-gray-50 dark:bg-surface-dark/50 border border-border dark:border-border-dark rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary dark:text-text-dark;
   max-height: 120px;
   min-height: 40px;
 }

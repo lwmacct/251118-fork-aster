@@ -41,6 +41,7 @@ export interface ChatConfig {
   enableFile?: boolean;
   enableQuickReplies?: boolean;
   enableSuggestions?: boolean;
+  enableTodos?: boolean;
 
   // UI 配置
   placeholder?: string;

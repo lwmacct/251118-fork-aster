@@ -73,7 +73,7 @@ const renderedContent = computed(() => {
 }
 
 .bubble-avatar {
-  @apply w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700;
+  @apply w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-surface-dark;
 }
 
 .bubble-avatar img {
@@ -85,7 +85,7 @@ const renderedContent = computed(() => {
 }
 
 .bubble-left {
-  @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+  @apply bg-gray-100 dark:bg-surface-dark text-gray-900 dark:text-text-dark;
   border-bottom-left-radius: 4px;
 }
 

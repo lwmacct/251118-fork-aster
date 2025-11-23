@@ -1,53 +1,87 @@
 <template>
-  <div class="agent-chatui-demo">
-    <div class="demo-container">
-      <!-- 侧边栏 -->
-      <div class="demo-sidebar">
-        <div class="sidebar-header">
-          <h2 class="sidebar-title">Aster Agent</h2>
-          <p class="sidebar-subtitle">ChatUI 风格演示</p>
-        </div>
-        
-        <div class="agent-selector">
-          <div
-            v-for="agent in agents"
-            :key="agent.id"
-            :class="['agent-item', { active: selectedAgent?.id === agent.id }]"
-            @click="selectAgent(agent)"
-          >
-            <div class="agent-avatar">
-              <div class="avatar-placeholder">{{ agent.name[0] }}</div>
-            </div>
-            <div class="agent-info">
-              <div class="agent-name">{{ agent.name }}</div>
-              <div class="agent-desc">{{ agent.description }}</div>
-            </div>
-            <div :class="['agent-status', `status-${agent.status}`]"></div>
-          </div>
+<div class="agent-chatui-demo">
+  <div class="demo-container">
+    <!-- 侧边栏 -->
+    <div class="demo-sidebar">
+      <div class="sidebar-header">
+        <h2 class="sidebar-title">Aster Agent</h2>
+        <p class="sidebar-subtitle">ChatUI + Tool Stream</p>
+        <div class="ws-status" :class="{ online: wsConnected }">
+          <span class="dot"></span>{{ wsConnected ? 'WS Connected' : 'WS Disconnected' }}
         </div>
       </div>
+      
+      <div class="agent-selector">
+        <div
+          v-for="agent in agents"
+          :key="agent.id"
+          :class="['agent-item', { active: selectedAgent?.id === agent.id }]"
+          @click="selectAgent(agent)"
+        >
+          <div class="agent-avatar">
+            <div class="avatar-placeholder">{{ agent.name[0] }}</div>
+          </div>
+          <div class="agent-info">
+            <div class="agent-name">{{ agent.name }}</div>
+            <div class="agent-desc">{{ agent.description }}</div>
+          </div>
+          <div :class="['agent-status', `status-${agent.status}`]"></div>
+        </div>
+      </div>
+    </div>
 
-      <!-- 聊天区域 -->
-      <div class="demo-chat">
-        <Chat
-          :messages="messages"
-          :placeholder="`与 ${selectedAgent?.name || 'Agent'} 对话...`"
-          :disabled="isThinking"
-          :quick-replies="quickReplies"
-          :toolbar="toolbar"
-          @send="handleSend"
-          @quick-reply="handleQuickReply"
-          @card-action="handleCardAction"
-        />
+    <!-- 聊天区域 -->
+    <div class="demo-chat">
+      <Chat
+        :messages="messages"
+        :placeholder="`与 ${selectedAgent?.name || 'Agent'} 对话...`"
+        :disabled="isThinking"
+        :quick-replies="quickReplies"
+        :toolbar="toolbar"
+        @send="handleSend"
+        @quick-reply="handleQuickReply"
+        @card-action="handleCardAction"
+      />
+
+      <!-- 工具流展示 -->
+      <div class="tool-stream" v-if="toolRunsList.length">
+        <div class="tool-stream-header">
+          <h3>工具执行</h3>
+          <span class="hint">实时状态 / 可取消</span>
+        </div>
+        <div class="tool-run" v-for="run in toolRunsList" :key="run.tool_call_id">
+          <div class="tool-run-head">
+            <div class="tool-name">{{ run.name }}</div>
+            <div class="tool-state" :class="run.state">{{ run.state }}</div>
+          </div>
+          <div class="tool-progress">
+            <div class="bar">
+              <div class="bar-inner" :style="{ width: `${Math.round((run.progress || 0)*100)}%` }"></div>
+            </div>
+            <div class="meta">
+              <span>{{ Math.round((run.progress || 0)*100) }}%</span>
+              <span v-if="run.message">{{ run.message }}</span>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button v-if="run.cancelable && run.state === 'executing'" @click="controlTool(run.tool_call_id, 'cancel')">取消</button>
+            <button v-if="run.pausable && run.state === 'executing'" @click="controlTool(run.tool_call_id, 'pause')">暂停</button>
+            <button v-if="run.pausable && run.state === 'paused'" @click="controlTool(run.tool_call_id, 'resume')">继续</button>
+          </div>
+          <pre v-if="run.result" class="tool-result">{{ formatResult(run.result) }}</pre>
+          <pre v-if="run.error" class="tool-error">Error: {{ run.error }}</pre>
+        </div>
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Chat } from '@/components/ChatUI';
 import { useAsterClient } from '@/composables/useAsterClient';
+import { generateId } from '@/utils/format';
 
 interface Agent {
   id: string;
@@ -62,6 +96,7 @@ interface Message {
   content?: string;
   position: 'left' | 'right';
   status?: 'pending' | 'sent' | 'error';
+  conversationId?: string; // 添加对话ID
   user?: {
     avatar?: string;
     name?: string;
@@ -73,7 +108,8 @@ interface Message {
   };
 }
 
-const { client } = useAsterClient();
+const { client, ensureWebSocket, onMessage, isConnected } = useAsterClient();
+const wsConnected = isConnected;
 
 // 模拟 Agent 列表
 const agents = ref<Agent[]>([
@@ -98,20 +134,12 @@ const agents = ref<Agent[]>([
 ]);
 
 const selectedAgent = ref<Agent>(agents.value[0]);
-const messages = ref<Message[]>([
-  {
-    id: '1',
-    type: 'text',
-    content: '你好！我是 Aster Agent，有什么可以帮助你的吗？',
-    position: 'left',
-    user: {
-      avatar: '',
-      name: 'Agent',
-    },
-  },
-]);
+const messages = ref<Message[]>([]);
 
 const isThinking = ref(false);
+const toolRuns = ref<Record<string, any>>({});
+let unsubscribeFn: (() => void) | null = null;
+let currentConversationId = ref<string>(''); // 跟踪当前对话回合
 
 const quickReplies = computed(() => [
   { name: '帮我写一篇文章', value: 'write_article' },
@@ -138,7 +166,7 @@ const selectAgent = (agent: Agent) => {
   selectedAgent.value = agent;
   messages.value = [
     {
-      id: Date.now().toString(),
+      id: generateId('greeting'),
       type: 'text',
       content: `你好！我是${agent.name}，${agent.description}。`,
       position: 'left',
@@ -150,9 +178,12 @@ const selectAgent = (agent: Agent) => {
 };
 
 const handleSend = async (message: { type: string; content: string }) => {
+  // 为新对话生成新的对话ID
+  currentConversationId.value = generateId('conversation');
+
   // 添加用户消息
   const userMsg: Message = {
-    id: Date.now().toString(),
+    id: generateId('user'),
     type: 'text',
     content: message.content,
     position: 'right',
@@ -163,47 +194,34 @@ const handleSend = async (message: { type: string; content: string }) => {
   // 显示思考状态
   isThinking.value = true;
   const thinkingMsg: Message = {
-    id: `thinking-${Date.now()}`,
+    id: generateId('thinking'),
     type: 'thinking',
-    content: '正在分析你的问题...',
     position: 'left',
   };
   messages.value.push(thinkingMsg);
 
   try {
-    // 使用 chatDirect 方法（无需预先创建 Agent）
-    const response = await client.agents.chatDirect(message.content, 'chat');
-    
-    // 移除思考消息
-    messages.value = messages.value.filter(m => m.id !== thinkingMsg.id);
-    
-    // 添加 Agent 回复
-    const agentMsg: Message = {
-      id: Date.now().toString(),
-      type: 'text',
-      content: response.text || response.output || '抱歉，我现在无法回答。',
-      position: 'left',
-      user: {
-        name: selectedAgent.value.name,
+    const ws = await ensureWebSocket();
+    if (!ws) {
+      throw new Error('WebSocket not connected');
+    }
+    ws.send({
+      type: 'chat',
+      payload: {
+        input: message.content,
+        template_id: 'chat',
       },
-    };
-    messages.value.push(agentMsg);
+    });
   } catch (error) {
     console.error('Chat error:', error);
-    
-    // 移除思考消息
-    messages.value = messages.value.filter(m => m.id !== thinkingMsg.id);
-    
-    // 显示错误消息
-    const errorMsg: Message = {
-      id: Date.now().toString(),
+    messages.value = messages.value.filter(m => !m.id.startsWith('thinking-'));
+    messages.value.push({
+      id: generateId('error'),
       type: 'text',
       content: '抱歉，处理请求时出错了。请检查后端服务是否正常运行。',
       position: 'left',
       status: 'error',
-    };
-    messages.value.push(errorMsg);
-  } finally {
+    });
     isThinking.value = false;
   }
 };
@@ -218,6 +236,128 @@ const handleQuickReply = (reply: { name: string; value?: string }) => {
 const handleCardAction = (action: { value: string }) => {
   console.log('Card action:', action);
 };
+
+// 处理 WS 入站消息
+const handleWsMessage = (msg: any) => {
+  if (!msg) return;
+  switch (msg.type) {
+    case 'text_delta': {
+      const delta = msg.payload?.text || msg.payload?.delta || '';
+      if (!delta) return;
+
+      // 第一次收到文本时，移除thinking消息
+      if (messages.value.some(m => m.type === 'thinking')) {
+        messages.value = messages.value.filter(m => m.type !== 'thinking');
+      }
+
+      // 查找属于当前对话的最后一个AI回复消息
+      let last: Message | undefined;
+      for (let i = messages.value.length - 1; i >= 0; i--) {
+        const m = messages.value[i];
+        // 查找属于当前对话的AI消息
+        if (m.position === 'left' && m.type === 'text' &&
+            m.status !== 'system' && !m.id.includes('welcome') &&
+            m.conversationId === currentConversationId.value) {
+          last = m;
+          break;
+        }
+      }
+      if (!last) {
+        // 如果没有找到当前对话的消息，创建新的
+        last = {
+          id: generateId('assistant-' + currentConversationId.value),
+          type: 'text',
+          content: '',
+          position: 'left',
+          user: { name: selectedAgent.value.name },
+          conversationId: currentConversationId.value,
+        };
+        messages.value.push(last);
+      }
+      last.content = (last.content || '') + delta;
+      break;
+    }
+    case 'chat_complete': {
+      isThinking.value = false;
+      messages.value = messages.value.filter(m => !m.id.startsWith('thinking-'));
+      break;
+    }
+    case 'agent_event': {
+      const ev = msg.payload?.event;
+      const evType = msg.payload?.type || ev?.type || ev?.EventType;
+      if (!ev || !evType) return;
+      handleAgentEvent(evType, ev);
+      break;
+    }
+    default:
+      break;
+  }
+};
+
+const handleAgentEvent = (type: string, ev: any) => {
+  // Tool events
+  if (type.startsWith('tool')) {
+    const call = ev.Call || ev.call || {};
+    const id = call.id || call.ID || call.tool_call_id;
+    if (!id) return;
+    const prev = toolRuns.value[id] || {};
+    const progress = ev.progress ?? call.progress ?? prev.progress ?? 0;
+    const state = call.state || ev.state || prev.state || 'executing';
+    toolRuns.value = {
+      ...toolRuns.value,
+      [id]: {
+        tool_call_id: id,
+        name: call.name || prev.name,
+        state,
+        progress,
+        message: ev.message || prev.message,
+        result: call.result || ev.result || prev.result,
+        error: ev.error || call.error || prev.error,
+        cancelable: call.cancelable ?? prev.cancelable,
+        pausable: call.pausable ?? prev.pausable,
+      },
+    };
+  }
+};
+
+const controlTool = async (toolCallId: string, action: 'cancel' | 'pause' | 'resume') => {
+  try {
+    const ws = await ensureWebSocket();
+    if (!ws) return;
+    ws.send({
+      type: 'tool:control',
+      payload: {
+        tool_call_id: toolCallId,
+        action,
+      },
+    });
+  } catch (err) {
+    console.error('control tool failed', err);
+  }
+};
+
+const toolRunsList = computed(() => Object.values(toolRuns.value));
+
+const formatResult = (res: any) => {
+  try {
+    return typeof res === 'string' ? res : JSON.stringify(res, null, 2);
+  } catch {
+    return String(res);
+  }
+};
+
+onMounted(async () => {
+  // 初始化时选中第一个agent并显示欢迎消息
+  selectAgent(selectedAgent.value);
+
+  await ensureWebSocket();
+  if (unsubscribeFn) unsubscribeFn();
+  unsubscribeFn = onMessage(handleWsMessage);
+});
+
+onBeforeUnmount(() => {
+  if (unsubscribeFn) unsubscribeFn();
+});
 </script>
 
 <style scoped>

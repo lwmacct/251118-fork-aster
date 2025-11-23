@@ -17,7 +17,7 @@
           { 'thinking-icon-pending': pendingApproval }
         ]"
       />
-      <span class="thinking-title">思考过程 ({{ thoughts.length }} 步骤)</span>
+      <span class="thinking-title">思考中...</span>
       
       <!-- 状态标签 -->
       <span v-if="pendingApproval" class="status-badge status-pending">
@@ -168,7 +168,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  defaultExpanded: true,
+  defaultExpanded: false,
 });
 
 const emit = defineEmits<{
@@ -178,9 +178,9 @@ const emit = defineEmits<{
 
 const isExpanded = ref(props.defaultExpanded);
 
-// 自动展开如果有审批或未完成
-watch([() => props.pendingApproval, () => props.isFinished], () => {
-  if (props.pendingApproval || !props.isFinished) {
+// 自动展开仅当有审批请求时
+watch([() => props.pendingApproval], () => {
+  if (props.pendingApproval) {
     isExpanded.value = true;
   }
 });

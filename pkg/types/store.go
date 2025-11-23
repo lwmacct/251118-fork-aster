@@ -6,25 +6,27 @@ import (
 
 // ToolCallRecord 工具调用记录
 type ToolCallRecord struct {
-	ID          string                 `json:"id"`              // 工具调用 ID
-	Name        string                 `json:"name"`            // 工具名称（新字段）
-	ToolName    string                 `json:"tool_name"`       // 工具名称（兼容）
-	Input       map[string]interface{} `json:"input"`           // 输入参数
-	Output      interface{}            `json:"output"`          // 输出结果
-	Result      interface{}            `json:"result"`          // 执行结果（新字段）
-	Error       string                 `json:"error,omitempty"` // 错误信息
-	IsError     bool                   `json:"is_error"`        // 是否有错误（新字段）
-	StartTime   time.Time              `json:"start_time"`      // 开始时间
-	EndTime     time.Time              `json:"end_time"`        // 结束时间
-	StartedAt   *time.Time             `json:"started_at"`      // 开始时间（新字段，指针）
-	CompletedAt *time.Time             `json:"completed_at"`    // 完成时间（新字段，指针）
-	DurationMs  *int64                 `json:"duration_ms"`     // 执行时长（毫秒，改为指针）
-	Status      ToolCallStatus         `json:"status"`          // 调用状态
-	State       ToolCallState          `json:"state"`           // 工具调用状态（新字段）
-	Approval    ToolCallApproval       `json:"approval"`        // 审批信息（新字段）
-	CreatedAt   time.Time              `json:"created_at"`      // 创建时间（新字段）
-	UpdatedAt   time.Time              `json:"updated_at"`      // 更新时间（新字段）
-	AuditTrail  []ToolCallAuditEntry   `json:"audit_trail"`     // 审计跟踪（新字段）
+	ID           string                 `json:"id"`                     // 工具调用 ID
+	Name         string                 `json:"name"`                   // 工具名称（新字段）
+	ToolName     string                 `json:"tool_name"`              // 工具名称（兼容）
+	Input        map[string]interface{} `json:"input"`                  // 输入参数
+	Output       interface{}            `json:"output"`                 // 输出结果
+	Result       interface{}            `json:"result"`                 // 执行结果（新字段）
+	Error        string                 `json:"error,omitempty"`        // 错误信息
+	IsError      bool                   `json:"is_error"`               // 是否有错误（新字段）
+	Progress     float64                `json:"progress"`               // 执行进度 0-1
+	Intermediate map[string]interface{} `json:"intermediate,omitempty"` // 中间结果
+	StartTime    time.Time              `json:"start_time"`             // 开始时间
+	EndTime      time.Time              `json:"end_time"`               // 结束时间
+	StartedAt    *time.Time             `json:"started_at"`             // 开始时间（新字段，指针）
+	CompletedAt  *time.Time             `json:"completed_at"`           // 完成时间（新字段，指针）
+	DurationMs   *int64                 `json:"duration_ms"`            // 执行时长（毫秒，改为指针）
+	Status       ToolCallStatus         `json:"status"`                 // 调用状态
+	State        ToolCallState          `json:"state"`                  // 工具调用状态（新字段）
+	Approval     ToolCallApproval       `json:"approval"`               // 审批信息（新字段）
+	CreatedAt    time.Time              `json:"created_at"`             // 创建时间（新字段）
+	UpdatedAt    time.Time              `json:"updated_at"`             // 更新时间（新字段）
+	AuditTrail   []ToolCallAuditEntry   `json:"audit_trail"`            // 审计跟踪（新字段）
 }
 
 // ToolCallStatus 工具调用状态
@@ -133,11 +135,13 @@ type PropertySchema struct {
 type ToolCallState string
 
 const (
-	ToolCallStatePending   ToolCallState = "pending"   // 待执行
-	ToolCallStateQueued    ToolCallState = "queued"    // 已排队
-	ToolCallStateExecuting ToolCallState = "executing" // 执行中
-	ToolCallStateCompleted ToolCallState = "completed" // 已完成
-	ToolCallStateFailed    ToolCallState = "failed"    // 失败
+	ToolCallStatePending    ToolCallState = "pending"    // 待执行
+	ToolCallStateQueued     ToolCallState = "queued"     // 已排队
+	ToolCallStateExecuting  ToolCallState = "executing"  // 执行中
+	ToolCallStateCompleted  ToolCallState = "completed"  // 已完成
+	ToolCallStateFailed     ToolCallState = "failed"     // 失败
+	ToolCallStateCancelling ToolCallState = "cancelling" // 取消中
+	ToolCallStateCancelled  ToolCallState = "cancelled"  // 已取消
 )
 
 // ToolCallApproval 工具调用审批

@@ -50,6 +50,7 @@ type Agent struct {
 	breakpoint   types.BreakpointState
 	messages     []types.Message
 	toolRecords  map[string]*types.ToolCallRecord
+	runningTools map[string]*runningToolHandle
 	stepCount    int
 	lastSfpIndex int
 	lastBookmark *types.Bookmark
@@ -60,6 +61,11 @@ type Agent struct {
 
 	// 控制信号
 	stopCh chan struct{}
+}
+
+// runningToolHandle 保存可中断工具的句柄
+type runningToolHandle struct {
+	interruptible tools.Interruptible
 }
 
 // Create 创建新Agent
@@ -288,6 +294,7 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 		breakpoint:         types.BreakpointReady,
 		messages:           []types.Message{},
 		toolRecords:        make(map[string]*types.ToolCallRecord),
+		runningTools:       make(map[string]*runningToolHandle),
 		pendingPermissions: make(map[string]chan string),
 		createdAt:          time.Now(),
 		stopCh:             make(chan struct{}),
@@ -704,6 +711,252 @@ func (a *Agent) getRecentFiles() []string {
 	// TODO: 实现文件追踪逻辑
 	// 可以从 toolRecords 中提取最近读写的文件
 	return []string{}
+}
+
+// registerRunningTool 记录可中断工具句柄
+func (a *Agent) registerRunningTool(id string, intr tools.Interruptible) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.runningTools == nil {
+		a.runningTools = make(map[string]*runningToolHandle)
+	}
+	a.runningTools[id] = &runningToolHandle{interruptible: intr}
+}
+
+// unregisterRunningTool 移除运行中工具记录
+func (a *Agent) unregisterRunningTool(id string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	delete(a.runningTools, id)
+}
+
+type longRunningInterruptible struct {
+	tool   tools.LongRunningTool
+	taskID string
+}
+
+func (l *longRunningInterruptible) Pause() error {
+	return fmt.Errorf("pause not supported for long-running task")
+}
+func (l *longRunningInterruptible) Resume() error {
+	return fmt.Errorf("resume not supported for long-running task")
+}
+func (l *longRunningInterruptible) Cancel() error {
+	return l.tool.Cancel(context.Background(), l.taskID)
+}
+
+// ControlTool 执行对运行中工具的控制
+func (a *Agent) ControlTool(callID, action, note string) error {
+	// 记录入站控制事件
+	a.eventBus.EmitControl(&types.ControlToolControlEvent{
+		CallID: callID,
+		Action: action,
+		Note:   note,
+	})
+
+	err := a.controlRunningTool(callID, action)
+	ok := err == nil
+	reason := ""
+	if err != nil {
+		reason = err.Error()
+	}
+
+	// 输出响应事件
+	a.eventBus.EmitControl(&types.ControlToolControlResponseEvent{
+		CallID: callID,
+		Action: action,
+		OK:     ok,
+		Reason: reason,
+	})
+
+	// 如果取消成功，推送取消进度事件
+	if ok && action == "cancel" {
+		a.eventBus.EmitProgress(&types.ProgressToolCancelledEvent{
+			Call:   a.snapshotToolCall(callID),
+			Reason: "cancelled",
+		})
+	}
+
+	return err
+}
+
+func (a *Agent) controlRunningTool(callID, action string) error {
+	a.mu.RLock()
+	handle, ok := a.runningTools[callID]
+	a.mu.RUnlock()
+
+	if !ok || handle == nil || handle.interruptible == nil {
+		return fmt.Errorf("tool not interruptible or not running")
+	}
+
+	switch action {
+	case "pause":
+		return handle.interruptible.Pause()
+	case "resume":
+		return handle.interruptible.Resume()
+	case "cancel":
+		a.updateToolRecord(callID, types.ToolCallStateCancelling, "")
+		return handle.interruptible.Cancel()
+	default:
+		return fmt.Errorf("unknown action: %s", action)
+	}
+}
+
+func (a *Agent) snapshotToolCall(callID string) types.ToolCallSnapshot {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	if rec, ok := a.toolRecords[callID]; ok && rec != nil {
+		return types.ToolCallSnapshot{
+			ID:           rec.ID,
+			Name:         rec.Name,
+			State:        rec.State,
+			Arguments:    rec.Input,
+			Result:       rec.Result,
+			Error:        rec.Error,
+			Progress:     rec.Progress,
+			Intermediate: rec.Intermediate,
+			StartedAt:    rec.StartTime,
+			UpdatedAt:    rec.UpdatedAt,
+			Cancelable:   a.runningTools[rec.ID] != nil,
+			Pausable:     a.runningTools[rec.ID] != nil,
+		}
+	}
+
+	return types.ToolCallSnapshot{ID: callID}
+}
+
+// GetToolSnapshot 获取指定调用的实时快照
+func (a *Agent) GetToolSnapshot(callID string) types.ToolCallSnapshot {
+	return a.snapshotToolCall(callID)
+}
+
+// ListRunningToolSnapshots 列出运行中的工具调用
+func (a *Agent) ListRunningToolSnapshots() []types.ToolCallSnapshot {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	snaps := make([]types.ToolCallSnapshot, 0, len(a.toolRecords))
+	for _, rec := range a.toolRecords {
+		if rec == nil {
+			continue
+		}
+		if rec.State == types.ToolCallStateExecuting || rec.State == types.ToolCallStateQueued || rec.State == types.ToolCallStatePending || rec.State == types.ToolCallStateCancelling {
+			snaps = append(snaps, types.ToolCallSnapshot{
+				ID:           rec.ID,
+				Name:         rec.Name,
+				State:        rec.State,
+				Arguments:    rec.Input,
+				Result:       rec.Result,
+				Error:        rec.Error,
+				Progress:     rec.Progress,
+				Intermediate: rec.Intermediate,
+				StartedAt:    rec.StartTime,
+				UpdatedAt:    rec.UpdatedAt,
+				Cancelable:   a.runningTools[rec.ID] != nil,
+				Pausable:     a.runningTools[rec.ID] != nil,
+			})
+		}
+	}
+	return snaps
+}
+
+// makeToolReporter 创建工具执行 Reporter
+func (a *Agent) makeToolReporter(callID, toolName string) tools.Reporter {
+	return &toolReporter{
+		agent:    a,
+		callID:   callID,
+		toolName: toolName,
+	}
+}
+
+// handleToolProgress 处理进度事件并推送到总线
+func (a *Agent) handleToolProgress(callID, toolName string, progress float64, message string, step, total int, metadata map[string]interface{}, etaMs int64) {
+	now := time.Now()
+	snapshot := types.ToolCallSnapshot{
+		ID:        callID,
+		Name:      toolName,
+		State:     types.ToolCallStateExecuting,
+		Progress:  progress,
+		UpdatedAt: now,
+	}
+
+	a.mu.Lock()
+	if rec, ok := a.toolRecords[callID]; ok {
+		rec.Progress = progress
+		rec.State = types.ToolCallStateExecuting
+		rec.UpdatedAt = now
+		snapshot.Arguments = rec.Input
+		snapshot.StartedAt = rec.StartTime
+		snapshot.UpdatedAt = rec.UpdatedAt
+	}
+	a.mu.Unlock()
+
+	a.eventBus.EmitProgress(&types.ProgressToolProgressEvent{
+		Call:     snapshot,
+		Progress: progress,
+		Message:  message,
+		Step:     step,
+		Total:    total,
+		Metadata: metadata,
+		ETA:      etaMs,
+	})
+}
+
+// handleToolIntermediate 处理中间结果事件
+func (a *Agent) handleToolIntermediate(callID, toolName, label string, data interface{}) {
+	now := time.Now()
+	snapshot := types.ToolCallSnapshot{
+		ID:           callID,
+		Name:         toolName,
+		State:        types.ToolCallStateExecuting,
+		Intermediate: make(map[string]interface{}),
+		UpdatedAt:    now,
+	}
+
+	a.mu.Lock()
+	if rec, ok := a.toolRecords[callID]; ok {
+		if rec.Intermediate == nil {
+			rec.Intermediate = make(map[string]interface{})
+		}
+		if label == "" {
+			label = "data"
+		}
+		rec.Intermediate[label] = data
+		rec.State = types.ToolCallStateExecuting
+		rec.UpdatedAt = now
+		snapshot.Arguments = rec.Input
+		snapshot.StartedAt = rec.StartTime
+		snapshot.UpdatedAt = rec.UpdatedAt
+		snapshot.Intermediate = rec.Intermediate
+	} else {
+		if label == "" {
+			label = "data"
+		}
+		snapshot.Intermediate[label] = data
+	}
+	a.mu.Unlock()
+
+	a.eventBus.EmitProgress(&types.ProgressToolIntermediateEvent{
+		Call:  snapshot,
+		Label: label,
+		Data:  data,
+	})
+}
+
+// toolReporter 将工具回调转换为事件
+type toolReporter struct {
+	agent    *Agent
+	callID   string
+	toolName string
+}
+
+func (tr *toolReporter) Progress(progress float64, message string, step, total int, metadata map[string]interface{}, etaMs int64) {
+	tr.agent.handleToolProgress(tr.callID, tr.toolName, progress, message, step, total, metadata, etaMs)
+}
+
+func (tr *toolReporter) Intermediate(label string, data interface{}) {
+	tr.agent.handleToolIntermediate(tr.callID, tr.toolName, label, data)
 }
 
 // generateAgentID 生成AgentID

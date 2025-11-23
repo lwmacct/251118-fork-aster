@@ -11,10 +11,24 @@ type ToolContext struct {
 	AgentID    string
 	Sandbox    sandbox.Sandbox
 	Signal     context.Context
-	Emit       func(eventType string, data interface{})
+	Reporter   Reporter
+	Emit       func(eventType string, data interface{}) // Deprecated: use Reporter
 	Services   map[string]interface{}
 	ThreadID   string // Working Memory 会话 ID
 	ResourceID string // Working Memory 资源 ID
+}
+
+// Reporter 工具执行实时反馈接口
+type Reporter interface {
+	Progress(progress float64, message string, step, total int, metadata map[string]interface{}, etaMs int64)
+	Intermediate(label string, data interface{})
+}
+
+// Interruptible 可中断/恢复的工具接口
+type Interruptible interface {
+	Pause() error
+	Resume() error
+	Cancel() error
 }
 
 // Tool 工具接口

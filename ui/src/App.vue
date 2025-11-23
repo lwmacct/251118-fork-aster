@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen bg-slate-950 text-white selection:bg-sky-500/40">
+  <div class="min-h-screen bg-background text-text dark:bg-background-dark dark:text-text-dark selection:bg-sky-500/40"
+     :style="{ background: 'radial-gradient(circle at top, rgba(59, 130, 246, 0.12), transparent 60%), var(--tw-bg-opacity, 1)' }">
     <!-- Hero -->
     <section id="live" class="relative overflow-hidden px-6 py-10 sm:py-16 lg:px-12">
       <div class="absolute inset-0 pointer-events-none">
@@ -110,7 +111,7 @@
     </section>
 
     <!-- Feature Spectrum -->
-    <section class="px-6 py-16 lg:px-12 bg-slate-900/30 border-y border-white/5">
+    <section class="px-6 py-16 lg:px-12 bg-slate-800/30 border-y border-white/5">
       <div class="max-w-6xl mx-auto space-y-10">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -188,7 +189,7 @@
               </div>
             </div>
           </div>
-          <div class="rounded-[28px] border border-white/10 bg-slate-900/80 p-4 shadow-[0_40px_90px_rgba(8,7,29,0.8)] h-[600px]">
+          <div class="rounded-[28px] border border-white/10 bg-slate-800/80 p-4 shadow-[0_40px_90px_rgba(30,41,59,0.8)] h-[600px]">
             <AsterChat :config="demoConfig" />
           </div>
         </div>
@@ -196,7 +197,7 @@
     </section>
 
     <!-- Builder -->
-    <section class="px-6 py-20 lg:px-12 bg-slate-900/50 border-y border-white/5">
+    <section class="px-6 py-20 lg:px-12 bg-slate-800/50 border-y border-white/5">
       <div class="max-w-6xl mx-auto grid gap-10 lg:grid-cols-[1.1fr,0.9fr]">
         <div class="space-y-5">
           <p class="text-sm uppercase tracking-[0.3em] text-white/50">Builder Stories</p>

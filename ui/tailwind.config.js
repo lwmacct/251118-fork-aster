@@ -16,23 +16,23 @@ export default {
         },
         surface: {
           DEFAULT: '#ffffff',
-          dark: '#1f2937',
+          dark: '#334155', // 更温和的深色表面 slate-800
         },
         background: {
           DEFAULT: '#fafafa',
-          dark: '#111827',
+          dark: '#1e293b', // 更明亮的深色背景 slate-900
         },
         border: {
           DEFAULT: '#e5e7eb',
-          dark: '#374151',
+          dark: '#475569', // 调整边框色为 slate-600
         },
         secondary: {
           DEFAULT: '#6b7280',
-          dark: '#9ca3af',
+          dark: '#cbd5e1', // 提高次要文本的对比度 slate-300
         },
         text: {
           DEFAULT: '#111827',
-          dark: '#f9fafb',
+          dark: '#f1f5f9', // 更明亮的文本色 slate-100
         },
       },
       animation: {

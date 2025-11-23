@@ -293,14 +293,38 @@ func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool
 				Temperature: 0.7,
 			}
 
-			// 调用Provider
-			partialResp, err := a.provider.Complete(ctx, req.Messages, streamOpts)
+			// 调用Provider - 使用Stream方法支持流式响应
+			chunkCh, err := a.provider.Stream(ctx, req.Messages, streamOpts)
 			if err != nil {
 				return nil, err
 			}
 
+			// 直接将流式响应发送到WebSocket，但这里先收集用于兼容旧逻辑
+			var assistantMessage types.Message
+			var contentBlocks []types.ContentBlock
+
+			for chunk := range chunkCh {
+				if chunk.Type == "content_block_delta" {
+					if delta, ok := chunk.Delta.(map[string]interface{}); ok {
+						if chunkType, ok := delta["type"].(string); ok {
+							switch chunkType {
+							case "text_delta":
+								if text, ok := delta["text"].(string); ok {
+									contentBlocks = append(contentBlocks, &types.TextBlock{Text: text})
+								}
+							case "arguments":
+								// 处理工具调用参数 - 暂时跳过
+							}
+						}
+					}
+				}
+			}
+
+			assistantMessage.ContentBlocks = contentBlocks
+			assistantMessage.Role = types.RoleAssistant
+
 			return &middleware.ModelResponse{
-				Message:  partialResp.Message,
+				Message:  assistantMessage,
 				Metadata: req.Metadata,
 			}, nil
 		}
@@ -317,18 +341,43 @@ func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool
 			}
 		}
 
-		// 直接调用 Provider
+		// 直接调用 Provider - 使用Stream方法支持流式响应
 		streamOpts := &provider.StreamOptions{
 			Tools:       toolSchemas,
 			System:      a.template.SystemPrompt,
 			Temperature: 0.7,
 		}
-		partialResp, err := a.provider.Complete(ctx, messages, streamOpts)
+		chunkCh, err := a.provider.Stream(ctx, messages, streamOpts)
 		if err != nil {
 			return nil, false, err
 		}
+
+		// 收集流式响应并合并为完整消息
+		var assistantMessage types.Message
+		var contentBlocks []types.ContentBlock
+
+		for chunk := range chunkCh {
+			if chunk.Type == "content_block_delta" {
+				if delta, ok := chunk.Delta.(map[string]interface{}); ok {
+					if chunkType, ok := delta["type"].(string); ok {
+						switch chunkType {
+						case "text_delta":
+							if text, ok := delta["text"].(string); ok {
+								contentBlocks = append(contentBlocks, &types.TextBlock{Text: text})
+							}
+						case "arguments":
+							// 处理工具调用参数 - 暂时跳过
+						}
+					}
+				}
+			}
+		}
+
+		assistantMessage.ContentBlocks = contentBlocks
+		assistantMessage.Role = types.RoleAssistant
+
 		resp = &middleware.ModelResponse{
-			Message:  partialResp.Message,
+			Message:  assistantMessage,
 			Metadata: make(map[string]interface{}),
 		}
 	}

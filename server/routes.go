@@ -31,7 +31,7 @@ func (s *Server) registerAgentRoutes(rg *gin.RouterGroup) {
 // registerWebSocketRoutes registers WebSocket routes
 func (s *Server) registerWebSocketRoutes(rg *gin.RouterGroup) {
 	// Create WebSocket handler
-	h := handlers.NewWebSocketHandler(s.store, s.deps.AgentDeps)
+	h := handlers.NewWebSocketHandler(s.store, s.deps.AgentDeps, s.agentRegistry)
 
 	ws := rg.Group("/ws")
 	{
@@ -116,6 +116,7 @@ func (s *Server) registerWorkflowRoutes(rg *gin.RouterGroup) {
 func (s *Server) registerToolRoutes(rg *gin.RouterGroup) {
 	// Create tool handler
 	h := handlers.NewToolHandler(s.store)
+	rt := handlers.NewToolRuntimeHandler(s.store, s.agentRegistry)
 
 	tools := rg.Group("/tools")
 	{
@@ -125,6 +126,13 @@ func (s *Server) registerToolRoutes(rg *gin.RouterGroup) {
 		tools.PATCH("/:id", h.Update)
 		tools.DELETE("/:id", h.Delete)
 		tools.POST("/:id/execute", h.Execute)
+	}
+
+	toolCalls := rg.Group("/tool-calls")
+	{
+		toolCalls.GET("/running", rt.ListRunning)
+		toolCalls.GET("/:id/status", rt.GetStatus)
+		toolCalls.GET("/:id/result", rt.GetResult)
 	}
 }
 

@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 // Role 定义消息角色
 type Role string
 
@@ -148,6 +150,9 @@ type ToolCallSnapshot struct {
 	// State 工具调用状态
 	State ToolCallState `json:"state,omitempty"`
 
+	// Progress 进度 0-1
+	Progress float64 `json:"progress,omitempty"`
+
 	// Arguments 工具参数
 	Arguments map[string]interface{} `json:"arguments,omitempty"`
 
@@ -156,6 +161,17 @@ type ToolCallSnapshot struct {
 
 	// Error 错误信息
 	Error string `json:"error,omitempty"`
+
+	// Intermediate 中间结果
+	Intermediate map[string]interface{} `json:"intermediate,omitempty"`
+
+	// 时间信息
+	StartedAt time.Time `json:"started_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+
+	// 控制能力标识
+	Cancelable bool `json:"cancelable,omitempty"`
+	Pausable   bool `json:"pausable,omitempty"`
 }
 
 // AgentRuntimeState Agent运行时状态

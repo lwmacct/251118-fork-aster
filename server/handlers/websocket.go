@@ -13,6 +13,7 @@ import (
 	"github.com/astercloud/aster/pkg/agent"
 	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/store"
+	"github.com/astercloud/aster/pkg/tools/builtin"
 	"github.com/astercloud/aster/pkg/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -30,9 +31,11 @@ var upgrader = websocket.Upgrader{
 
 // WebSocketHandler handles WebSocket connections
 type WebSocketHandler struct {
-	store *store.Store
-	deps  *agent.Dependencies
-	
+	store       *store.Store
+	deps        *agent.Dependencies
+	todoManager builtin.TodoManager
+	registry    *RuntimeAgentRegistry
+
 	// Connection management
 	connections map[string]*WebSocketConnection
 	mu          sync.RWMutex
@@ -55,10 +58,15 @@ type WebSocketMessage struct {
 }
 
 // NewWebSocketHandler creates a new WebSocketHandler
-func NewWebSocketHandler(st store.Store, deps *agent.Dependencies) *WebSocketHandler {
+func NewWebSocketHandler(st store.Store, deps *agent.Dependencies, reg *RuntimeAgentRegistry) *WebSocketHandler {
+	if reg == nil {
+		reg = NewRuntimeAgentRegistry()
+	}
 	return &WebSocketHandler{
 		store:       &st,
 		deps:        deps,
+		todoManager: builtin.GetGlobalTodoManager(),
+		registry:    reg,
 		connections: make(map[string]*WebSocketConnection),
 	}
 }
@@ -76,7 +84,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 
 	// Create connection context
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// Create connection object
 	wsConn := &WebSocketConnection{
 		ID:     fmt.Sprintf("ws-%d", time.Now().UnixNano()),
@@ -97,7 +105,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 
 	// Start write pump in goroutine
 	go h.writePump(wsConn)
-	
+
 	// Run read pump in current goroutine (blocks until connection closes)
 	h.readPump(wsConn)
 }
@@ -187,6 +195,16 @@ func (h *WebSocketHandler) handleMessage(wsConn *WebSocketConnection, msg *WebSo
 		h.handleChat(wsConn, msg.Payload)
 	case "ping":
 		h.sendMessage(wsConn, "pong", nil)
+	case "todo_list_request":
+		h.handleTodoListRequest(wsConn, msg.Payload)
+	case "todo_create":
+		h.handleTodoCreate(wsConn, msg.Payload)
+	case "todo_update":
+		h.handleTodoUpdate(wsConn, msg.Payload)
+	case "todo_delete":
+		h.handleTodoDelete(wsConn, msg.Payload)
+	case "tool:control", "tool_control":
+		h.handleToolControl(wsConn, msg.Payload)
 	default:
 		h.sendError(wsConn, "unknown_message_type", fmt.Sprintf("Unknown message type: %s", msg.Type))
 	}
@@ -223,7 +241,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 		if apiKey, ok := modelConfigData["api_key"].(string); ok {
 			modelConfig.APIKey = apiKey
 		}
-		
+
 		// Fill API key from environment if missing
 		if modelConfig.APIKey == "" && modelConfig.Provider != "" {
 			var envKey string
@@ -241,7 +259,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 				modelConfig.APIKey = envKey
 			}
 		}
-		
+
 		cfg.ModelConfig = modelConfig
 	}
 
@@ -252,6 +270,44 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 		return
 	}
 	wsConn.Agent = ag
+	h.registry.Register(ag)
+
+	// 订阅 Agent 事件并转发到客户端
+	eventCh := ag.Subscribe(
+		[]types.AgentChannel{
+			types.ChannelProgress,
+			types.ChannelControl,
+			types.ChannelMonitor,
+		},
+		nil,
+	)
+
+	go func() {
+		defer ag.Unsubscribe(eventCh)
+		for {
+			select {
+			case envelope, ok := <-eventCh:
+				if !ok {
+					return
+				}
+				channel := ""
+				eventType := ""
+				if ev, ok := envelope.Event.(types.EventType); ok {
+					channel = string(ev.Channel())
+					eventType = ev.EventType()
+				}
+				h.sendMessage(wsConn, "agent_event", map[string]interface{}{
+					"channel":  channel,
+					"type":     eventType,
+					"cursor":   envelope.Cursor,
+					"bookmark": envelope.Bookmark,
+					"event":    envelope.Event,
+				})
+			case <-wsConn.ctx.Done():
+				return
+			}
+		}
+	}()
 
 	// Send start event
 	h.sendMessage(wsConn, "chat_start", map[string]interface{}{
@@ -349,6 +405,7 @@ func (h *WebSocketHandler) closeConnection(wsConn *WebSocketConnection) {
 	close(wsConn.Send)
 
 	if wsConn.Agent != nil {
+		h.registry.Unregister((*wsConn.Agent).ID())
 		(*wsConn.Agent).Close()
 	}
 
@@ -368,4 +425,285 @@ func (h *WebSocketHandler) GetStats(c *gin.Context) {
 			"active_connections": len(h.connections),
 		},
 	})
+}
+
+// handleTodoListRequest handles todo list requests
+func (h *WebSocketHandler) handleTodoListRequest(wsConn *WebSocketConnection, payload map[string]interface{}) {
+	listName := "default"
+	if name, ok := payload["list_name"].(string); ok && name != "" {
+		listName = name
+	}
+
+	todoList, err := h.todoManager.LoadTodoList(listName)
+	if err != nil {
+		// 如果不存在，返回空列表
+		todoList = &builtin.TodoList{
+			ID:        fmt.Sprintf("list_%s_%d", listName, time.Now().UnixNano()),
+			Name:      listName,
+			Todos:     []builtin.TodoItem{},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Metadata:  make(map[string]interface{}),
+		}
+	}
+
+	h.sendMessage(wsConn, "todo_list_response", map[string]interface{}{
+		"todos": todoList.Todos,
+	})
+}
+
+// handleTodoCreate handles todo creation
+func (h *WebSocketHandler) handleTodoCreate(wsConn *WebSocketConnection, payload map[string]interface{}) {
+	listName := "default"
+	if name, ok := payload["list_name"].(string); ok && name != "" {
+		listName = name
+	}
+
+	todoData, ok := payload["todo"].(map[string]interface{})
+	if !ok {
+		h.sendError(wsConn, "invalid_todo", "todo data is required")
+		return
+	}
+
+	// 加载现有任务列表
+	todoList, err := h.todoManager.LoadTodoList(listName)
+	if err != nil {
+		// 创建新的任务列表
+		todoList = &builtin.TodoList{
+			ID:        fmt.Sprintf("list_%s_%d", listName, time.Now().UnixNano()),
+			Name:      listName,
+			Todos:     []builtin.TodoItem{},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Metadata:  make(map[string]interface{}),
+		}
+	}
+
+	// 创建新的 TodoItem
+	todo := builtin.TodoItem{
+		ID:        fmt.Sprintf("todo_%d", time.Now().UnixNano()),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Metadata:  make(map[string]interface{}),
+	}
+
+	if content, ok := todoData["content"].(string); ok {
+		todo.Content = content
+	}
+	if completed, ok := todoData["completed"].(bool); ok {
+		todo.Status = "pending"
+		if completed {
+			todo.Status = "completed"
+			now := time.Now()
+			todo.CompletedAt = &now
+		}
+		todo.ActiveForm = "任务完成"
+	} else {
+		todo.Status = "pending"
+		todo.ActiveForm = "进行中"
+	}
+	if priority, ok := todoData["priority"].(string); ok {
+		switch priority {
+		case "high":
+			todo.Priority = 3
+		case "medium":
+			todo.Priority = 2
+		case "low":
+			todo.Priority = 1
+		default:
+			todo.Priority = 0
+		}
+	}
+	if dueDate, ok := todoData["dueDate"].(string); ok {
+		todo.Metadata["dueDate"] = dueDate
+	}
+
+	// 添加到列表
+	todoList.Todos = append(todoList.Todos, todo)
+	todoList.UpdatedAt = time.Now()
+
+	// 保存列表
+	if err := h.todoManager.StoreTodoList(todoList); err != nil {
+		h.sendError(wsConn, "save_failed", fmt.Sprintf("Failed to save todo list: %v", err))
+		return
+	}
+
+	// 广播给所有连接
+	h.broadcastToAll("todo_created", map[string]interface{}{
+		"todo": todo,
+	})
+}
+
+// handleTodoUpdate handles todo updates
+func (h *WebSocketHandler) handleTodoUpdate(wsConn *WebSocketConnection, payload map[string]interface{}) {
+	listName := "default"
+	if name, ok := payload["list_name"].(string); ok && name != "" {
+		listName = name
+	}
+
+	todoData, ok := payload["todo"].(map[string]interface{})
+	if !ok {
+		h.sendError(wsConn, "invalid_todo", "todo data is required")
+		return
+	}
+
+	todoID, ok := todoData["id"].(string)
+	if !ok {
+		h.sendError(wsConn, "missing_todo_id", "todo id is required")
+		return
+	}
+
+	// 加载任务列表
+	todoList, err := h.todoManager.LoadTodoList(listName)
+	if err != nil {
+		h.sendError(wsConn, "list_not_found", fmt.Sprintf("Todo list '%s' not found", listName))
+		return
+	}
+
+	// 查找并更新任务
+	updated := false
+	for i, existingTodo := range todoList.Todos {
+		if existingTodo.ID == todoID {
+			// 更新字段
+			if content, ok := todoData["content"].(string); ok {
+				todoList.Todos[i].Content = content
+			}
+			if completed, ok := todoData["completed"].(bool); ok {
+				wasCompleted := existingTodo.Status == "completed"
+				isCompleted := completed
+
+				if isCompleted && !wasCompleted {
+					todoList.Todos[i].Status = "completed"
+					now := time.Now()
+					todoList.Todos[i].CompletedAt = &now
+					todoList.Todos[i].ActiveForm = "任务完成"
+				} else if !isCompleted && wasCompleted {
+					todoList.Todos[i].Status = "pending"
+					todoList.Todos[i].CompletedAt = nil
+					todoList.Todos[i].ActiveForm = "进行中"
+				}
+			}
+			if priority, ok := todoData["priority"].(string); ok {
+				switch priority {
+				case "high":
+					todoList.Todos[i].Priority = 3
+				case "medium":
+					todoList.Todos[i].Priority = 2
+				case "low":
+					todoList.Todos[i].Priority = 1
+				default:
+					todoList.Todos[i].Priority = 0
+				}
+			}
+			if dueDate, ok := todoData["dueDate"].(string); ok {
+				if todoList.Todos[i].Metadata == nil {
+					todoList.Todos[i].Metadata = make(map[string]interface{})
+				}
+				todoList.Todos[i].Metadata["dueDate"] = dueDate
+			}
+
+			todoList.Todos[i].UpdatedAt = time.Now()
+			updated = true
+			break
+		}
+	}
+
+	if !updated {
+		h.sendError(wsConn, "todo_not_found", fmt.Sprintf("Todo with id '%s' not found", todoID))
+		return
+	}
+
+	// 保存列表
+	if err := h.todoManager.StoreTodoList(todoList); err != nil {
+		h.sendError(wsConn, "save_failed", fmt.Sprintf("Failed to save todo list: %v", err))
+		return
+	}
+
+	// 广播给所有连接
+	h.broadcastToAll("todo_updated", map[string]interface{}{
+		"todo": todoData,
+	})
+}
+
+// handleTodoDelete handles todo deletion
+func (h *WebSocketHandler) handleTodoDelete(wsConn *WebSocketConnection, payload map[string]interface{}) {
+	listName := "default"
+	if name, ok := payload["list_name"].(string); ok && name != "" {
+		listName = name
+	}
+
+	todoID, ok := payload["id"].(string)
+	if !ok {
+		h.sendError(wsConn, "missing_todo_id", "todo id is required")
+		return
+	}
+
+	// 加载任务列表
+	todoList, err := h.todoManager.LoadTodoList(listName)
+	if err != nil {
+		h.sendError(wsConn, "list_not_found", fmt.Sprintf("Todo list '%s' not found", listName))
+		return
+	}
+
+	// 查找并删除任务
+	deleted := false
+	for i, existingTodo := range todoList.Todos {
+		if existingTodo.ID == todoID {
+			todoList.Todos = append(todoList.Todos[:i], todoList.Todos[i+1:]...)
+			todoList.UpdatedAt = time.Now()
+			deleted = true
+			break
+		}
+	}
+
+	if !deleted {
+		h.sendError(wsConn, "todo_not_found", fmt.Sprintf("Todo with id '%s' not found", todoID))
+		return
+	}
+
+	// 保存列表
+	if err := h.todoManager.StoreTodoList(todoList); err != nil {
+		h.sendError(wsConn, "save_failed", fmt.Sprintf("Failed to save todo list: %v", err))
+		return
+	}
+
+	// 广播给所有连接
+	h.broadcastToAll("todo_deleted", map[string]interface{}{
+		"id": todoID,
+	})
+}
+
+// handleToolControl 处理工具控制指令
+func (h *WebSocketHandler) handleToolControl(wsConn *WebSocketConnection, payload map[string]interface{}) {
+	if wsConn.Agent == nil {
+		h.sendError(wsConn, "agent_not_ready", "agent is not initialized")
+		return
+	}
+
+	callID, _ := payload["tool_call_id"].(string)
+	if callID == "" {
+		callID, _ = payload["call_id"].(string)
+	}
+	action, _ := payload["action"].(string)
+	note, _ := payload["note"].(string)
+
+	if callID == "" || action == "" {
+		h.sendError(wsConn, "invalid_control", "tool_call_id and action are required")
+		return
+	}
+
+	if err := wsConn.Agent.ControlTool(callID, action, note); err != nil {
+		h.sendError(wsConn, "control_failed", err.Error())
+		return
+	}
+}
+
+// broadcastToAll broadcasts a message to all connected WebSocket clients
+func (h *WebSocketHandler) broadcastToAll(messageType string, payload map[string]interface{}) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	for _, wsConn := range h.connections {
+		h.sendMessage(wsConn, messageType, payload)
+	}
 }

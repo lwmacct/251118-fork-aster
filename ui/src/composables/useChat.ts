@@ -3,7 +3,7 @@
  * 管理 Chat 对话逻辑
  */
 
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, computed } from 'vue';
 import type { Message, ChatConfig, TextMessage, Agent } from '@/types';
 import { useAsterClient } from './useAsterClient';
 import { useWebSocket } from './useWebSocket';
@@ -15,6 +15,8 @@ export function useChat(config: ChatConfig) {
   const currentInput = ref('');
   const demoConnection = ref(true);
   const isDemoMode = config.demoMode ?? true;
+  const toolRuns = ref<Record<string, any>>({});
+  const toolRunsList = computed(() => Object.values(toolRuns.value));
   const agent = ref<Agent>({
     id: config.agentId || 'demo-agent',
     name: config.agentProfile?.name || 'Aster Copilot',
@@ -27,9 +29,13 @@ export function useChat(config: ChatConfig) {
   });
   const demoCursor = ref(0);
 
+  const apiUrl = config.apiUrl || import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  const wsUrlOverride = config.wsUrl || import.meta.env.VITE_WS_URL;
+
   const { client } = useAsterClient({
-    baseUrl: config.apiUrl || 'http://localhost:8080',
+    baseUrl: apiUrl,
     apiKey: config.apiKey,
+    wsUrl: wsUrlOverride,
   });
   
   const { connect, getInstance, isConnected: wsConnected } = useWebSocket();
@@ -38,8 +44,7 @@ export function useChat(config: ChatConfig) {
   // 初始化 WebSocket 连接
   onMounted(async () => {
     if (!isDemoMode) {
-      const baseUrl = config.apiUrl || 'http://localhost:8080';
-      const wsUrl = baseUrl.replace(/^http/, 'ws') + '/v1/ws';
+      const wsUrl = wsUrlOverride || apiUrl.replace(/^http/, 'ws') + '/v1/ws';
       console.log('🚀 Initializing WebSocket connection to:', wsUrl);
       try {
         await connect(wsUrl);
@@ -149,6 +154,12 @@ export function useChat(config: ChatConfig) {
               if (config.onError) {
                 config.onError(new Error(message.payload?.message));
               }
+            } else if (message.type === 'agent_event') {
+              const ev = message.payload?.event;
+              const evType = message.payload?.type || ev?.type || ev?.EventType;
+              if (ev && evType) {
+                handleAgentEvent(evType, ev);
+              }
             }
           });
 
@@ -248,6 +259,42 @@ export function useChat(config: ChatConfig) {
     messages.value = [];
   };
 
+  const handleAgentEvent = (type: string, ev: any) => {
+    if (!type.startsWith('tool')) return;
+    const call = ev.Call || ev.call || {};
+    const id = call.id || call.ID || call.tool_call_id;
+    if (!id) return;
+    const prev = toolRuns.value[id] || {};
+    const progress = ev.progress ?? call.progress ?? prev.progress ?? 0;
+    const state = call.state || ev.state || prev.state || 'executing';
+    toolRuns.value = {
+      ...toolRuns.value,
+      [id]: {
+        tool_call_id: id,
+        name: call.name || prev.name,
+        state,
+        progress,
+        message: ev.message || prev.message,
+        result: call.result || ev.result || prev.result,
+        error: ev.error || call.error || prev.error,
+        cancelable: call.cancelable ?? prev.cancelable,
+        pausable: call.pausable ?? prev.pausable,
+      },
+    };
+  };
+
+  const controlTool = async (toolCallId: string, action: 'cancel' | 'pause' | 'resume') => {
+    const ws = getInstance();
+    if (!ws || !wsConnected.value) return;
+    ws.send({
+      type: 'tool:control',
+      payload: {
+        tool_call_id: toolCallId,
+        action,
+      },
+    });
+  };
+
   // 初始化
   onMounted(() => {
     // 添加欢迎消息
@@ -293,5 +340,7 @@ export function useChat(config: ChatConfig) {
     rejectAction: (requestId: string) => {
       config.onRejectAction?.(requestId);
     },
+    toolRunsList,
+    controlTool,
   };
 }

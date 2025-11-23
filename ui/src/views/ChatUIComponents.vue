@@ -72,7 +72,7 @@
           <div id="demo-think-bubble" class="demo-card">
             <h3 class="demo-title">ThinkBubble - 思考气泡</h3>
             <div class="demo-content">
-              <ThinkBubble content="正在分析你的问题..." />
+              <ThinkBubble />
             </div>
           </div>
 

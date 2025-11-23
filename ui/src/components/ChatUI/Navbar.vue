@@ -46,7 +46,7 @@ const shouldShowHomeLink = computed(() => {
 
 <style scoped>
 .navbar {
-  @apply flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700;
+  @apply flex items-center justify-between px-6 py-4 bg-surface dark:bg-surface-dark border-b border-border dark:border-border-dark;
 }
 
 .navbar-brand {
@@ -63,7 +63,7 @@ const shouldShowHomeLink = computed(() => {
 }
 
 .brand-text {
-  @apply text-xl font-bold text-gray-900 dark:text-white transition-colors duration-200;
+  @apply text-xl font-bold text-text dark:text-text-dark transition-colors duration-200;
 }
 
 .navbar-menu {

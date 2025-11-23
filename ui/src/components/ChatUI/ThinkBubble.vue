@@ -7,17 +7,12 @@
     </div>
     <div class="think-content">
       <div class="think-title">思考中</div>
-      <div v-if="content" class="think-text">{{ content }}</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-interface Props {
-  content?: string;
-}
-
-defineProps<Props>();
+// ThinkBubble组件不再需要content属性，只显示思考状态
 </script>
 
 <style scoped>

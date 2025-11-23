@@ -95,6 +95,39 @@ type ProgressToolEndEvent struct {
 func (e *ProgressToolEndEvent) Channel() AgentChannel { return ChannelProgress }
 func (e *ProgressToolEndEvent) EventType() string     { return "tool:end" }
 
+// ProgressToolProgressEvent 工具执行进度事件
+type ProgressToolProgressEvent struct {
+	Call     ToolCallSnapshot       `json:"call"`
+	Progress float64                `json:"progress"`           // 0.0 - 1.0
+	Message  string                 `json:"message,omitempty"`  // 进度描述
+	Step     int                    `json:"step,omitempty"`     // 当前步骤
+	Total    int                    `json:"total,omitempty"`    // 总步骤
+	Metadata map[string]interface{} `json:"metadata,omitempty"` // 额外元数据
+	ETA      int64                  `json:"eta_ms,omitempty"`   // 预估剩余时间(ms)
+}
+
+func (e *ProgressToolProgressEvent) Channel() AgentChannel { return ChannelProgress }
+func (e *ProgressToolProgressEvent) EventType() string     { return "tool:progress" }
+
+// ProgressToolIntermediateEvent 工具中间结果事件
+type ProgressToolIntermediateEvent struct {
+	Call  ToolCallSnapshot `json:"call"`
+	Label string           `json:"label,omitempty"`
+	Data  interface{}      `json:"data,omitempty"`
+}
+
+func (e *ProgressToolIntermediateEvent) Channel() AgentChannel { return ChannelProgress }
+func (e *ProgressToolIntermediateEvent) EventType() string     { return "tool:intermediate" }
+
+// ProgressToolCancelledEvent 工具取消事件
+type ProgressToolCancelledEvent struct {
+	Call   ToolCallSnapshot `json:"call"`
+	Reason string           `json:"reason,omitempty"`
+}
+
+func (e *ProgressToolCancelledEvent) Channel() AgentChannel { return ChannelProgress }
+func (e *ProgressToolCancelledEvent) EventType() string     { return "tool:cancelled" }
+
 // ProgressToolErrorEvent 工具执行错误事件
 type ProgressToolErrorEvent struct {
 	Call  ToolCallSnapshot `json:"call"`
@@ -139,6 +172,27 @@ type ControlPermissionDecidedEvent struct {
 
 func (e *ControlPermissionDecidedEvent) Channel() AgentChannel { return ChannelControl }
 func (e *ControlPermissionDecidedEvent) EventType() string     { return "permission_decided" }
+
+// ControlToolControlEvent 工具控制指令事件（入站）
+type ControlToolControlEvent struct {
+	CallID string `json:"call_id"`
+	Action string `json:"action"` // pause|resume|cancel
+	Note   string `json:"note,omitempty"`
+}
+
+func (e *ControlToolControlEvent) Channel() AgentChannel { return ChannelControl }
+func (e *ControlToolControlEvent) EventType() string     { return "tool_control" }
+
+// ControlToolControlResponseEvent 工具控制响应事件（出站）
+type ControlToolControlResponseEvent struct {
+	CallID string `json:"call_id"`
+	Action string `json:"action"` // pause|resume|cancel
+	OK     bool   `json:"ok"`
+	Reason string `json:"reason,omitempty"`
+}
+
+func (e *ControlToolControlResponseEvent) Channel() AgentChannel { return ChannelControl }
+func (e *ControlToolControlResponseEvent) EventType() string     { return "tool_control_response" }
 
 // ===================
 // Monitor Channel Events

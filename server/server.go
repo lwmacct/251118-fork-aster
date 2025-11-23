@@ -22,6 +22,8 @@ type Server struct {
 	router *gin.Engine
 	server *http.Server
 	store  store.Store
+	// runtime agent registry for WebSocket / tool runtime
+	agentRegistry *handlers.RuntimeAgentRegistry
 
 	// Dependencies (will be injected)
 	deps *Dependencies
@@ -59,10 +61,11 @@ func New(config *Config, deps *Dependencies, opts ...Option) (*Server, error) {
 	}
 
 	s := &Server{
-		config: config,
-		router: gin.New(),
-		store:  deps.Store,
-		deps:   deps,
+		config:        config,
+		router:        gin.New(),
+		store:         deps.Store,
+		deps:          deps,
+		agentRegistry: handlers.NewRuntimeAgentRegistry(),
 	}
 
 	// Initialize auth and observability
@@ -196,7 +199,7 @@ func (s *Server) setupMiddleware() {
 func (s *Server) setupRoutes() {
 	// Static files (UI SDK demos) - no auth required
 	s.router.Static("/ui", "./ui")
-	
+
 	// Health check endpoint (no auth required)
 	if s.config.Observability.HealthCheck.Enabled {
 		s.router.GET(s.config.Observability.HealthCheck.Endpoint, s.healthCheck)
@@ -208,7 +211,7 @@ func (s *Server) setupRoutes() {
 	}
 
 	// WebSocket endpoint (no auth middleware - handles auth internally)
-	wsHandler := handlers.NewWebSocketHandler(s.store, s.deps.AgentDeps)
+	wsHandler := handlers.NewWebSocketHandler(s.store, s.deps.AgentDeps, s.agentRegistry)
 	s.router.GET("/v1/ws", wsHandler.HandleWebSocket)
 
 	// API v1 routes (with authentication)

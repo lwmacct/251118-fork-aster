@@ -254,16 +254,6 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 	a.toolRecords[tu.ID] = record
 	a.mu.Unlock()
 
-	// 发送工具开始事件
-	a.eventBus.EmitProgress(&types.ProgressToolStartEvent{
-		Call: types.ToolCallSnapshot{
-			ID:        record.ID,
-			Name:      record.Name,
-			State:     record.State,
-			Arguments: record.Input,
-		},
-	})
-
 	// 获取工具
 	tool, ok := a.toolMap[tu.Name]
 	if !ok {
@@ -285,6 +275,29 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 		}
 	}
 
+	startTime := time.Now()
+	record.StartTime = startTime
+	record.Progress = 0
+
+	interruptible, isInterruptible := tool.(tools.Interruptible)
+	lrTool, isLongRunning := tool.(tools.LongRunningTool)
+	pausable := isInterruptible
+	cancelable := isInterruptible
+
+	// 发送工具开始事件
+	a.eventBus.EmitProgress(&types.ProgressToolStartEvent{
+		Call: types.ToolCallSnapshot{
+			ID:         record.ID,
+			Name:       record.Name,
+			State:      record.State,
+			Arguments:  record.Input,
+			Progress:   0,
+			StartedAt:  record.StartTime,
+			Cancelable: cancelable,
+			Pausable:   pausable,
+		},
+	})
+
 	// 设置断点
 	a.setBreakpoint(types.BreakpointPreTool)
 
@@ -292,14 +305,127 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 	a.updateToolRecord(tu.ID, types.ToolCallStateExecuting, "")
 	a.setBreakpoint(types.BreakpointToolExecuting)
 
-	startTime := time.Now()
-
 	// 构建工具执行上下文，包含必要的服务注入
 	toolCtx := a.buildToolContext(ctx)
+	toolCtx.Reporter = a.makeToolReporter(tu.ID, tu.Name)
+
+	// 兼容旧版 Emit 回调
+	toolCtx.Emit = func(eventType string, data interface{}) {
+		switch eventType {
+		case "progress":
+			if p, ok := data.(float64); ok {
+				a.handleToolProgress(tu.ID, tu.Name, p, "", 0, 0, nil, 0)
+			}
+		case "intermediate":
+			a.handleToolIntermediate(tu.ID, tu.Name, "", data)
+		}
+	}
+
+	if isInterruptible {
+		a.registerRunningTool(tu.ID, interruptible)
+		defer a.unregisterRunningTool(tu.ID)
+	}
 
 	// 通过 Middleware Stack 执行工具 (Phase 6C)
 	var execResult *tools.ExecuteResult
-	if a.middlewareStack != nil {
+	if isLongRunning {
+		// 长时任务走异步执行 + 轮询状态
+		taskID, err := lrTool.StartAsync(ctx, tu.Input)
+		if err != nil {
+			execResult = &tools.ExecuteResult{Success: false, Error: err}
+		} else {
+			// 用长时任务的 Cancel 实现可中断
+			if !isInterruptible {
+				interruptible = &longRunningInterruptible{
+					tool:   lrTool,
+					taskID: taskID,
+				}
+				isInterruptible = true
+				pausable = false
+				cancelable = true
+			}
+			if isInterruptible {
+				a.registerRunningTool(tu.ID, interruptible)
+				defer a.unregisterRunningTool(tu.ID)
+			}
+
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+
+			for {
+				status, err := lrTool.GetStatus(ctx, taskID)
+				if err != nil {
+					execResult = &tools.ExecuteResult{Success: false, Error: err}
+					break
+				}
+
+				// 推送进度事件
+				a.handleToolProgress(tu.ID, tu.Name, status.Progress, "", 0, 0, status.Metadata, 0)
+
+				// 终态处理
+				if status.State.IsTerminal() {
+					if status.State == tools.TaskStateCompleted {
+						execResult = &tools.ExecuteResult{
+							Success:    true,
+							Output:     status.Result,
+							Error:      nil,
+							StartedAt:  status.StartTime,
+							EndedAt:    *status.EndTime,
+							DurationMs: status.EndTime.Sub(status.StartTime).Milliseconds(),
+						}
+					} else {
+						errMsg := "task failed"
+						if status.Error != nil {
+							errMsg = status.Error.Error()
+						}
+						execResult = &tools.ExecuteResult{
+							Success:    false,
+							Output:     status.Result,
+							Error:      fmt.Errorf(errMsg),
+							StartedAt:  status.StartTime,
+							EndedAt:    *status.EndTime,
+							DurationMs: status.EndTime.Sub(status.StartTime).Milliseconds(),
+						}
+						if status.State == tools.TaskStateCancelled {
+							a.eventBus.EmitProgress(&types.ProgressToolCancelledEvent{
+								Call:   a.snapshotToolCall(tu.ID),
+								Reason: "cancelled",
+							})
+						}
+					}
+					// 更新记录时间
+					a.mu.Lock()
+					if rec, ok := a.toolRecords[tu.ID]; ok {
+						rec.StartTime = status.StartTime
+						if status.EndTime != nil {
+							rec.CompletedAt = status.EndTime
+							rec.DurationMs = ptrInt64(status.EndTime.Sub(status.StartTime).Milliseconds())
+						}
+						rec.Progress = status.Progress
+					}
+					a.mu.Unlock()
+					break
+				}
+
+				select {
+				case <-ctx.Done():
+					execResult = &tools.ExecuteResult{Success: false, Error: ctx.Err()}
+					_ = lrTool.Cancel(context.Background(), taskID)
+					a.eventBus.EmitProgress(&types.ProgressToolCancelledEvent{
+						Call:   a.snapshotToolCall(tu.ID),
+						Reason: "cancelled",
+					})
+					break
+				case <-ticker.C:
+				}
+			}
+
+			// 长时任务结束后，如果 execResult 仍未设置，兜底为失败
+			if execResult == nil {
+				execResult = &tools.ExecuteResult{Success: false, Error: fmt.Errorf("long-running tool ended without status")}
+			}
+		}
+	} else if a.middlewareStack != nil {
 		// 使用 middleware stack
 		req := &middleware.ToolCallRequest{
 			ToolCallID: tu.ID,
@@ -353,10 +479,22 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 		a.updateToolRecord(tu.ID, types.ToolCallStateCompleted, "")
 		a.mu.Lock()
 		a.toolRecords[tu.ID].Result = execResult.Output
-		a.toolRecords[tu.ID].StartedAt = &startTime
-		a.toolRecords[tu.ID].CompletedAt = &endTime
+		if execResult.StartedAt.IsZero() {
+			a.toolRecords[tu.ID].StartedAt = &startTime
+		} else {
+			a.toolRecords[tu.ID].StartedAt = &execResult.StartedAt
+		}
+		if !execResult.EndedAt.IsZero() {
+			a.toolRecords[tu.ID].CompletedAt = &execResult.EndedAt
+		} else {
+			a.toolRecords[tu.ID].CompletedAt = &endTime
+		}
 		durationMs := execResult.DurationMs
+		if durationMs == 0 && !execResult.EndedAt.IsZero() {
+			durationMs = execResult.EndedAt.Sub(execResult.StartedAt).Milliseconds()
+		}
 		a.toolRecords[tu.ID].DurationMs = &durationMs
+		a.toolRecords[tu.ID].Progress = 1
 		a.mu.Unlock()
 	} else {
 		errorMsg := ""
@@ -373,12 +511,17 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 
 	a.eventBus.EmitProgress(&types.ProgressToolEndEvent{
 		Call: types.ToolCallSnapshot{
-			ID:        tu.ID,
-			Name:      tu.Name,
-			State:     finalRecord.State,
-			Arguments: finalRecord.Input,
-			Result:    finalRecord.Result,
-			Error:     finalRecord.Error,
+			ID:         tu.ID,
+			Name:       tu.Name,
+			State:      finalRecord.State,
+			Arguments:  finalRecord.Input,
+			Result:     finalRecord.Result,
+			Error:      finalRecord.Error,
+			Progress:   finalRecord.Progress,
+			StartedAt:  finalRecord.StartTime,
+			UpdatedAt:  finalRecord.UpdatedAt,
+			Cancelable: interruptible != nil,
+			Pausable:   interruptible != nil,
 		},
 	})
 
@@ -512,18 +655,18 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 							currentBlockIndex = 0
 						}
 					}
-					
+
 					// 确保有足够的空间
 					for len(assistantContent) <= currentBlockIndex {
 						assistantContent = append(assistantContent, nil)
 					}
-					
+
 					// 如果块还未初始化，创建新的文本块
 					if assistantContent[currentBlockIndex] == nil {
 						assistantContent[currentBlockIndex] = &types.TextBlock{Text: ""}
 						textBuffers[currentBlockIndex] = ""
 					}
-					
+
 					// 累积文本
 					if _, exists := textBuffers[currentBlockIndex]; !exists {
 						textBuffers[currentBlockIndex] = ""
@@ -532,7 +675,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 					if block, ok := assistantContent[currentBlockIndex].(*types.TextBlock); ok {
 						block.Text = textBuffers[currentBlockIndex]
 					}
-					
+
 					// 发送文本增量事件
 					a.eventBus.EmitProgress(&types.ProgressTextChunkEvent{
 						Step:  a.stepCount,

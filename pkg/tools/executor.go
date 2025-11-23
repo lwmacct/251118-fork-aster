@@ -155,6 +155,7 @@ func NewToolCallRecord(id, name string, input map[string]interface{}) *ToolCallR
 			Input:     input,
 			State:     types.ToolCallStatePending,
 			Approval:  types.ToolCallApproval{Required: false},
+			Progress:  0,
 			CreatedAt: now,
 			UpdatedAt: now,
 			AuditTrail: []types.ToolCallAuditEntry{

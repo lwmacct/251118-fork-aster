@@ -50,7 +50,7 @@ const toggle = () => {
 
 <style scoped>
 .sidebar {
-  @apply flex flex-col bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 transition-all duration-300;
+  @apply flex flex-col bg-surface dark:bg-surface-dark border-border dark:border-border-dark transition-all duration-300;
 }
 
 .sidebar-left {
@@ -70,11 +70,11 @@ const toggle = () => {
 }
 
 .sidebar-header {
-  @apply flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700;
+  @apply flex items-center justify-between px-4 py-3 border-b border-border dark:border-border-dark;
 }
 
 .sidebar-title {
-  @apply text-lg font-semibold text-gray-900 dark:text-white;
+  @apply text-lg font-semibold text-text dark:text-text-dark;
 }
 
 .sidebar.collapsed .sidebar-title {
@@ -82,7 +82,7 @@ const toggle = () => {
 }
 
 .collapse-btn {
-  @apply p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors;
+  @apply p-1 hover:bg-gray-100 dark:hover:bg-surface-dark/70 rounded transition-colors;
 }
 
 .sidebar-content {
@@ -97,6 +97,6 @@ const toggle = () => {
 }
 
 .sidebar-footer {
-  @apply px-4 py-3 border-t border-gray-200 dark:border-gray-700;
+  @apply px-4 py-3 border-t border-border dark:border-border-dark;
 }
 </style>

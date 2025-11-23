@@ -15,6 +15,7 @@ export interface AsterClientConfig {
 export function useAsterClient(config: AsterClientConfig = {}) {
   const baseUrl = config.baseUrl || import.meta.env.VITE_API_URL || 'http://localhost:8080';
   const apiKey = config.apiKey || import.meta.env.VITE_API_KEY || '';
+  const wsUrlEnv = config.wsUrl || import.meta.env.VITE_WS_URL;
   
   // 构建请求头
   const buildHeaders = (additionalHeaders: Record<string, string> = {}) => {
@@ -193,7 +194,7 @@ export function useAsterClient(config: AsterClientConfig = {}) {
   const initWebSocket = async () => {
     try {
       // 构建 WebSocket URL
-      const wsUrl = config.wsUrl || baseUrl.replace(/^http/, 'ws') + '/v1/ws';
+      const wsUrl = wsUrlEnv || baseUrl.replace(/^http/, 'ws') + '/v1/ws';
       
       ws.value = new WebSocketClient({
         maxReconnectAttempts: 5,
@@ -213,6 +214,20 @@ export function useAsterClient(config: AsterClientConfig = {}) {
       console.error('❌ Failed to connect WebSocket:', error);
       isConnected.value = false;
     }
+  };
+
+  const ensureWebSocket = async () => {
+    if (!ws.value || isConnected.value === false) {
+      await initWebSocket();
+    }
+    return ws.value;
+  };
+
+  const onMessage = (handler: (msg: any) => void) => {
+    if (!ws.value) {
+      throw new Error('WebSocket not initialized');
+    }
+    return ws.value.onMessage(handler);
   };
 
   // 订阅事件
@@ -245,6 +260,8 @@ export function useAsterClient(config: AsterClientConfig = {}) {
     ws,
     isConnected,
     subscribe,
+    onMessage,
+    ensureWebSocket,
     disconnect,
     reconnect: initWebSocket,
   };
