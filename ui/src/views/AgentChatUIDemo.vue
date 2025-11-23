@@ -240,14 +240,24 @@ const handleCardAction = (action: { value: string }) => {
 // 处理 WS 入站消息
 const handleWsMessage = (msg: any) => {
   if (!msg) return;
+
+  // 添加调试日志
+  console.log('🔍 WS消息 received:', msg);
+
   switch (msg.type) {
     case 'text_delta': {
       const delta = msg.payload?.text || msg.payload?.delta || '';
-      if (!delta) return;
+      if (!delta) {
+        console.log('⚠️ text_delta 消息没有文本内容:', msg);
+        return;
+      }
+
+      console.log('✅ 处理 text_delta:', delta, '对话ID:', currentConversationId.value);
 
       // 第一次收到文本时，移除thinking消息
       if (messages.value.some(m => m.type === 'thinking')) {
         messages.value = messages.value.filter(m => m.type !== 'thinking');
+        console.log('🗑️ 移除思考状态消息');
       }
 
       // 查找属于当前对话的最后一个AI回复消息
@@ -273,8 +283,16 @@ const handleWsMessage = (msg: any) => {
           conversationId: currentConversationId.value,
         };
         messages.value.push(last);
+        console.log('🆕 创建新的AI消息:', last.id);
       }
-      last.content = (last.content || '') + delta;
+
+      // 更新消息内容
+      const oldContent = last.content || '';
+      last.content = oldContent + delta;
+      console.log('📝 更新消息内容:', `"${oldContent}" -> "${last.content}"`);
+
+      // 强制触发响应式更新
+      messages.value = [...messages.value];
       break;
     }
     case 'chat_complete': {

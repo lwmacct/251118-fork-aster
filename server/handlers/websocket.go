@@ -322,6 +322,11 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 			}
 		}()
 
+		logging.Info(wsConn.ctx, "websocket.stream.starting", map[string]interface{}{
+			"agent_id": ag.ID(),
+			"input":    input,
+		})
+
 		for event, err := range ag.Stream(wsConn.ctx, input) {
 			if err != nil {
 				logging.Error(wsConn.ctx, "stream.error", map[string]interface{}{
@@ -333,6 +338,13 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 			}
 
 			if event != nil {
+				logging.Info(wsConn.ctx, "websocket.stream.event.received", map[string]interface{}{
+					"agent_id":   ag.ID(),
+					"event_id":   event.ID,
+					"author":     event.Author,
+					"has_content": len(event.Content.ContentBlocks) > 0,
+				})
+
 				// Extract text content from event
 				var textContent string
 				for _, block := range event.Content.ContentBlocks {
@@ -342,10 +354,19 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 				}
 
 				if textContent != "" {
+					logging.Info(wsConn.ctx, "websocket.stream.sending_text_delta", map[string]interface{}{
+						"agent_id":   ag.ID(),
+						"text_length": len(textContent),
+						"preview":     textContent[:min(50, len(textContent))],
+					})
 					h.sendMessage(wsConn, "text_delta", map[string]interface{}{
 						"text": textContent,
 					})
 				}
+			} else {
+				logging.Info(wsConn.ctx, "websocket.stream.nil_event", map[string]interface{}{
+					"agent_id": ag.ID(),
+				})
 			}
 		}
 

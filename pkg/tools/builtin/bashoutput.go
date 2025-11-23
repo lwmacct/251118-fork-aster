@@ -135,10 +135,14 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 
 	duration := time.Since(start)
 
-	// 合并输出
+	// 合并输出 - 确保保持原始换行格式
 	var fullOutput string
 	if includeStderr && stderr != "" {
-		fullOutput = stdout + "\nSTDERR:\n" + stderr
+		// 确保stdout以换行结尾（如果不为空且不以换行结尾）
+		if stdout != "" && !strings.HasSuffix(stdout, "\n") {
+			stdout += "\n"
+		}
+		fullOutput = stdout + "STDERR:\n" + stderr
 	} else {
 		fullOutput = stdout
 	}
@@ -157,14 +161,14 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 		resourceUsage = t.getResourceUsage(task.PID)
 	}
 
-	// 构建响应
+	// 构建响应 - 确保输出格式正确保持换行
 	response := map[string]interface{}{
 		"ok":             true,
 		"bash_id":        bashID,
 		"command":        task.Command,
 		"status":         task.Status,
-		"stdout":         stdout,
-		"new_output":     fullOutput,
+		"stdout":         stdout,         // 原始stdout，保持完整换行
+		"new_output":     fullOutput,     // 合并后的输出，已修复换行逻辑
 		"duration_ms":    duration.Milliseconds(),
 		"start_time":     task.StartTime.Unix(),
 		"last_check":     time.Now().Unix(),
@@ -172,6 +176,10 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 		"include_stderr": includeStderr,
 		"filter":         filter,
 		"lines_limit":    lines,
+		// 添加输出格式标记，帮助前端正确处理换行
+		"output_format":  "text",
+		"has_stdout":     stdout != "",
+		"has_stderr":     stderr != "",
 	}
 
 	// 添加stderr（如果请求）

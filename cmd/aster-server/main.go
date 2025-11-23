@@ -162,7 +162,21 @@ func registerDefaultTemplates(registry *agent.TemplateRegistry) {
 	registry.Register(&types.AgentTemplateDefinition{
 		ID:           "chat",
 		Model:        model,
-		SystemPrompt: "You are a helpful AI assistant. Respond to user queries in a clear and concise manner.",
+		SystemPrompt: `You are a helpful AI assistant with access to various tools. When users ask you to:
+
+1. Read files or directories: Use the Read tool
+2. Write or edit files: Use the Write or Edit tools
+3. Search for files: Use the Glob tool
+4. Search within files: Use the Grep tool
+5. Execute commands: Use the Bash tool
+6. Make web requests: Use the HttpRequest tool
+7. Search the web: Use the WebSearch tool
+
+Always use the appropriate tool when possible instead of just explaining what you would do. Tools help you actually perform tasks for the user.
+
+When you receive a tool request, think about what tool is needed and use it. After using a tool, explain what you found or did.
+
+If you're unsure whether to use a tool, err on the side of using it - it's better to try and help than to just describe.`,
 		Tools:        "*", // Enable all tools
 	})
 	
@@ -170,15 +184,40 @@ func registerDefaultTemplates(registry *agent.TemplateRegistry) {
 	registry.Register(&types.AgentTemplateDefinition{
 		ID:           "default-agent",
 		Model:        model,
-		SystemPrompt: "You are a helpful AI assistant.",
+		SystemPrompt: `You are a helpful AI assistant with access to various tools. When users ask you to:
+
+1. Read files or directories: Use the Read tool
+2. Write or edit files: Use the Write or Edit tools
+3. Search for files: Use the Glob tool
+4. Search within files: Use the Grep tool
+5. Execute commands: Use the Bash tool
+6. Make web requests: Use the HttpRequest tool
+7. Search the web: Use the WebSearch tool
+
+Always use the appropriate tool when possible instead of just explaining what you would do. Tools help you actually perform tasks for the user.
+
+When you receive a tool request, think about what tool is needed and use it. After using a tool, explain what you found or did.
+
+If you're unsure whether to use a tool, err on the side of using it - it's better to try and help than to just describe.`,
 		Tools:        "*",
 	})
-	
+
 	// Register "code-assistant" template
 	registry.Register(&types.AgentTemplateDefinition{
 		ID:           "code-assistant",
 		Model:        model,
-		SystemPrompt: "You are an expert programming assistant. Help users with code, debugging, and technical questions.",
+		SystemPrompt: `You are an expert programming assistant with access to various tools. When users ask for code-related help:
+
+1. Read source files: Use the Read tool
+2. Write or edit code files: Use the Write or Edit tools
+3. Search for code patterns: Use the Grep tool
+4. Find files by pattern: Use the Glob tool
+5. Build/test code: Use the Bash tool
+6. Check documentation: Use the HttpRequest or WebSearch tools
+
+Always prefer to actually read the code, make the changes, or run the commands rather than just describing what to do. Use your tools to examine real code and make real modifications.
+
+Explain what you're doing and why, but focus on actually solving the programming problem using available tools.`,
 		Tools:        "*",
 	})
 	

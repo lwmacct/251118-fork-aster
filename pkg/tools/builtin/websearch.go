@@ -112,8 +112,13 @@ func (t *WebSearchTool) Execute(ctx context.Context, input map[string]interface{
 		"api_key":             t.apiKey,
 		"query":               query,
 		"max_results":         maxResults,
-		"search_depth":        topic, // Tavily 使用 search_depth 而非 topic
 		"include_raw_content": includeRawContent,
+	}
+	
+	// Tavily API的search_depth只接受"basic"或"advanced"
+	// 我们的topic映射: general->basic, news->basic, finance->basic
+	if topic != "" {
+		requestBody["search_depth"] = "basic" // 默认使用basic模式
 	}
 
 	jsonData, err := json.Marshal(requestBody)

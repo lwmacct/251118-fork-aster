@@ -2,9 +2,11 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"iter"
 	"log"
+	"strings"
 
 	"github.com/astercloud/aster/pkg/middleware"
 	"github.com/astercloud/aster/pkg/provider"
@@ -93,8 +95,8 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 		}
 
 		// 7. 流式执行模型步骤
+		// 检查上下文是否已取消
 		for {
-			// 检查上下文是否已取消
 			select {
 			case <-ctx.Done():
 				yield(nil, ctx.Err())
@@ -102,19 +104,11 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 			default:
 			}
 
-			// 执行一步模型推理
-			event, done, err := a.runModelStepStreaming(ctx)
+			// 执行流式模型推理
+			done, err := a.runModelStepStreaming(ctx, yield)
 			if err != nil {
 				yield(nil, fmt.Errorf("model step: %w", err))
 				return
-			}
-
-			// Yield 事件，如果客户端返回 false 则中断
-			if event != nil {
-				if !yield(event, nil) {
-					log.Printf("[Agent Stream] Client cancelled stream")
-					return
-				}
 			}
 
 			// 检查是否完成
@@ -122,6 +116,9 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 				log.Printf("[Agent Stream] Stream completed")
 				return
 			}
+
+			// 如果没有完成，继续下一轮模型推理（通常是因为有工具调用）
+			log.Printf("[Agent Stream] Continuing to next model inference round")
 		}
 	}
 }
@@ -248,7 +245,7 @@ func (a *Agent) handleSlashCommandForStream(ctx context.Context, msg *types.Mess
 
 // runModelStepStreaming 流式执行模型步骤
 // 返回: (event, done, error)
-func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool, error) {
+func (a *Agent) runModelStepStreaming(ctx context.Context, yield func(*session.Event, error) bool) (bool, error) {
 	// 1. 准备消息
 	a.mu.RLock()
 	messages := make([]types.Message, len(a.messages))
@@ -259,8 +256,11 @@ func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool
 	var resp *middleware.ModelResponse
 	var err error
 
+		log.Printf("[Agent Stream] Using middleware stack: %v", a.middlewareStack != nil)
+
 	if a.middlewareStack != nil {
 		// 使用 Middleware Stack
+		log.Printf("[Agent Stream] Using middleware stack for streaming")
 		// 转换工具列表
 		toolList := make([]tools.Tool, 0, len(a.toolMap))
 		for _, tool := range a.toolMap {
@@ -294,12 +294,14 @@ func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool
 			}
 
 			// 调用Provider - 使用Stream方法支持流式响应
+			log.Printf("[Agent Stream] Calling provider.Stream() for middleware")
 			chunkCh, err := a.provider.Stream(ctx, req.Messages, streamOpts)
 			if err != nil {
 				return nil, err
 			}
 
 			// 直接将流式响应发送到WebSocket，但这里先收集用于兼容旧逻辑
+			log.Printf("[Agent Stream] Starting to collect chunks from provider")
 			var assistantMessage types.Message
 			var contentBlocks []types.ContentBlock
 
@@ -331,6 +333,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool
 
 		resp, err = a.middlewareStack.ExecuteModelCall(ctx, req, finalHandler)
 	} else {
+		log.Printf("[Agent Stream] Using direct provider call (no middleware)")
 		// 转换工具定义
 		toolSchemas := make([]provider.ToolSchema, len(a.getToolsForProvider()))
 		for i, tool := range a.getToolsForProvider() {
@@ -347,34 +350,101 @@ func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool
 			System:      a.template.SystemPrompt,
 			Temperature: 0.7,
 		}
+		log.Printf("[Agent Stream] Calling provider.Stream() directly")
 		chunkCh, err := a.provider.Stream(ctx, messages, streamOpts)
 		if err != nil {
-			return nil, false, err
+			return false, err
 		}
 
-		// 收集流式响应并合并为完整消息
+		// 实时处理流式响应
 		var assistantMessage types.Message
 		var contentBlocks []types.ContentBlock
+		var toolCalls []types.ToolCall
+		var currentToolCall *types.ToolCall
+		var argumentsBuilder strings.Builder
+
+		log.Printf("[Agent Stream] 开始处理流式响应")
 
 		for chunk := range chunkCh {
+			log.Printf("[Agent Stream] 处理chunk: type=%s, index=%d, delta=%v", chunk.Type, chunk.Index, chunk.Delta)
+
 			if chunk.Type == "content_block_delta" {
 				if delta, ok := chunk.Delta.(map[string]interface{}); ok {
 					if chunkType, ok := delta["type"].(string); ok {
 						switch chunkType {
 						case "text_delta":
 							if text, ok := delta["text"].(string); ok {
+								log.Printf("[Agent Stream] 收到文本增量: %s", truncate(text, 50))
 								contentBlocks = append(contentBlocks, &types.TextBlock{Text: text})
+
+								// 立即为这个text chunk生成事件并yield
+								event := &session.Event{
+									ID:        generateEventID(),
+									Timestamp: a.createdAt,
+									AgentID:   a.id,
+									Author:    "assistant",
+									Content: types.Message{
+										Role:         types.RoleAssistant,
+										ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: text}},
+									},
+									Actions: session.EventActions{},
+								}
+
+								// 立即发送事件到流
+								if !yield(event, nil) {
+									log.Printf("[Agent Stream] Client cancelled stream during text streaming")
+									return true, nil
+								}
 							}
 						case "arguments":
-							// 处理工具调用参数 - 暂时跳过
+							// 处理工具调用参数
+							if args, ok := delta["arguments"].(string); ok {
+								log.Printf("[Agent Stream] 收到工具参数增量: %s", truncate(args, 100))
+								argumentsBuilder.WriteString(args)
+							}
 						}
 					}
+				}
+			} else if chunk.Type == "content_block_start" {
+				// 开始新的工具调用
+				if toolInfo, ok := chunk.Delta.(map[string]interface{}); ok {
+					if name, ok := toolInfo["name"].(string); ok {
+						if id, ok := toolInfo["id"].(string); ok {
+							log.Printf("[Agent Stream] 开始工具调用: name=%s, id=%s", name, id)
+							currentToolCall = &types.ToolCall{
+								ID:   id,
+								Name: name,
+							}
+							argumentsBuilder.Reset()
+						}
+					}
+				}
+			} else if chunk.Type == "message_delta" {
+				// 消息结束，处理完整的工具调用
+				if currentToolCall != nil && argumentsBuilder.Len() > 0 {
+					argsStr := argumentsBuilder.String()
+					log.Printf("[Agent Stream] 工具调用完成，参数: %s", truncate(argsStr, 200))
+
+					// 解析JSON参数
+					var input map[string]interface{}
+					if err := json.Unmarshal([]byte(argsStr), &input); err != nil {
+						log.Printf("[Agent Stream] 解析工具参数失败: %v", err)
+						input = make(map[string]interface{})
+					}
+
+					currentToolCall.Arguments = input
+					toolCalls = append(toolCalls, *currentToolCall)
+					currentToolCall = nil
 				}
 			}
 		}
 
+		// 构建最终消息
 		assistantMessage.ContentBlocks = contentBlocks
 		assistantMessage.Role = types.RoleAssistant
+		assistantMessage.ToolCalls = toolCalls
+
+		log.Printf("[Agent Stream] 流式处理完成 - 内容块数: %d, 工具调用数: %d", len(contentBlocks), len(toolCalls))
 
 		resp = &middleware.ModelResponse{
 			Message:  assistantMessage,
@@ -383,7 +453,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool
 	}
 
 	if err != nil {
-		return nil, false, err
+		return false, err
 	}
 
 	// 3. 处理响应
@@ -392,14 +462,25 @@ func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool
 	a.mu.Unlock()
 
 	// 4. 检查是否有工具调用
+	log.Printf("[Agent Stream] 检查工具调用 - ToolCalls数量: %d", len(resp.Message.ToolCalls))
 	if len(resp.Message.ToolCalls) > 0 {
+		log.Printf("[Agent Stream] 发现 %d 个工具调用，开始执行", len(resp.Message.ToolCalls))
+		for i, tc := range resp.Message.ToolCalls {
+			log.Printf("[Agent Stream] 工具调用 #%d: ID=%s, Name=%s, Args=%v", i+1, tc.ID, tc.Name, tc.Arguments)
+		}
+
 		// 执行工具调用
 		if err := a.executeToolCalls(ctx, resp.Message.ToolCalls); err != nil {
-			return nil, false, err
+			log.Printf("[Agent Stream] 工具调用执行失败: %v", err)
+			return false, err
 		}
-		// 继续循环
-		return nil, false, nil
+
+		log.Printf("[Agent Stream] 工具调用执行完成，继续下一轮模型推理")
+		// 继续下一轮模型推理来处理工具执行结果
+		return false, nil
 	}
+
+	log.Printf("[Agent Stream] 没有工具调用，生成最终响应事件")
 
 	// 5. 生成事件
 	event := &session.Event{
@@ -419,7 +500,13 @@ func (a *Agent) runModelStepStreaming(ctx context.Context) (*session.Event, bool
 	// 7. 发布事件到 EventBus (暂时禁用，因为events包未实现)
 	// TODO: 实现事件发布系统
 
-	return event, true, nil
+	// 8. Yield 事件到流
+	if !yield(event, nil) {
+		log.Printf("[Agent Stream] Client cancelled stream during event yield")
+		return true, nil
+	}
+
+	return true, nil
 }
 
 // executeToolCalls 执行工具调用

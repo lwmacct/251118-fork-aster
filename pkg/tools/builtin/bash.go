@@ -147,16 +147,57 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 		timeout = t.getCommandTimeout(command)
 	}
 
-	// 执行命令
-	result, err := tc.Sandbox.Exec(ctx, fullCommand, &sandbox.ExecOptions{
-		Timeout: timeout,
-		WorkDir: workingDir,
-		Env:     environment,
-	})
+	var taskID string
+	var result *sandbox.ExecResult
+	var err error
+
+	if background {
+		// 后台任务模式：使用TaskManager
+		taskManager := GetGlobalTaskManager()
+		taskOpts := &TaskOptions{
+			WorkDir:       workingDir,
+			Env:           environment,
+			Timeout:       timeout,
+			Background:    true,
+			Shell:         shellType,
+			CaptureOutput: captureOutput,
+		}
+
+		taskInfo, taskErr := taskManager.StartTask(ctx, command, taskOpts)
+		if taskErr != nil {
+			return map[string]interface{}{
+				"ok":    false,
+				"error": fmt.Sprintf("failed to start background task: %v", taskErr),
+				"recommendations": []string{
+					"检查命令语法是否正确",
+					"确认工作目录是否存在",
+					"验证是否有执行权限",
+				},
+				"command":     command,
+				"background": true,
+				"duration_ms": time.Since(start).Milliseconds(),
+			}, nil
+		}
+
+		// 后台任务启动成功
+		taskID = taskInfo.ID
+		result = &sandbox.ExecResult{
+			Code:    0, // 后台任务通常立即返回，实际状态由TaskManager管理
+			Stdout:  "", // 初始输出为空，通过BashOutput获取
+			Stderr:  "",
+		}
+	} else {
+		// 前台任务模式：直接执行
+		result, err = tc.Sandbox.Exec(ctx, fullCommand, &sandbox.ExecOptions{
+			Timeout: timeout,
+			WorkDir: workingDir,
+			Env:     environment,
+		})
+	}
 
 	duration := time.Since(start)
 
-	if err != nil {
+	if err != nil && !background {
 		return map[string]interface{}{
 			"ok":    false,
 			"error": fmt.Sprintf("command execution failed: %v", err),
@@ -215,6 +256,12 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 			"验证命令参数是否正确",
 			"确认所需的依赖是否已安装",
 		}
+	}
+
+	// 如果是后台任务，添加task_id到响应中
+	if background && taskID != "" {
+		response["bash_id"] = taskID
+		response["task_id"] = taskID
 	}
 
 	return response, nil
