@@ -63,6 +63,9 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 		userMsg := types.Message{
 			Role:    types.RoleUser,
 			Content: message,
+			ContentBlocks: []types.ContentBlock{
+				&types.TextBlock{Text: message},
+			},
 		}
 
 		// 3. 检查 Slash Commands

@@ -63,15 +63,98 @@ type ToolsManualConfig struct {
 	Exclude []string `json:"exclude,omitempty"`
 }
 
+// PromptCompressionConfig Prompt 压缩配置
+type PromptCompressionConfig struct {
+	// Enabled 是否启用压缩
+	Enabled bool `json:"enabled"`
+
+	// MaxLength 触发压缩的阈值（字符数）
+	// 当 System Prompt 长度超过此值时自动压缩
+	// 默认值: 5000
+	MaxLength int `json:"max_length,omitempty"`
+
+	// TargetLength 目标长度（字符数）
+	// 压缩后的目标长度
+	// 默认值: 3000
+	TargetLength int `json:"target_length,omitempty"`
+
+	// Mode 压缩模式
+	// - "simple": 基于规则的快速压缩
+	// - "llm": LLM 驱动的智能压缩
+	// - "hybrid": 混合模式（先规则后 LLM）
+	// 默认值: "hybrid"
+	Mode string `json:"mode,omitempty"`
+
+	// Level 压缩级别
+	// - 1: 轻度压缩（保留 60-70%）
+	// - 2: 中度压缩（保留 40-50%）
+	// - 3: 激进压缩（保留 20-30%）
+	// 默认值: 2
+	Level int `json:"level,omitempty"`
+
+	// PreserveSections 必须保留的段落标题
+	// 这些段落不会被压缩移除
+	// 默认值: ["Tools Manual", "Security Guidelines"]
+	PreserveSections []string `json:"preserve_sections,omitempty"`
+
+	// CacheEnabled 是否启用压缩结果缓存
+	// 启用后相同内容不会重复压缩
+	// 默认值: true
+	CacheEnabled bool `json:"cache_enabled,omitempty"`
+
+	// Language 提示词语言
+	// - "zh": 中文
+	// - "en": 英文
+	// 默认值: "zh"
+	Language string `json:"language,omitempty"`
+
+	// Model LLM 压缩使用的模型
+	// 默认值: "deepseek-chat"
+	Model string `json:"model,omitempty"`
+}
+
+// ConversationCompressionConfig 对话历史压缩配置
+// 当对话 Token 数超过阈值时自动压缩，生成结构化摘要
+type ConversationCompressionConfig struct {
+	// Enabled 是否启用对话压缩
+	Enabled bool `json:"enabled"`
+
+	// TokenBudget 总 Token 预算
+	// 默认值: 200000 (类似 Claude Code)
+	TokenBudget int `json:"token_budget,omitempty"`
+
+	// Threshold 触发压缩的使用率阈值 (0.0-1.0)
+	// 当 Token 使用率达到此阈值时触发压缩
+	// 默认值: 0.80 (80%)
+	Threshold float64 `json:"threshold,omitempty"`
+
+	// MinMessagesToKeep 压缩后最少保留的消息数
+	// 默认值: 6
+	MinMessagesToKeep int `json:"min_messages_to_keep,omitempty"`
+
+	// SummaryLanguage 摘要语言
+	// - "zh": 中文
+	// - "en": 英文
+	// 默认值: "zh"
+	SummaryLanguage string `json:"summary_language,omitempty"`
+
+	// UseLLMSummarizer 是否使用 LLM 生成摘要
+	// 如果为 false，使用基于规则的快速摘要
+	// 默认值: false
+	UseLLMSummarizer bool `json:"use_llm_summarizer,omitempty"`
+}
+
 // AgentTemplateRuntime Agent模板运行时配置
 type AgentTemplateRuntime struct {
-	ExposeThinking     bool                   `json:"expose_thinking,omitempty"`
-	Todo               *TodoConfig            `json:"todo,omitempty"`
-	SubAgents          *SubAgentConfig        `json:"subagents,omitempty"`
-	Metadata           map[string]interface{} `json:"metadata,omitempty"`
-	ToolTimeoutMs      int                    `json:"tool_timeout_ms,omitempty"`
-	MaxToolConcurrency int                    `json:"max_tool_concurrency,omitempty"`
-	ToolsManual        *ToolsManualConfig     `json:"tools_manual,omitempty"`
+	ExposeThinking          bool                           `json:"expose_thinking,omitempty"`
+	Todo                    *TodoConfig                    `json:"todo,omitempty"`
+	SubAgents               *SubAgentConfig                `json:"subagents,omitempty"`
+	Metadata                map[string]interface{}         `json:"metadata,omitempty"`
+	ToolTimeoutMs           int                            `json:"tool_timeout_ms,omitempty"`
+	MaxToolConcurrency      int                            `json:"max_tool_concurrency,omitempty"`
+	ToolsManual             *ToolsManualConfig             `json:"tools_manual,omitempty"`
+	PromptCompression       *PromptCompressionConfig       `json:"prompt_compression,omitempty"`
+	ConversationCompression *ConversationCompressionConfig `json:"conversation_compression,omitempty"`
 }
 
 // AgentTemplateDefinition Agent模板定义

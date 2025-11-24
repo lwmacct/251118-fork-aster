@@ -162,51 +162,393 @@ func (m *SummarizationMiddleware) WrapModelCall(ctx context.Context, req *ModelR
 }
 
 // defaultSummarizer 默认的总结生成器
-// 这是一个简单的实现,实际使用时应该提供自定义的 summarizer 函数调用真实的 LLM
+// 生成 Claude Code 风格的结构化摘要
 func defaultSummarizer(ctx context.Context, messages []types.Message) (string, error) {
-	// 默认实现: 提取关键信息并格式化
 	var summary strings.Builder
-	summary.WriteString("Summary of previous conversation:\n\n")
 
-	// 统计消息数量
-	summary.WriteString(fmt.Sprintf("- Total messages: %d\n", len(messages)))
+	summary.WriteString("This session is being continued from a previous conversation that ran out of context. The conversation is summarized below:\n\n")
 
-	// 提取关键内容 (前 3 条和后 3 条)
-	numToShow := 3
-	if len(messages) <= numToShow*2 {
-		numToShow = len(messages) / 2
+	// Analysis section - 按时间顺序分析对话
+	summary.WriteString("Analysis:\n")
+	summary.WriteString("Let me chronologically analyze the conversation:\n\n")
+
+	// 提取对话的关键阶段
+	phases := extractConversationPhases(messages)
+	for i, phase := range phases {
+		summary.WriteString(fmt.Sprintf("%d. **%s**:\n", i+1, phase.Title))
+		for _, point := range phase.Points {
+			summary.WriteString(fmt.Sprintf("   - %s\n", point))
+		}
+		summary.WriteString("\n")
 	}
 
-	if numToShow > 0 {
-		summary.WriteString("\nEarly conversation:\n")
-		for i := 0; i < numToShow && i < len(messages); i++ {
-			msg := messages[i]
-			content := extractMessageContent(msg)
-			if len(content) > 100 {
-				content = content[:100] + "..."
-			}
-			summary.WriteString(fmt.Sprintf("- [%s]: %s\n", msg.Role, content))
-		}
+	// Summary section - 结构化的摘要信息
+	summary.WriteString("Summary:\n")
 
-		if len(messages) > numToShow*2 {
-			summary.WriteString(fmt.Sprintf("\n... (%d messages omitted) ...\n", len(messages)-numToShow*2))
-		}
+	// 1. Primary Request and Intent
+	summary.WriteString("1. Primary Request and Intent:\n")
+	intent := extractUserIntent(messages)
+	summary.WriteString(fmt.Sprintf("   - %s\n\n", intent))
 
-		if len(messages) > numToShow {
-			summary.WriteString("\nRecent conversation:\n")
-			start := len(messages) - numToShow
-			for i := start; i < len(messages); i++ {
-				msg := messages[i]
-				content := extractMessageContent(msg)
-				if len(content) > 100 {
-					content = content[:100] + "..."
-				}
-				summary.WriteString(fmt.Sprintf("- [%s]: %s\n", msg.Role, content))
-			}
-		}
+	// 2. Key Technical Concepts
+	summary.WriteString("2. Key Technical Concepts:\n")
+	concepts := extractTechnicalConcepts(messages)
+	for _, concept := range concepts {
+		summary.WriteString(fmt.Sprintf("   - %s\n", concept))
 	}
+	summary.WriteString("\n")
+
+	// 3. Files and Code Sections
+	summary.WriteString("3. Files and Code Sections:\n")
+	files := extractFileReferences(messages)
+	if len(files) > 0 {
+		for _, file := range files {
+			summary.WriteString(fmt.Sprintf("   - `%s`\n", file))
+		}
+	} else {
+		summary.WriteString("   - No specific files referenced\n")
+	}
+	summary.WriteString("\n")
+
+	// 4. Problem Solving Progress
+	summary.WriteString("4. Problem Solving Progress:\n")
+	progress := extractProblemSolvingProgress(messages)
+	for _, item := range progress {
+		summary.WriteString(fmt.Sprintf("   - %s\n", item))
+	}
+	summary.WriteString("\n")
+
+	// 5. All user messages (最近几条)
+	summary.WriteString("5. Recent User Messages:\n")
+	userMessages := extractUserMessages(messages, 5)
+	for _, msg := range userMessages {
+		if len(msg) > 200 {
+			msg = msg[:200] + "..."
+		}
+		summary.WriteString(fmt.Sprintf("   - \"%s\"\n", msg))
+	}
+	summary.WriteString("\n")
+
+	// 6. Pending Tasks
+	summary.WriteString("6. Pending Tasks:\n")
+	tasks := extractPendingTasks(messages)
+	if len(tasks) > 0 {
+		for _, task := range tasks {
+			summary.WriteString(fmt.Sprintf("   - %s\n", task))
+		}
+	} else {
+		summary.WriteString("   - No explicit pending tasks identified\n")
+	}
+	summary.WriteString("\n")
+
+	// 7. Current Work
+	summary.WriteString("7. Current Work:\n")
+	currentWork := extractCurrentWork(messages)
+	summary.WriteString(fmt.Sprintf("   %s\n\n", currentWork))
+
+	summary.WriteString("Please continue the conversation from where we left it off without asking the user any further questions. Continue with the last task that you were asked to work on.")
 
 	return summary.String(), nil
+}
+
+// ConversationPhase 对话阶段
+type ConversationPhase struct {
+	Title  string
+	Points []string
+}
+
+// extractConversationPhases 提取对话的关键阶段
+func extractConversationPhases(messages []types.Message) []ConversationPhase {
+	phases := []ConversationPhase{}
+
+	// 分析消息并提取关键阶段
+	var currentPhase *ConversationPhase
+	messageCount := 0
+
+	for _, msg := range messages {
+		content := extractMessageContent(msg)
+		if content == "" {
+			continue
+		}
+
+		messageCount++
+
+		// 每 5-10 条消息大约一个阶段
+		if currentPhase == nil || len(currentPhase.Points) >= 3 {
+			title := fmt.Sprintf("Phase %d", len(phases)+1)
+
+			// 尝试从用户消息中提取阶段主题
+			if msg.Role == types.MessageRoleUser {
+				if len(content) > 50 {
+					title = content[:50] + "..."
+				} else {
+					title = content
+				}
+			}
+
+			currentPhase = &ConversationPhase{
+				Title:  title,
+				Points: []string{},
+			}
+			phases = append(phases, *currentPhase)
+		}
+
+		// 提取关键点
+		point := ""
+		if msg.Role == types.MessageRoleUser {
+			point = fmt.Sprintf("User: %s", truncateString(content, 100))
+		} else if msg.Role == types.MessageRoleAssistant {
+			// 检查是否有工具调用
+			hasToolUse := false
+			for _, block := range msg.ContentBlocks {
+				if _, ok := block.(*types.ToolUseBlock); ok {
+					hasToolUse = true
+					break
+				}
+			}
+			if hasToolUse {
+				point = "Assistant executed tools"
+			} else {
+				point = fmt.Sprintf("Assistant: %s", truncateString(content, 80))
+			}
+		}
+
+		if point != "" && len(phases) > 0 {
+			phases[len(phases)-1].Points = append(phases[len(phases)-1].Points, point)
+		}
+	}
+
+	// 限制阶段数量
+	if len(phases) > 5 {
+		phases = phases[len(phases)-5:]
+	}
+
+	return phases
+}
+
+// extractUserIntent 提取用户意图
+func extractUserIntent(messages []types.Message) string {
+	// 找到最早的用户消息作为主要意图
+	for _, msg := range messages {
+		if msg.Role == types.MessageRoleUser {
+			content := extractMessageContent(msg)
+			if content != "" {
+				if len(content) > 300 {
+					return content[:300] + "..."
+				}
+				return content
+			}
+		}
+	}
+	return "No clear intent identified"
+}
+
+// extractTechnicalConcepts 提取技术概念
+func extractTechnicalConcepts(messages []types.Message) []string {
+	concepts := make(map[string]bool)
+
+	// 技术关键词模式
+	techKeywords := []string{
+		"API", "SDK", "框架", "framework", "压缩", "compression",
+		"Token", "Context", "Agent", "middleware", "中间件",
+		"函数", "function", "方法", "method", "类", "class",
+		"模块", "module", "包", "package", "配置", "config",
+	}
+
+	for _, msg := range messages {
+		content := extractMessageContent(msg)
+		for _, keyword := range techKeywords {
+			if strings.Contains(strings.ToLower(content), strings.ToLower(keyword)) {
+				concepts[keyword] = true
+			}
+		}
+	}
+
+	result := make([]string, 0, len(concepts))
+	for concept := range concepts {
+		result = append(result, concept)
+	}
+
+	// 限制数量
+	if len(result) > 10 {
+		result = result[:10]
+	}
+
+	return result
+}
+
+// extractFileReferences 提取文件引用
+func extractFileReferences(messages []types.Message) []string {
+	files := make(map[string]bool)
+
+	// 文件路径模式
+	for _, msg := range messages {
+		content := extractMessageContent(msg)
+
+		// 简单的文件路径检测
+		words := strings.Fields(content)
+		for _, word := range words {
+			// 检测常见文件扩展名
+			if strings.HasSuffix(word, ".go") ||
+				strings.HasSuffix(word, ".ts") ||
+				strings.HasSuffix(word, ".js") ||
+				strings.HasSuffix(word, ".vue") ||
+				strings.HasSuffix(word, ".json") ||
+				strings.HasSuffix(word, ".yaml") ||
+				strings.HasSuffix(word, ".md") ||
+				strings.Contains(word, "/pkg/") ||
+				strings.Contains(word, "/src/") {
+				// 清理路径
+				clean := strings.Trim(word, "`\"'(),:")
+				if len(clean) > 5 && len(clean) < 200 {
+					files[clean] = true
+				}
+			}
+		}
+	}
+
+	result := make([]string, 0, len(files))
+	for file := range files {
+		result = append(result, file)
+	}
+
+	// 限制数量
+	if len(result) > 15 {
+		result = result[:15]
+	}
+
+	return result
+}
+
+// extractProblemSolvingProgress 提取问题解决进度
+func extractProblemSolvingProgress(messages []types.Message) []string {
+	progress := []string{}
+
+	// 检查工具调用
+	toolCount := 0
+	toolNames := make(map[string]int)
+
+	for _, msg := range messages {
+		if msg.Role == types.MessageRoleAssistant {
+			for _, block := range msg.ContentBlocks {
+				if tu, ok := block.(*types.ToolUseBlock); ok {
+					toolCount++
+					toolNames[tu.Name]++
+				}
+			}
+		}
+	}
+
+	if toolCount > 0 {
+		progress = append(progress, fmt.Sprintf("Executed %d tool calls", toolCount))
+		for name, count := range toolNames {
+			if count > 1 {
+				progress = append(progress, fmt.Sprintf("Used '%s' %d times", name, count))
+			}
+		}
+	}
+
+	// 检查是否有错误处理
+	for _, msg := range messages {
+		content := strings.ToLower(extractMessageContent(msg))
+		if strings.Contains(content, "error") || strings.Contains(content, "错误") {
+			progress = append(progress, "Encountered and addressed errors")
+			break
+		}
+	}
+
+	// 检查是否有成功标记
+	for _, msg := range messages {
+		content := strings.ToLower(extractMessageContent(msg))
+		if strings.Contains(content, "success") || strings.Contains(content, "成功") ||
+			strings.Contains(content, "完成") || strings.Contains(content, "done") {
+			progress = append(progress, "Achieved some milestones")
+			break
+		}
+	}
+
+	if len(progress) == 0 {
+		progress = append(progress, "In progress")
+	}
+
+	return progress
+}
+
+// extractUserMessages 提取最近的用户消息
+func extractUserMessages(messages []types.Message, limit int) []string {
+	userMsgs := []string{}
+
+	for i := len(messages) - 1; i >= 0 && len(userMsgs) < limit; i-- {
+		msg := messages[i]
+		if msg.Role == types.MessageRoleUser {
+			content := extractMessageContent(msg)
+			if content != "" && !strings.HasPrefix(content, "[Tool") {
+				userMsgs = append([]string{content}, userMsgs...)
+			}
+		}
+	}
+
+	return userMsgs
+}
+
+// extractPendingTasks 提取待办任务
+func extractPendingTasks(messages []types.Message) []string {
+	tasks := []string{}
+
+	// 从最近的消息中查找 TODO、待办等
+	for i := len(messages) - 1; i >= 0 && i >= len(messages)-10; i-- {
+		content := extractMessageContent(messages[i])
+
+		// 检查 TODO 标记
+		if strings.Contains(content, "TODO") || strings.Contains(content, "待办") ||
+			strings.Contains(content, "需要") || strings.Contains(content, "接下来") {
+			lines := strings.Split(content, "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "TODO") || strings.Contains(line, "- [ ]") {
+					tasks = append(tasks, strings.TrimSpace(line))
+				}
+			}
+		}
+	}
+
+	// 限制数量
+	if len(tasks) > 5 {
+		tasks = tasks[:5]
+	}
+
+	return tasks
+}
+
+// extractCurrentWork 提取当前工作状态
+func extractCurrentWork(messages []types.Message) string {
+	// 从最后几条消息中提取当前工作状态
+	if len(messages) == 0 {
+		return "No recent activity"
+	}
+
+	// 查找最后的助手消息
+	for i := len(messages) - 1; i >= 0; i-- {
+		msg := messages[i]
+		if msg.Role == types.MessageRoleAssistant {
+			content := extractMessageContent(msg)
+			if content != "" {
+				if len(content) > 200 {
+					return content[:200] + "..."
+				}
+				return content
+			}
+		}
+	}
+
+	return "Working on the user's request"
+}
+
+// truncateString 截断字符串
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // defaultTokenCounter 默认的 token 计数器(基于字符数估算)

@@ -80,6 +80,22 @@ func main() {
 	}
 	rt := router.NewStaticRouter(defaultModel, routes)
 
+	// Create prompt compressor for context compression
+	// 需要先创建一个 Provider 用于 LLM 压缩
+	compressionProvider, err := providerFactory.Create(&types.ModelConfig{
+		Provider: provider,
+		Model:    model,
+		APIKey:   apiKey,
+	})
+	if err != nil {
+		log.Printf("Warning: Failed to create compression provider: %v (compression will be disabled)", err)
+	}
+	var promptCompressor *agent.EnhancedPromptCompressor
+	if compressionProvider != nil {
+		promptCompressor = agent.NewEnhancedPromptCompressor(compressionProvider, "zh")
+		fmt.Println("✅ Prompt compressor initialized")
+	}
+
 	// Create agent dependencies
 	agentDeps := &agent.Dependencies{
 		Store:            st,
@@ -88,6 +104,7 @@ func main() {
 		ProviderFactory:  providerFactory,
 		TemplateRegistry: templateRegistry,
 		Router:           rt,
+		PromptCompressor: promptCompressor,
 	}
 
 	// Create server dependencies
@@ -158,7 +175,7 @@ func registerDefaultTemplates(registry *agent.TemplateRegistry) {
 		}
 	}
 	
-	// Register "chat" template - simple chat agent
+	// Register "chat" template - simple chat agent with prompt compression
 	registry.Register(&types.AgentTemplateDefinition{
 		ID:           "chat",
 		Model:        model,
@@ -176,8 +193,54 @@ Always use the appropriate tool when possible instead of just explaining what yo
 
 When you receive a tool request, think about what tool is needed and use it. After using a tool, explain what you found or did.
 
-If you're unsure whether to use a tool, err on the side of using it - it's better to try and help than to just describe.`,
-		Tools:        "*", // Enable all tools
+If you're unsure whether to use a tool, err on the side of using it - it's better to try and help than to just describe.
+
+## Additional Context
+This is additional content to make the system prompt longer for testing compression.
+The compression system will automatically activate when the prompt exceeds the threshold.
+
+### Security Guidelines
+IMPORTANT: Always follow security best practices:
+- Never expose sensitive credentials
+- Validate all user inputs
+- Use secure connections when possible
+
+### Performance Tips
+- Use streaming for large outputs
+- Cache frequently accessed data
+- Minimize unnecessary API calls
+
+### Code Quality Standards
+- Follow consistent coding conventions
+- Write meaningful comments
+- Include error handling
+
+### Testing Requirements
+- Write unit tests for new features
+- Ensure backward compatibility
+- Test edge cases thoroughly`,
+		Tools: "*", // Enable all tools
+		Runtime: &types.AgentTemplateRuntime{
+			PromptCompression: &types.PromptCompressionConfig{
+				Enabled:          true,
+				MaxLength:        1500, // 降低阈值便于测试
+				TargetLength:     800,
+				Mode:             "hybrid",
+				Level:            2,
+				PreserveSections: []string{"Tools Manual", "Security Guidelines"},
+				CacheEnabled:     true,
+				Language:         "zh",
+			},
+			// 对话历史压缩配置 - 类似 Claude Code 的 tokenBudget 机制
+			ConversationCompression: &types.ConversationCompressionConfig{
+				Enabled:           true,
+				TokenBudget:       5000,  // 降低预算便于测试 (生产环境建议 200000)
+				Threshold:         0.80,  // 80% 使用率触发压缩
+				MinMessagesToKeep: 4,     // 保留最近 4 条消息
+				SummaryLanguage:   "zh",
+				UseLLMSummarizer:  false, // 使用规则摘要，速度更快
+			},
+		},
 	})
 	
 	// Register "default-agent" template (alias for chat)

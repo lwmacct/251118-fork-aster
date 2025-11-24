@@ -212,6 +212,9 @@ func (h *WebSocketHandler) handleMessage(wsConn *WebSocketConnection, msg *WebSo
 
 // handleChat handles chat messages
 func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[string]interface{}) {
+	// Reset read deadline to prevent timeout during long-running LLM requests
+	wsConn.Conn.SetReadDeadline(time.Now().Add(5 * time.Minute))
+
 	// Extract parameters
 	templateID, _ := payload["template_id"].(string)
 	if templateID == "" {
@@ -224,90 +227,104 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 		return
 	}
 
-	// Create agent configuration
-	cfg := &types.AgentConfig{
-		TemplateID: templateID,
-	}
+	var ag *agent.Agent
+	var err error
 
-	// Handle model config if provided
-	if modelConfigData, ok := payload["model_config"].(map[string]interface{}); ok {
-		modelConfig := &types.ModelConfig{}
-		if provider, ok := modelConfigData["provider"].(string); ok {
-			modelConfig.Provider = provider
-		}
-		if model, ok := modelConfigData["model"].(string); ok {
-			modelConfig.Model = model
-		}
-		if apiKey, ok := modelConfigData["api_key"].(string); ok {
-			modelConfig.APIKey = apiKey
+	// Reuse existing agent if available, otherwise create new one
+	if wsConn.Agent != nil {
+		ag = wsConn.Agent
+		logging.Info(wsConn.ctx, "websocket.agent.reused", map[string]interface{}{
+			"agent_id": ag.ID(),
+		})
+	} else {
+		// Create agent configuration
+		cfg := &types.AgentConfig{
+			TemplateID: templateID,
 		}
 
-		// Fill API key from environment if missing
-		if modelConfig.APIKey == "" && modelConfig.Provider != "" {
-			var envKey string
-			switch modelConfig.Provider {
-			case "deepseek":
-				envKey = os.Getenv("DEEPSEEK_API_KEY")
-			case "anthropic":
-				envKey = os.Getenv("ANTHROPIC_API_KEY")
-			case "openai":
-				envKey = os.Getenv("OPENAI_API_KEY")
-			default:
-				envKey = os.Getenv(strings.ToUpper(modelConfig.Provider) + "_API_KEY")
+		// Handle model config if provided
+		if modelConfigData, ok := payload["model_config"].(map[string]interface{}); ok {
+			modelConfig := &types.ModelConfig{}
+			if provider, ok := modelConfigData["provider"].(string); ok {
+				modelConfig.Provider = provider
 			}
-			if envKey != "" {
-				modelConfig.APIKey = envKey
+			if model, ok := modelConfigData["model"].(string); ok {
+				modelConfig.Model = model
 			}
+			if apiKey, ok := modelConfigData["api_key"].(string); ok {
+				modelConfig.APIKey = apiKey
+			}
+
+			// Fill API key from environment if missing
+			if modelConfig.APIKey == "" && modelConfig.Provider != "" {
+				var envKey string
+				switch modelConfig.Provider {
+				case "deepseek":
+					envKey = os.Getenv("DEEPSEEK_API_KEY")
+				case "anthropic":
+					envKey = os.Getenv("ANTHROPIC_API_KEY")
+				case "openai":
+					envKey = os.Getenv("OPENAI_API_KEY")
+				default:
+					envKey = os.Getenv(strings.ToUpper(modelConfig.Provider) + "_API_KEY")
+				}
+				if envKey != "" {
+					modelConfig.APIKey = envKey
+				}
+			}
+
+			cfg.ModelConfig = modelConfig
 		}
 
-		cfg.ModelConfig = modelConfig
-	}
+		// Create agent instance
+		ag, err = agent.Create(wsConn.ctx, cfg, h.deps)
+		if err != nil {
+			h.sendError(wsConn, "agent_creation_failed", err.Error())
+			return
+		}
+		wsConn.Agent = ag
+		h.registry.Register(ag)
+		logging.Info(wsConn.ctx, "websocket.agent.created", map[string]interface{}{
+			"agent_id": ag.ID(),
+		})
 
-	// Create agent instance
-	ag, err := agent.Create(wsConn.ctx, cfg, h.deps)
-	if err != nil {
-		h.sendError(wsConn, "agent_creation_failed", err.Error())
-		return
-	}
-	wsConn.Agent = ag
-	h.registry.Register(ag)
+		// 只在创建新 Agent 时订阅事件（避免重复订阅）
+		eventCh := ag.Subscribe(
+			[]types.AgentChannel{
+				types.ChannelProgress,
+				types.ChannelControl,
+				types.ChannelMonitor,
+			},
+			nil,
+		)
 
-	// 订阅 Agent 事件并转发到客户端
-	eventCh := ag.Subscribe(
-		[]types.AgentChannel{
-			types.ChannelProgress,
-			types.ChannelControl,
-			types.ChannelMonitor,
-		},
-		nil,
-	)
-
-	go func() {
-		defer ag.Unsubscribe(eventCh)
-		for {
-			select {
-			case envelope, ok := <-eventCh:
-				if !ok {
+		go func() {
+			defer ag.Unsubscribe(eventCh)
+			for {
+				select {
+				case envelope, ok := <-eventCh:
+					if !ok {
+						return
+					}
+					channel := ""
+					eventType := ""
+					if ev, ok := envelope.Event.(types.EventType); ok {
+						channel = string(ev.Channel())
+						eventType = ev.EventType()
+					}
+					h.sendMessage(wsConn, "agent_event", map[string]interface{}{
+						"channel":  channel,
+						"type":     eventType,
+						"cursor":   envelope.Cursor,
+						"bookmark": envelope.Bookmark,
+						"event":    envelope.Event,
+					})
+				case <-wsConn.ctx.Done():
 					return
 				}
-				channel := ""
-				eventType := ""
-				if ev, ok := envelope.Event.(types.EventType); ok {
-					channel = string(ev.Channel())
-					eventType = ev.EventType()
-				}
-				h.sendMessage(wsConn, "agent_event", map[string]interface{}{
-					"channel":  channel,
-					"type":     eventType,
-					"cursor":   envelope.Cursor,
-					"bookmark": envelope.Bookmark,
-					"event":    envelope.Event,
-				})
-			case <-wsConn.ctx.Done():
-				return
 			}
-		}
-	}()
+		}()
+	}
 
 	// Send start event
 	h.sendMessage(wsConn, "chat_start", map[string]interface{}{
@@ -315,13 +332,9 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 	})
 
 	// Stream response
+	// 注意: 不在这里关闭 Agent,让 Agent 在整个 WebSocket 连接期间保持活跃
+	// Agent 会在 WebSocket 断开时由 handleDisconnect 关闭
 	go func() {
-		defer func() {
-			if wsConn.Agent != nil {
-				(*wsConn.Agent).Close()
-			}
-		}()
-
 		logging.Info(wsConn.ctx, "websocket.stream.starting", map[string]interface{}{
 			"agent_id": ag.ID(),
 			"input":    input,

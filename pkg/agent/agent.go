@@ -229,9 +229,57 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 
 	// 初始化 Middleware Stack (Phase 6C)
 	var middlewareStack *middleware.Stack
-	if len(config.Middlewares) > 0 {
-		middlewareList := make([]middleware.Middleware, 0, len(config.Middlewares))
-		for _, name := range config.Middlewares {
+
+	// 合并配置的中间件和自动启用的中间件
+	middlewareNames := config.Middlewares
+	if middlewareNames == nil {
+		middlewareNames = []string{}
+	}
+
+	// 自动启用 summarization 中间件（如果模板配置了对话压缩）
+	if template.Runtime != nil && template.Runtime.ConversationCompression != nil &&
+		template.Runtime.ConversationCompression.Enabled {
+		// 检查是否已配置 summarization
+		hasSummarization := false
+		for _, name := range middlewareNames {
+			if name == "summarization" {
+				hasSummarization = true
+				break
+			}
+		}
+		if !hasSummarization {
+			middlewareNames = append(middlewareNames, "summarization")
+			log.Printf("[Agent Create] Auto-enabled summarization middleware from template ConversationCompression config")
+
+			// 如果模板配置了自定义参数，自动添加到 MiddlewareConfig
+			ccConfig := template.Runtime.ConversationCompression
+			if config.MiddlewareConfig == nil {
+				config.MiddlewareConfig = make(map[string]map[string]interface{})
+			}
+			if config.MiddlewareConfig["summarization"] == nil {
+				config.MiddlewareConfig["summarization"] = make(map[string]interface{})
+			}
+			// 将模板配置转换为中间件配置
+			if ccConfig.TokenBudget > 0 {
+				// 将 TokenBudget 转换为 max_tokens (按阈值计算)
+				threshold := ccConfig.Threshold
+				if threshold <= 0 {
+					threshold = 0.80
+				}
+				maxTokens := int(float64(ccConfig.TokenBudget) * threshold)
+				config.MiddlewareConfig["summarization"]["max_tokens"] = maxTokens
+				log.Printf("[Agent Create] Set summarization max_tokens=%d (budget=%d, threshold=%.2f)",
+					maxTokens, ccConfig.TokenBudget, threshold)
+			}
+			if ccConfig.MinMessagesToKeep > 0 {
+				config.MiddlewareConfig["summarization"]["messages_to_keep"] = ccConfig.MinMessagesToKeep
+			}
+		}
+	}
+
+	if len(middlewareNames) > 0 {
+		middlewareList := make([]middleware.Middleware, 0, len(middlewareNames))
+		for _, name := range middlewareNames {
 			var custom map[string]interface{}
 			if cfgMap := config.MiddlewareConfig; cfgMap != nil {
 				if v, ok := cfgMap[name]; ok {
@@ -300,8 +348,10 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 		stopCh:             make(chan struct{}),
 	}
 
-	// 注入工具手册到系统提示词（在初始化之前，因为 initialize 会保存信息）
-	agent.injectToolManual()
+	// 使用 PromptBuilder 构建 System Prompt（在初始化之前，因为 initialize 会保存信息）
+	if err := agent.buildSystemPrompt(ctx); err != nil {
+		return nil, fmt.Errorf("build system prompt: %w", err)
+	}
 
 	// 初始化
 	if err := agent.initialize(ctx); err != nil {
@@ -352,7 +402,224 @@ func (a *Agent) initialize(ctx context.Context) error {
 	return nil
 }
 
+// buildSystemPrompt 使用 PromptBuilder 构建 System Prompt
+func (a *Agent) buildSystemPrompt(ctx context.Context) error {
+	// 创建 PromptBuilder（支持压缩）
+	var builder *PromptBuilder
+	if a.deps.PromptCompressor != nil {
+		builder = NewPromptBuilderWithCompression(a.deps.PromptCompressor)
+	} else {
+		builder = NewPromptBuilder()
+	}
+
+	// 添加基础模块
+	builder.AddModule(&BasePromptModule{})
+
+	// 添加能力说明模块（如果启用）
+	builder.AddModule(&CapabilitiesModule{})
+
+	// 收集环境信息
+	workDir := "."
+	if a.sandbox != nil {
+		workDir = a.sandbox.WorkDir()
+	}
+	envInfo := collectEnvironmentInfo(ctx, workDir)
+
+	// 添加环境信息模块
+	builder.AddModule(&EnvironmentModule{})
+
+	// 添加沙箱信息模块
+	builder.AddModule(&SandboxModule{})
+
+	// 添加工具手册模块
+	var toolsManualConfig *types.ToolsManualConfig
+	if a.template.Runtime != nil && a.template.Runtime.ToolsManual != nil {
+		toolsManualConfig = a.template.Runtime.ToolsManual
+	}
+	builder.AddModule(&ToolsManualModule{Config: toolsManualConfig})
+
+	// 添加 Todo 提醒模块
+	var todoConfig *types.TodoConfig
+	if a.template.Runtime != nil && a.template.Runtime.Todo != nil {
+		todoConfig = a.template.Runtime.Todo
+	}
+	builder.AddModule(&TodoReminderModule{Config: todoConfig})
+
+	// 添加代码引用模块
+	builder.AddModule(&CodeReferenceModule{})
+
+	// 添加安全策略模块
+	builder.AddModule(&SecurityModule{})
+
+	// 添加性能优化模块
+	builder.AddModule(&PerformanceModule{})
+
+	// 添加协作模块（如果在 Room 中）
+	if roomInfo := a.extractRoomInfo(); roomInfo != nil {
+		builder.AddModule(&CollaborationModule{RoomInfo: roomInfo})
+	}
+
+	// 添加工作流模块（如果在 Workflow 中）
+	if workflowInfo := a.extractWorkflowInfo(); workflowInfo != nil {
+		builder.AddModule(&WorkflowModule{WorkflowInfo: workflowInfo})
+	}
+
+	// 添加自定义指令模块
+	if customInstructions := a.extractCustomInstructions(); customInstructions != "" {
+		builder.AddModule(&CustomInstructionsModule{Instructions: customInstructions})
+	}
+
+	// 添加限制说明模块
+	builder.AddModule(&LimitationsModule{})
+
+	// 添加上下文窗口管理模块
+	if contextConfig := a.extractContextWindowConfig(); contextConfig != nil {
+		builder.AddModule(&ContextWindowModule{
+			MaxTokens: contextConfig.MaxTokens,
+			Strategy:  contextConfig.Strategy,
+		})
+	}
+
+	// 收集沙箱信息
+	var sandboxInfo *SandboxInfo
+	if a.sandbox != nil && a.config.Sandbox != nil {
+		sandboxInfo = &SandboxInfo{
+			Kind:       a.config.Sandbox.Kind,
+			WorkDir:    a.sandbox.WorkDir(),
+			AllowPaths: a.config.Sandbox.AllowPaths,
+		}
+	}
+
+	// 构建上下文
+	promptCtx := &PromptContext{
+		Agent:       a,
+		Template:    a.template,
+		Environment: envInfo,
+		Sandbox:     sandboxInfo,
+		Tools:       a.toolMap,
+		Metadata:    a.config.Metadata,
+	}
+
+	// 构建 System Prompt
+	systemPrompt, err := builder.Build(promptCtx)
+	if err != nil {
+		return fmt.Errorf("build system prompt: %w", err)
+	}
+
+	// 更新模板
+	a.mu.Lock()
+	a.template.SystemPrompt = systemPrompt
+	a.mu.Unlock()
+
+	log.Printf("[buildSystemPrompt] Agent %s: Built system prompt, length: %d", a.id, len(systemPrompt))
+
+	return nil
+}
+
+// extractRoomInfo 提取 Room 协作信息
+func (a *Agent) extractRoomInfo() *RoomCollaborationInfo {
+	if a.config.Metadata == nil {
+		return nil
+	}
+
+	roomID, ok := a.config.Metadata["room_id"].(string)
+	if !ok || roomID == "" {
+		return nil
+	}
+
+	info := &RoomCollaborationInfo{
+		RoomID: roomID,
+	}
+
+	if memberCount, ok := a.config.Metadata["room_member_count"].(int); ok {
+		info.MemberCount = memberCount
+	}
+
+	if members, ok := a.config.Metadata["room_members"].([]string); ok {
+		info.Members = members
+	} else if membersInterface, ok := a.config.Metadata["room_members"].([]interface{}); ok {
+		info.Members = make([]string, 0, len(membersInterface))
+		for _, m := range membersInterface {
+			if str, ok := m.(string); ok {
+				info.Members = append(info.Members, str)
+			}
+		}
+	}
+
+	return info
+}
+
+// extractWorkflowInfo 提取 Workflow 上下文信息
+func (a *Agent) extractWorkflowInfo() *WorkflowContextInfo {
+	if a.config.Metadata == nil {
+		return nil
+	}
+
+	workflowID, ok := a.config.Metadata["workflow_id"].(string)
+	if !ok || workflowID == "" {
+		return nil
+	}
+
+	info := &WorkflowContextInfo{
+		WorkflowID: workflowID,
+	}
+
+	if currentStep, ok := a.config.Metadata["workflow_current_step"].(string); ok {
+		info.CurrentStep = currentStep
+	}
+
+	if totalSteps, ok := a.config.Metadata["workflow_total_steps"].(int); ok {
+		info.TotalSteps = totalSteps
+	}
+
+	if stepIndex, ok := a.config.Metadata["workflow_step_index"].(int); ok {
+		info.StepIndex = stepIndex
+	}
+
+	if prevStep, ok := a.config.Metadata["workflow_previous_step"].(string); ok {
+		info.PreviousStep = prevStep
+	}
+
+	if nextStep, ok := a.config.Metadata["workflow_next_step"].(string); ok {
+		info.NextStep = nextStep
+	}
+
+	return info
+}
+
+// extractCustomInstructions 提取自定义指令
+func (a *Agent) extractCustomInstructions() string {
+	if a.config.Metadata == nil {
+		return ""
+	}
+
+	if instructions, ok := a.config.Metadata["custom_instructions"].(string); ok {
+		return instructions
+	}
+
+	return ""
+}
+
+// extractContextWindowConfig 提取上下文窗口配置
+func (a *Agent) extractContextWindowConfig() *struct {
+	MaxTokens int
+	Strategy  string
+} {
+	if a.config.Context == nil {
+		return nil
+	}
+
+	return &struct {
+		MaxTokens int
+		Strategy  string
+	}{
+		MaxTokens: a.config.Context.MaxTokens,
+		Strategy:  "auto", // 可以从配置中读取
+	}
+}
+
 // injectToolManual 注入工具手册到系统提示词
+// Deprecated: 使用 buildSystemPrompt 替代
 func (a *Agent) injectToolManual() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -590,6 +857,14 @@ func (a *Agent) Status() *types.AgentStatus {
 		Cursor:       a.eventBus.GetCursor(),
 		Breakpoint:   a.breakpoint,
 	}
+}
+
+// GetSystemPrompt 获取当前的 System Prompt
+func (a *Agent) GetSystemPrompt() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	return a.template.SystemPrompt
 }
 
 // Close 关闭Agent
