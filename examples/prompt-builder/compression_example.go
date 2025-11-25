@@ -67,33 +67,29 @@ func templateCompressionExample() {
 	fmt.Println("\n=== 模板配置压缩示例 ===")
 
 	// 创建带压缩配置的模板
-	template := &types.AgentTemplateDefinition{
-		ID:           "code-assistant-compressed",
-		SystemPrompt: "You are a helpful code assistant.",
-		Model:        "deepseek-chat",
-		Tools:        []string{"read_file", "write_file", "bash"},
-		Runtime: &types.AgentTemplateRuntime{
-			PromptCompression: &types.PromptCompressionConfig{
-				Enabled:          true,
-				MaxLength:        5000, // 超过 5000 字符触发压缩
-				TargetLength:     3000, // 压缩到 3000 字符
-				Mode:             "hybrid",
-				Level:            2, // 中度压缩
-				PreserveSections: []string{"Tools Manual", "Security Guidelines"},
-				CacheEnabled:     true,
-				Language:         "zh",
-			},
-		},
+	compressionConfig := &types.PromptCompressionConfig{
+		Enabled:          true,
+		MaxLength:        5000, // 超过 5000 字符触发压缩
+		TargetLength:     3000, // 压缩到 3000 字符
+		Mode:             "hybrid",
+		Level:            2, // 中度压缩
+		PreserveSections: []string{"Tools Manual", "Security Guidelines"},
+		CacheEnabled:     true,
+		Language:         "zh",
 	}
 
-	fmt.Printf("模板 ID: %s\n", template.ID)
+	templateID := "code-assistant-compressed"
+
+	fmt.Printf("模板 ID: %s\n", templateID)
 	fmt.Printf("压缩配置:\n")
-	fmt.Printf("  启用: %v\n", template.Runtime.PromptCompression.Enabled)
-	fmt.Printf("  触发阈值: %d 字符\n", template.Runtime.PromptCompression.MaxLength)
-	fmt.Printf("  目标长度: %d 字符\n", template.Runtime.PromptCompression.TargetLength)
-	fmt.Printf("  压缩模式: %s\n", template.Runtime.PromptCompression.Mode)
-	fmt.Printf("  压缩级别: %d\n", template.Runtime.PromptCompression.Level)
-	fmt.Printf("  保留段落: %v\n", template.Runtime.PromptCompression.PreserveSections)
+	fmt.Printf("  启用: %v\n", compressionConfig.Enabled)
+	fmt.Printf("  ���发阈值: %d 字符\n", compressionConfig.MaxLength)
+	fmt.Printf("  目标长度: %d 字符\n", compressionConfig.TargetLength)
+	fmt.Printf("  压缩模式: %s\n", compressionConfig.Mode)
+	fmt.Printf("  压缩级别: %d\n", compressionConfig.Level)
+	fmt.Printf("  保留段落: %v\n", compressionConfig.PreserveSections)
+	fmt.Printf("  缓存启用: %v\n", compressionConfig.CacheEnabled)
+	fmt.Printf("  语言: %s\n", compressionConfig.Language)
 }
 
 // generateLongPrompt 生成测试用的长 prompt

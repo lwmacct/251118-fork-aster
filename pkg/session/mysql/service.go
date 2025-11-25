@@ -245,22 +245,16 @@ func (s *Service) AppendEvent(ctx context.Context, sessionID string, event *sess
 					return fmt.Errorf("marshal state value: %w", err)
 				}
 
-				stateModel := &StateModel{
-					SessionID: sessionID,
-					Scope:     scope,
-					Key:       actualKey,
-					Value:     valueJSON,
-					UpdatedAt: time.Now(),
-				}
+				now := time.Now()
 
 				// MySQL UPSERT 使用 ON DUPLICATE KEY UPDATE
 				if err := tx.Exec(`
 					INSERT INTO session_states (session_id, scope, `+"`key`"+`, value, created_at, updated_at)
 					VALUES (?, ?, ?, ?, ?, ?)
 					ON DUPLICATE KEY UPDATE value = ?, updated_at = ?
-				`, stateModel.SessionID, stateModel.Scope, stateModel.Key,
-					stateModel.Value, time.Now(), time.Now(),
-					stateModel.Value, time.Now()).Error; err != nil {
+				`, sessionID, scope, actualKey,
+					valueJSON, now, now,
+					valueJSON, now).Error; err != nil {
 					return fmt.Errorf("upsert state: %w", err)
 				}
 			}

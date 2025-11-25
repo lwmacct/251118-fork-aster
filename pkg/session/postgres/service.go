@@ -259,13 +259,7 @@ func (s *Service) AppendEvent(ctx context.Context, sessionID string, event *sess
 					return fmt.Errorf("marshal state value: %w", err)
 				}
 
-				stateModel := &StateModel{
-					SessionID: sessionID,
-					Scope:     scope,
-					Key:       actualKey,
-					Value:     valueJSON,
-					UpdatedAt: time.Now(),
-				}
+				now := time.Now()
 
 				// 使用 UPSERT (ON CONFLICT UPDATE)
 				if err := tx.Exec(`
@@ -273,8 +267,8 @@ func (s *Service) AppendEvent(ctx context.Context, sessionID string, event *sess
 					VALUES ($1, $2, $3, $4, $5, $6)
 					ON CONFLICT (session_id, scope, key)
 					DO UPDATE SET value = $4, updated_at = $6
-				`, stateModel.SessionID, stateModel.Scope, stateModel.Key,
-					stateModel.Value, time.Now(), time.Now()).Error; err != nil {
+				`, sessionID, scope, actualKey,
+					valueJSON, now, now).Error; err != nil {
 					return fmt.Errorf("upsert state: %w", err)
 				}
 			}

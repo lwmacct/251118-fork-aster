@@ -291,18 +291,14 @@ func TestMultiLevelCompressor_GetCompressionStats(t *testing.T) {
 }
 
 func TestCompressionStats_Calculate(t *testing.T) {
-	stats := CompressionStats{
-		OriginalMessages:   10,
-		CompressedMessages: 3,
-		OriginalTokens:     1000,
-		CompressedTokens:   300,
-	}
+	originalTokens := 1000
+	compressedTokens := 300
 
 	expectedRatio := 0.3
-	stats.CompressionRatio = float64(stats.CompressedTokens) / float64(stats.OriginalTokens)
+	actualRatio := float64(compressedTokens) / float64(originalTokens)
 
-	if stats.CompressionRatio != expectedRatio {
-		t.Errorf("CompressionRatio = %.2f, want %.2f", stats.CompressionRatio, expectedRatio)
+	if actualRatio != expectedRatio {
+		t.Errorf("CompressionRatio = %.2f, want %.2f", actualRatio, expectedRatio)
 	}
 }
 
