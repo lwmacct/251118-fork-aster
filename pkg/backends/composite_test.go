@@ -92,10 +92,10 @@ func TestCompositeBackend_PrefixStripping(t *testing.T) {
 	// 测试 4: ListInfo 应该加回前缀
 	t.Run("ListInfo adds prefix back", func(t *testing.T) {
 		// 在不同后端写入文件
-		memoryBackend.Write(ctx, "/note1.txt", "note1")
-		memoryBackend.Write(ctx, "/note2.txt", "note2")
-		workspaceBackend.Write(ctx, "/main.go", "package main")
-		defaultBackend.Write(ctx, "/readme.md", "readme")
+		_, _ = memoryBackend.Write(ctx, "/note1.txt", "note1")
+		_, _ = memoryBackend.Write(ctx, "/note2.txt", "note2")
+		_, _ = workspaceBackend.Write(ctx, "/main.go", "package main")
+		_, _ = defaultBackend.Write(ctx, "/readme.md", "readme")
 
 		// 列出所有文件
 		files, err := composite.ListInfo(ctx, "/")
@@ -147,8 +147,8 @@ func TestCompositeBackend_PrefixStripping(t *testing.T) {
 	// 测试 6: GrepRaw 应该加回前缀
 	t.Run("GrepRaw adds prefix back", func(t *testing.T) {
 		// 写入包含特定模式的文件
-		memoryBackend.Write(ctx, "/search.txt", "TODO: important task")
-		workspaceBackend.Write(ctx, "/code.go", "// TODO: fix this")
+		_, _ = memoryBackend.Write(ctx, "/search.txt", "TODO: important task")
+		_, _ = workspaceBackend.Write(ctx, "/code.go", "// TODO: fix this")
 
 		// 搜索 "TODO"
 		matches, err := composite.GrepRaw(ctx, "TODO", "/", "")

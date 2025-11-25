@@ -322,8 +322,8 @@ func TestShouldPreserve(t *testing.T) {
 		{"Security Guidelines", []string{"Security"}, true},
 		{"Permission Settings", []string{"Permission"}, true},
 		{"Random Section", []string{"Tools Manual"}, false},
-		{"工具手册", []string{}, true},  // 默认保留
-		{"安全指南", []string{}, true},   // 默认保留
+		{"工具手册", []string{}, true}, // 默认保留
+		{"安全指南", []string{}, true}, // 默认保留
 	}
 
 	for _, tc := range testCases {

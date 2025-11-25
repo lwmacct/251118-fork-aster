@@ -259,7 +259,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, yield func(*session.E
 	var resp *middleware.ModelResponse
 	var err error
 
-		log.Printf("[Agent Stream] Using middleware stack: %v", a.middlewareStack != nil)
+	log.Printf("[Agent Stream] Using middleware stack: %v", a.middlewareStack != nil)
 
 	if a.middlewareStack != nil {
 		// 使用 Middleware Stack
@@ -388,7 +388,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, yield func(*session.E
 									AgentID:   a.id,
 									Author:    "assistant",
 									Content: types.Message{
-										Role:         types.RoleAssistant,
+										Role:          types.RoleAssistant,
 										ContentBlocks: []types.ContentBlock{&types.TextBlock{Text: text}},
 									},
 									Actions: session.EventActions{},
@@ -409,38 +409,38 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, yield func(*session.E
 						}
 					}
 				}
-		case "content_block_start":
-			// 开始新的工具调用
-			if toolInfo, ok := chunk.Delta.(map[string]interface{}); ok {
-				if name, ok := toolInfo["name"].(string); ok {
-					if id, ok := toolInfo["id"].(string); ok {
-						log.Printf("[Agent Stream] 开始工具调用: name=%s, id=%s", name, id)
-						currentToolCall = &types.ToolCall{
-							ID:   id,
-							Name: name,
+			case "content_block_start":
+				// 开始新的工具调用
+				if toolInfo, ok := chunk.Delta.(map[string]interface{}); ok {
+					if name, ok := toolInfo["name"].(string); ok {
+						if id, ok := toolInfo["id"].(string); ok {
+							log.Printf("[Agent Stream] 开始工具调用: name=%s, id=%s", name, id)
+							currentToolCall = &types.ToolCall{
+								ID:   id,
+								Name: name,
+							}
+							argumentsBuilder.Reset()
 						}
-						argumentsBuilder.Reset()
 					}
 				}
-			}
-		case "message_delta":
-			// 消息结束，处理完整的工具调用
-			if currentToolCall != nil && argumentsBuilder.Len() > 0 {
-				argsStr := argumentsBuilder.String()
-				log.Printf("[Agent Stream] 工具调用完成，参数: %s", truncate(argsStr, 200))
+			case "message_delta":
+				// 消息结束，处理完整的工具调用
+				if currentToolCall != nil && argumentsBuilder.Len() > 0 {
+					argsStr := argumentsBuilder.String()
+					log.Printf("[Agent Stream] 工具调用完成，参数: %s", truncate(argsStr, 200))
 
-				// 解析JSON参数
-				var input map[string]interface{}
-				if err := json.Unmarshal([]byte(argsStr), &input); err != nil {
-					log.Printf("[Agent Stream] 解析工具参数失败: %v", err)
-					input = make(map[string]interface{})
+					// 解析JSON参数
+					var input map[string]interface{}
+					if err := json.Unmarshal([]byte(argsStr), &input); err != nil {
+						log.Printf("[Agent Stream] 解析工具参数失败: %v", err)
+						input = make(map[string]interface{})
+					}
+
+					currentToolCall.Arguments = input
+					toolCalls = append(toolCalls, *currentToolCall)
+					currentToolCall = nil
 				}
-
-				currentToolCall.Arguments = input
-				toolCalls = append(toolCalls, *currentToolCall)
-				currentToolCall = nil
 			}
-	}
 		}
 
 		// 构建最终消息

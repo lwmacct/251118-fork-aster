@@ -1,0 +1,224 @@
+package builtin
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/astercloud/aster/pkg/tools"
+	"github.com/astercloud/aster/pkg/tools/bridge"
+)
+
+// CodeExecuteTool 代码执行工具
+// 支持 LLM 生成代码并执行，用于程序化工具调用场景
+type CodeExecuteTool struct {
+	runtimeManager *bridge.RuntimeManager
+	toolBridge     *bridge.ToolBridge
+}
+
+// NewCodeExecuteTool 创建代码执行工具
+func NewCodeExecuteTool(config map[string]interface{}) (tools.Tool, error) {
+	runtimeConfig := bridge.DefaultRuntimeConfig()
+
+	// 解析配置
+	if timeout, ok := config["timeout"].(float64); ok {
+		runtimeConfig.Timeout = time.Duration(timeout) * time.Second
+	}
+	if workDir, ok := config["work_dir"].(string); ok {
+		runtimeConfig.WorkDir = workDir
+	}
+
+	return &CodeExecuteTool{
+		runtimeManager: bridge.NewRuntimeManager(runtimeConfig),
+	}, nil
+}
+
+// NewCodeExecuteToolWithBridge 创建带桥接器的代码执行工具
+func NewCodeExecuteToolWithBridge(toolBridge *bridge.ToolBridge) *CodeExecuteTool {
+	return &CodeExecuteTool{
+		runtimeManager: bridge.NewRuntimeManager(nil),
+		toolBridge:     toolBridge,
+	}
+}
+
+func (t *CodeExecuteTool) Name() string {
+	return "CodeExecute"
+}
+
+func (t *CodeExecuteTool) Description() string {
+	return "Execute code in Python, Node.js, or Bash to perform complex operations or call tools programmatically"
+}
+
+func (t *CodeExecuteTool) InputSchema() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"language": map[string]interface{}{
+				"type":        "string",
+				"enum":        []string{"python", "nodejs", "bash"},
+				"description": "Programming language to use",
+			},
+			"code": map[string]interface{}{
+				"type":        "string",
+				"description": "Code to execute. Use _input variable to access input data.",
+			},
+			"input": map[string]interface{}{
+				"type":        "object",
+				"description": "Input data passed to the code as _input variable (Python/Node.js) or INPUT_JSON (Bash)",
+			},
+		},
+		"required": []string{"language", "code"},
+	}
+}
+
+func (t *CodeExecuteTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+	// 解析参数
+	langStr, ok := input["language"].(string)
+	if !ok {
+		return nil, fmt.Errorf("language must be a string")
+	}
+
+	code, ok := input["code"].(string)
+	if !ok || code == "" {
+		return nil, fmt.Errorf("code must be a non-empty string")
+	}
+
+	// 转换语言类型
+	var lang bridge.Language
+	switch langStr {
+	case "python":
+		lang = bridge.LangPython
+	case "nodejs":
+		lang = bridge.LangNodeJS
+	case "bash":
+		lang = bridge.LangBash
+	default:
+		return map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("unsupported language: %s", langStr),
+		}, nil
+	}
+
+	// 获取输入数据
+	codeInput := make(map[string]interface{})
+	if inputData, ok := input["input"].(map[string]interface{}); ok {
+		codeInput = inputData
+	}
+
+	// 执行代码
+	result, err := t.runtimeManager.Execute(ctx, lang, code, codeInput)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}, nil
+	}
+
+	return map[string]interface{}{
+		"success":     result.Success,
+		"output":      result.Output,
+		"stdout":      result.Stdout,
+		"stderr":      result.Stderr,
+		"error":       result.Error,
+		"exit_code":   result.ExitCode,
+		"duration_ms": result.Duration,
+	}, nil
+}
+
+func (t *CodeExecuteTool) Prompt() string {
+	return `Execute code in Python, Node.js, or Bash.
+
+This tool allows you to run code for complex operations like:
+- Data transformation and processing
+- Mathematical calculations
+- File manipulation
+- API calls and web requests
+- Programmatic tool orchestration
+
+Available languages:
+- python: Full Python 3 environment
+- nodejs: Node.js runtime
+- bash: Bash shell scripting
+
+Input data is accessible via:
+- Python: _input dictionary
+- Node.js: _input object
+- Bash: INPUT_JSON environment variable (use jq to parse)
+
+Examples:
+
+1. Python - Process data:
+{
+  "language": "python",
+  "code": "result = sum(_input['numbers'])\nprint(result)",
+  "input": {"numbers": [1, 2, 3, 4, 5]}
+}
+
+2. Node.js - Transform JSON:
+{
+  "language": "nodejs",
+  "code": "const result = _input.items.map(x => x * 2);\nconsole.log(JSON.stringify(result));",
+  "input": {"items": [1, 2, 3]}
+}
+
+3. Bash - System command:
+{
+  "language": "bash",
+  "code": "echo $INPUT_URL | xargs curl -s",
+  "input": {"url": "https://api.example.com"}
+}
+
+Best practices:
+- Keep code simple and focused on a single task
+- Print output as JSON when returning structured data
+- Handle errors gracefully within the code
+- Use appropriate language for the task (Python for data, Bash for system ops)`
+}
+
+// Examples 返回使用示例
+func (t *CodeExecuteTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "使用 Python 计算数据",
+			Input: map[string]interface{}{
+				"language": "python",
+				"code":     "import json\nresult = {'sum': sum(_input['numbers']), 'avg': sum(_input['numbers'])/len(_input['numbers'])}\nprint(json.dumps(result))",
+				"input": map[string]interface{}{
+					"numbers": []int{10, 20, 30, 40, 50},
+				},
+			},
+		},
+		{
+			Description: "使用 Node.js 处理 JSON",
+			Input: map[string]interface{}{
+				"language": "nodejs",
+				"code":     "const filtered = _input.users.filter(u => u.age >= 18);\nconsole.log(JSON.stringify({adults: filtered}));",
+				"input": map[string]interface{}{
+					"users": []map[string]interface{}{
+						{"name": "Alice", "age": 25},
+						{"name": "Bob", "age": 15},
+						{"name": "Charlie", "age": 30},
+					},
+				},
+			},
+		},
+		{
+			Description: "使用 Bash 执行系统命令",
+			Input: map[string]interface{}{
+				"language": "bash",
+				"code":     "echo \"Current directory: $(pwd)\"\necho \"Files: $(ls -la | wc -l)\"",
+				"input":    map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// AvailableLanguages 返回可用的语言列表
+func (t *CodeExecuteTool) AvailableLanguages() []string {
+	langs := t.runtimeManager.AvailableLanguages()
+	result := make([]string, len(langs))
+	for i, l := range langs {
+		result[i] = string(l)
+	}
+	return result
+}

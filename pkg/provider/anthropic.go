@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/astercloud/aster/pkg/types"
+	"github.com/astercloud/aster/pkg/util"
 )
 
 const (
@@ -53,8 +54,8 @@ func (ap *AnthropicProvider) Complete(ctx context.Context, messages []types.Mess
 	reqBody := ap.buildRequest(messages, opts)
 	reqBody["stream"] = false // 关键:设置为非流式
 
-	// 序列化
-	jsonData, err := json.Marshal(reqBody)
+	// 序列化（使用确定性序列化以优化 KV-Cache 命中率）
+	jsonData, err := util.MarshalDeterministic(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
@@ -117,8 +118,8 @@ func (ap *AnthropicProvider) Stream(ctx context.Context, messages []types.Messag
 	// 构建请求体
 	reqBody := ap.buildRequest(messages, opts)
 
-	// 序列化
-	jsonData, err := json.Marshal(reqBody)
+	// 序列化（使用确定性序列化以优化 KV-Cache 命中率）
+	jsonData, err := util.MarshalDeterministic(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
@@ -134,7 +135,7 @@ func (ap *AnthropicProvider) Stream(ctx context.Context, messages []types.Messag
 			}
 		}
 		// 记录完整的工具定义（用于调试）
-		toolsJSON, _ := json.MarshalIndent(reqBody["tools"], "", "  ")
+		toolsJSON, _ := util.MarshalDeterministicIndent(reqBody["tools"], "", "  ")
 		log.Printf("[AnthropicProvider] Full tools definition:\n%s", string(toolsJSON))
 	}
 
@@ -230,6 +231,22 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 					"description":  tool.Description,
 					"input_schema": tool.InputSchema,
 				}
+				// 添加工具使用示例（如果有）
+				// 参考 Anthropic 的 Tool Use Examples 功能
+				if len(tool.InputExamples) > 0 {
+					examples := make([]map[string]interface{}, 0, len(tool.InputExamples))
+					for _, ex := range tool.InputExamples {
+						exMap := map[string]interface{}{
+							"description": ex.Description,
+							"input":       ex.Input,
+						}
+						if ex.Output != nil {
+							exMap["output"] = ex.Output
+						}
+						examples = append(examples, exMap)
+					}
+					toolMap["input_examples"] = examples
+				}
 				tools = append(tools, toolMap)
 			}
 			req["tools"] = tools
@@ -238,11 +255,30 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 				toolNames[i] = t["name"].(string)
 			}
 			log.Printf("[AnthropicProvider] Sending %d tools to API: %v", len(tools), toolNames)
+
+			// 添加 tool_choice 支持（如果指定）
+			if opts.ToolChoice != nil {
+				toolChoice := map[string]interface{}{
+					"type": opts.ToolChoice.Type,
+				}
+				if opts.ToolChoice.Name != "" {
+					toolChoice["name"] = opts.ToolChoice.Name
+				}
+				if opts.ToolChoice.DisableParallelToolUse {
+					toolChoice["disable_parallel_tool_use"] = true
+				}
+				req["tool_choice"] = toolChoice
+				log.Printf("[AnthropicProvider] Using tool_choice: %v", toolChoice)
+			}
 			// 记录每个工具的详细信息
 			for _, tool := range tools {
 				if name, ok := tool["name"].(string); ok {
 					if schema, ok := tool["input_schema"].(map[string]interface{}); ok {
 						log.Printf("[AnthropicProvider] Tool %s schema: %v", name, schema)
+					}
+					// 记录工具示例数量
+					if examples, ok := tool["input_examples"].([]map[string]interface{}); ok {
+						log.Printf("[AnthropicProvider] Tool %s has %d examples", name, len(examples))
 					}
 				}
 			}

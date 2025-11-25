@@ -268,13 +268,19 @@ func TestLineageManager_DeleteMemoryWithLineage(t *testing.T) {
 
 	// Create lineage
 	p1 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-1", p1, nil)
+	if err := lm.TrackMemoryCreation("mem-1", p1, nil); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p2 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-2", p2, []string{"mem-1"})
+	if err := lm.TrackMemoryCreation("mem-2", p2, []string{"mem-1"}); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p3 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-3", p3, []string{"mem-2"})
+	if err := lm.TrackMemoryCreation("mem-3", p3, []string{"mem-2"}); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	ctx := context.Background()
 
@@ -318,10 +324,14 @@ func TestLineageManager_DeleteMemoryWithoutCascade(t *testing.T) {
 
 	// Create lineage
 	p1 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-1", p1, nil)
+	if err := lm.TrackMemoryCreation("mem-1", p1, nil); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p2 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-2", p2, []string{"mem-1"})
+	if err := lm.TrackMemoryCreation("mem-2", p2, []string{"mem-1"}); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	ctx := context.Background()
 
@@ -347,13 +357,19 @@ func TestLineageManager_RevokeDataSource(t *testing.T) {
 
 	// Create memories from different sources
 	p1 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-1", p1, nil)
+	if err := lm.TrackMemoryCreation("mem-1", p1, nil); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p2 := NewProvenance(SourceUserInput, "session-2")
-	lm.TrackMemoryCreation("mem-2", p2, nil)
+	if err := lm.TrackMemoryCreation("mem-2", p2, nil); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p3 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-3", p3, []string{"mem-1"})
+	if err := lm.TrackMemoryCreation("mem-3", p3, []string{"mem-1"}); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	ctx := context.Background()
 
@@ -379,16 +395,24 @@ func TestLineageManager_GetLineageDepth(t *testing.T) {
 
 	// Create a chain: mem-1 -> mem-2 -> mem-3 -> mem-4
 	p1 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-1", p1, nil)
+	if err := lm.TrackMemoryCreation("mem-1", p1, nil); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p2 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-2", p2, []string{"mem-1"})
+	if err := lm.TrackMemoryCreation("mem-2", p2, []string{"mem-1"}); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p3 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-3", p3, []string{"mem-2"})
+	if err := lm.TrackMemoryCreation("mem-3", p3, []string{"mem-2"}); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p4 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-4", p4, []string{"mem-3"})
+	if err := lm.TrackMemoryCreation("mem-4", p4, []string{"mem-3"}); err != nil {
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	tests := []struct {
 		memoryID  string
@@ -415,13 +439,19 @@ func TestLineageManager_GetLineageStats(t *testing.T) {
 
 	// Create some memories
 	p1 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-1", p1, nil) // Root
+	if err := lm.TrackMemoryCreation("mem-1", p1, nil); err != nil { // Root
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p2 := NewProvenance(SourceUserInput, "session-1")
-	lm.TrackMemoryCreation("mem-2", p2, []string{"mem-1"}) // Derived
+	if err := lm.TrackMemoryCreation("mem-2", p2, []string{"mem-1"}); err != nil { // Derived
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	p3 := NewProvenance(SourceUserInput, "session-2")
-	lm.TrackMemoryCreation("mem-3", p3, nil) // Root
+	if err := lm.TrackMemoryCreation("mem-3", p3, nil); err != nil { // Root
+		t.Fatalf("TrackMemoryCreation failed: %v", err)
+	}
 
 	stats := lm.GetLineageStats()
 

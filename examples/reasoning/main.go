@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/astercloud/aster/pkg/agent"
 	"github.com/astercloud/aster/pkg/provider"
 	"github.com/astercloud/aster/pkg/sandbox"
 	"github.com/astercloud/aster/pkg/store"
 	"github.com/astercloud/aster/pkg/tools"
+	"github.com/astercloud/aster/pkg/tools/builtin"
 	"github.com/astercloud/aster/pkg/types"
 )
 
@@ -17,11 +19,19 @@ func main() {
 	ctx := context.Background()
 
 	// 创建依赖
+	jsonStore, err := store.NewJSONStore(".aster-reasoning")
+	if err != nil {
+		log.Fatalf("Failed to create store: %v", err)
+	}
+
+	toolRegistry := tools.NewRegistry()
+	builtin.RegisterAll(toolRegistry)
+
 	deps := &agent.Dependencies{
-		Store:            store.NewMemoryStore(),
+		Store:            jsonStore,
 		SandboxFactory:   sandbox.NewFactory(),
-		ToolRegistry:     tools.DefaultRegistry,
-		ProviderFactory:  provider.NewFactory(),
+		ToolRegistry:     toolRegistry,
+		ProviderFactory:  provider.NewMultiProviderFactory(),
 		TemplateRegistry: createTemplateRegistry(),
 	}
 
@@ -52,7 +62,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create agent: %v", err)
 	}
-	defer ag.Close()
+	defer func() {
+		if err := ag.Close(); err != nil {
+			log.Printf("Failed to close agent: %v", err)
+		}
+	}()
 
 	// 测试推理能力
 	testProblems := []string{
@@ -80,9 +94,7 @@ func createTemplateRegistry() *agent.TemplateRegistry {
 	registry := agent.NewTemplateRegistry()
 
 	registry.Register(&types.AgentTemplateDefinition{
-		ID:          "reasoning-agent",
-		Name:        "Reasoning Agent",
-		Description: "An agent with advanced reasoning capabilities",
+		ID: "reasoning-agent",
 		SystemPrompt: `You are an AI assistant with advanced reasoning capabilities.
 
 When solving complex problems:
@@ -94,7 +106,7 @@ When solving complex problems:
 
 Use the reasoning_chain tool for complex problems that require step-by-step analysis.`,
 		Model: "claude-3-5-sonnet-20241022",
-		Tools: []interface{}{"*"},
+		Tools: "*",
 	})
 
 	return registry

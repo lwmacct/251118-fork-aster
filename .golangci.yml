@@ -1,0 +1,53 @@
+# golangci-lint configuration
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+  go: '1.21'
+  skip-dirs:
+    - .data
+    - .git
+    - .github
+    - .kiro
+    - vendor
+  skip-files:
+    - ".*_test.go$"  # 暂时跳过测试文件
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+linters-settings:
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+    exclude-functions:
+      - fmt.Fprintf
+      - fmt.Fprintln
+      - fmt.Printf
+      - fmt.Println
+      - (io.Closer).Close
+
+  govet:
+    check-shadowing: false
+    enable-all: true
+    disable:
+      - fieldalignment
+      - shadow
+
+
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true

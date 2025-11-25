@@ -247,13 +247,17 @@ func TestScheduler_Clear(t *testing.T) {
 	defer scheduler.Shutdown()
 
 	// 创建多个任务
-	scheduler.EverySteps(2, func(ctx context.Context, stepCount int) error {
+	if _, err := scheduler.EverySteps(2, func(ctx context.Context, stepCount int) error {
 		return nil
-	})
+	}); err != nil {
+		t.Fatalf("Failed to create step task: %v", err)
+	}
 
-	scheduler.EveryInterval(100*time.Millisecond, func(ctx context.Context) error {
+	if _, err := scheduler.EveryInterval(100*time.Millisecond, func(ctx context.Context) error {
 		return nil
-	})
+	}); err != nil {
+		t.Fatalf("Failed to create interval task: %v", err)
+	}
 
 	// 验证任务已创建
 	if scheduler.GetStepTaskCount() != 1 {
@@ -328,16 +332,20 @@ func TestScheduler_MultipleStepTasks(t *testing.T) {
 	var count5 int32
 
 	// 每 2 步触发
-	scheduler.EverySteps(2, func(ctx context.Context, stepCount int) error {
+	if _, err := scheduler.EverySteps(2, func(ctx context.Context, stepCount int) error {
 		atomic.AddInt32(&count2, 1)
 		return nil
-	})
+	}); err != nil {
+		t.Fatalf("Failed to create step task: %v", err)
+	}
 
 	// 每 5 步触发
-	scheduler.EverySteps(5, func(ctx context.Context, stepCount int) error {
+	if _, err := scheduler.EverySteps(5, func(ctx context.Context, stepCount int) error {
 		atomic.AddInt32(&count5, 1)
 		return nil
-	})
+	}); err != nil {
+		t.Fatalf("Failed to create step task: %v", err)
+	}
 
 	// 通知 10 步
 	for i := 1; i <= 10; i++ {
@@ -366,10 +374,12 @@ func TestScheduler_Shutdown(t *testing.T) {
 	var callCount int32
 
 	// 创建时间间隔任务
-	scheduler.EveryInterval(50*time.Millisecond, func(ctx context.Context) error {
+	if _, err := scheduler.EveryInterval(50*time.Millisecond, func(ctx context.Context) error {
 		atomic.AddInt32(&callCount, 1)
 		return nil
-	})
+	}); err != nil {
+		t.Fatalf("Failed to create interval task: %v", err)
+	}
 
 	// 等待触发几次
 	time.Sleep(150 * time.Millisecond)
@@ -401,10 +411,12 @@ func TestScheduler_ConcurrentStepNotify(t *testing.T) {
 
 	var callCount int32
 
-	scheduler.EverySteps(1, func(ctx context.Context, stepCount int) error {
+	if _, err := scheduler.EverySteps(1, func(ctx context.Context, stepCount int) error {
 		atomic.AddInt32(&callCount, 1)
 		return nil
-	})
+	}); err != nil {
+		t.Fatalf("Failed to create step task: %v", err)
+	}
 
 	// 顺序通知 (避免 LastTriggered 的竞态问题)
 	// 并发通知会导致某些步骤被跳过

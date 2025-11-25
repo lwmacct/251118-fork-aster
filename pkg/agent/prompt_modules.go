@@ -11,8 +11,8 @@ import (
 // BasePromptModule 基础 Prompt（来自模板）
 type BasePromptModule struct{}
 
-func (m *BasePromptModule) Name() string { return "base" }
-func (m *BasePromptModule) Priority() int { return 0 }
+func (m *BasePromptModule) Name() string                      { return "base" }
+func (m *BasePromptModule) Priority() int                     { return 0 }
 func (m *BasePromptModule) Condition(ctx *PromptContext) bool { return true }
 func (m *BasePromptModule) Build(ctx *PromptContext) (string, error) {
 	return ctx.Template.SystemPrompt, nil
@@ -21,7 +21,7 @@ func (m *BasePromptModule) Build(ctx *PromptContext) (string, error) {
 // EnvironmentModule 环境信息模块
 type EnvironmentModule struct{}
 
-func (m *EnvironmentModule) Name() string { return "environment" }
+func (m *EnvironmentModule) Name() string  { return "environment" }
 func (m *EnvironmentModule) Priority() int { return 10 }
 func (m *EnvironmentModule) Condition(ctx *PromptContext) bool {
 	return ctx.Environment != nil
@@ -67,7 +67,7 @@ type ToolsManualModule struct {
 	Config *types.ToolsManualConfig
 }
 
-func (m *ToolsManualModule) Name() string { return "tools_manual" }
+func (m *ToolsManualModule) Name() string  { return "tools_manual" }
 func (m *ToolsManualModule) Priority() int { return 20 }
 func (m *ToolsManualModule) Condition(ctx *PromptContext) bool {
 	if m.Config != nil && m.Config.Mode == "none" {
@@ -125,7 +125,7 @@ func (m *ToolsManualModule) Build(ctx *PromptContext) (string, error) {
 // SandboxModule 沙箱信息模块
 type SandboxModule struct{}
 
-func (m *SandboxModule) Name() string { return "sandbox" }
+func (m *SandboxModule) Name() string  { return "sandbox" }
 func (m *SandboxModule) Priority() int { return 15 }
 func (m *SandboxModule) Condition(ctx *PromptContext) bool {
 	return ctx.Sandbox != nil
@@ -154,7 +154,7 @@ type TodoReminderModule struct {
 	Config *types.TodoConfig
 }
 
-func (m *TodoReminderModule) Name() string { return "todo_reminder" }
+func (m *TodoReminderModule) Name() string  { return "todo_reminder" }
 func (m *TodoReminderModule) Priority() int { return 25 }
 func (m *TodoReminderModule) Condition(ctx *PromptContext) bool {
 	return m.Config != nil && m.Config.Enabled && m.Config.ReminderOnStart
@@ -173,7 +173,7 @@ IMPORTANT: Use the TodoWrite tool to track your tasks and progress. This helps m
 // CodeReferenceModule 代码引用规范模块
 type CodeReferenceModule struct{}
 
-func (m *CodeReferenceModule) Name() string { return "code_reference" }
+func (m *CodeReferenceModule) Name() string  { return "code_reference" }
 func (m *CodeReferenceModule) Priority() int { return 30 }
 func (m *CodeReferenceModule) Condition(ctx *PromptContext) bool {
 	// 检查是否是代码助手类型的 Agent
@@ -197,7 +197,7 @@ This allows users to quickly navigate to the source code location.`, nil
 // SecurityModule 安全策略模块
 type SecurityModule struct{}
 
-func (m *SecurityModule) Name() string { return "security" }
+func (m *SecurityModule) Name() string  { return "security" }
 func (m *SecurityModule) Priority() int { return 35 }
 func (m *SecurityModule) Condition(ctx *PromptContext) bool {
 	// 检查是否启用安全策略
@@ -224,7 +224,7 @@ IMPORTANT: Follow these security best practices:
 // PerformanceModule 性能优化模块
 type PerformanceModule struct{}
 
-func (m *PerformanceModule) Name() string { return "performance" }
+func (m *PerformanceModule) Name() string  { return "performance" }
 func (m *PerformanceModule) Priority() int { return 40 }
 func (m *PerformanceModule) Condition(ctx *PromptContext) bool {
 	if ctx.Metadata != nil {
@@ -257,7 +257,7 @@ type RoomCollaborationInfo struct {
 	Members     []string
 }
 
-func (m *CollaborationModule) Name() string { return "collaboration" }
+func (m *CollaborationModule) Name() string  { return "collaboration" }
 func (m *CollaborationModule) Priority() int { return 45 }
 func (m *CollaborationModule) Condition(ctx *PromptContext) bool {
 	return m.RoomInfo != nil && m.RoomInfo.RoomID != ""
@@ -301,7 +301,7 @@ type WorkflowContextInfo struct {
 	NextStep     string
 }
 
-func (m *WorkflowModule) Name() string { return "workflow" }
+func (m *WorkflowModule) Name() string  { return "workflow" }
 func (m *WorkflowModule) Priority() int { return 50 }
 func (m *WorkflowModule) Condition(ctx *PromptContext) bool {
 	return m.WorkflowInfo != nil && m.WorkflowInfo.WorkflowID != ""
@@ -334,7 +334,7 @@ type CustomInstructionsModule struct {
 	Instructions string
 }
 
-func (m *CustomInstructionsModule) Name() string { return "custom_instructions" }
+func (m *CustomInstructionsModule) Name() string  { return "custom_instructions" }
 func (m *CustomInstructionsModule) Priority() int { return 55 }
 func (m *CustomInstructionsModule) Condition(ctx *PromptContext) bool {
 	return m.Instructions != ""
@@ -346,7 +346,7 @@ func (m *CustomInstructionsModule) Build(ctx *PromptContext) (string, error) {
 // CapabilitiesModule Agent 能力说明模块
 type CapabilitiesModule struct{}
 
-func (m *CapabilitiesModule) Name() string { return "capabilities" }
+func (m *CapabilitiesModule) Name() string  { return "capabilities" }
 func (m *CapabilitiesModule) Priority() int { return 5 }
 func (m *CapabilitiesModule) Condition(ctx *PromptContext) bool {
 	if ctx.Metadata != nil {
@@ -396,7 +396,7 @@ func (m *CapabilitiesModule) Build(ctx *PromptContext) (string, error) {
 // LimitationsModule 限制说明模块
 type LimitationsModule struct{}
 
-func (m *LimitationsModule) Name() string { return "limitations" }
+func (m *LimitationsModule) Name() string  { return "limitations" }
 func (m *LimitationsModule) Priority() int { return 60 }
 func (m *LimitationsModule) Condition(ctx *PromptContext) bool {
 	if ctx.Metadata != nil {
@@ -435,7 +435,7 @@ type ContextWindowModule struct {
 	Strategy  string
 }
 
-func (m *ContextWindowModule) Name() string { return "context_window" }
+func (m *ContextWindowModule) Name() string  { return "context_window" }
 func (m *ContextWindowModule) Priority() int { return 65 }
 func (m *ContextWindowModule) Condition(ctx *PromptContext) bool {
 	return m.MaxTokens > 0

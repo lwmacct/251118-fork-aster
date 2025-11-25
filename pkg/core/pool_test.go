@@ -66,7 +66,11 @@ func TestPool_Create(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    5,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -105,7 +109,11 @@ func TestPool_CreateDuplicate(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    5,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 	config := createTestConfig("test-agent")
@@ -131,7 +139,11 @@ func TestPool_MaxCapacity(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    maxAgents,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -165,7 +177,11 @@ func TestPool_List(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -205,7 +221,11 @@ func TestPool_Remove(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    5,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 	config := createTestConfig("test-agent")
@@ -245,7 +265,11 @@ func TestPool_Status(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    5,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 	config := createTestConfig("test-agent")
@@ -277,7 +301,11 @@ func TestPool_ConcurrentAccess(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    100,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 	concurrency := 50
@@ -360,7 +388,11 @@ func TestPool_ForEach(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -422,14 +454,20 @@ func TestPool_Resume(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// 关闭第一个池
-	pool1.Shutdown()
+	if err := pool1.Shutdown(); err != nil {
+		t.Fatalf("Failed to shutdown pool1: %v", err)
+	}
 
 	// 第二个池 - 恢复 Agent
 	pool2 := NewPool(&PoolOptions{
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool2.Shutdown()
+	defer func() {
+		if err := pool2.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	// 恢复 Agent
 	ag2, err := pool2.Resume(ctx, "persistent-agent", config)

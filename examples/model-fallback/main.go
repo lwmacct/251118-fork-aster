@@ -11,10 +11,11 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Model Fallback 示例 ===\n")
+	fmt.Println("=== Model Fallback 示例 ===")
+	fmt.Println()
 
 	// 创建 Provider Factory
-	factory := provider.NewFactory()
+	factory := provider.NewMultiProviderFactory()
 
 	// 创建 Dependencies
 	deps := &agent.Dependencies{
@@ -81,7 +82,8 @@ func main() {
 		log.Fatalf("Complete failed: %v", err)
 	}
 
-	fmt.Printf("响应: %s\n\n", resp.Message.Content)
+	fmt.Printf("响应: %s\n", resp.Message.Content)
+	fmt.Println()
 
 	// 示例 2: 流式请求
 	fmt.Println("示例 2: 流式请求")
@@ -101,7 +103,8 @@ func main() {
 			fmt.Print(chunk.TextDelta)
 		}
 	}
-	fmt.Println("\n")
+	fmt.Println()
+	fmt.Println()
 
 	// 示例 3: 查看统计信息
 	fmt.Println("示例 3: 统计信息")

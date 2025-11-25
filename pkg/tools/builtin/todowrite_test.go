@@ -276,7 +276,7 @@ func TestTodoWriteTool_ClearTodos(t *testing.T) {
 	}
 
 	createResult := ExecuteToolWithInput(t, tool, createInput)
-	createResult = AssertToolSuccess(t, createResult)
+	_ = AssertToolSuccess(t, createResult)
 
 	// 清空所有todos
 	clearInput := map[string]interface{}{

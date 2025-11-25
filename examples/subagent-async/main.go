@@ -12,7 +12,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== SubAgent 异步执行示例 ===\n")
+	fmt.Println("=== SubAgent 异步执行示例 ===")
+	fmt.Println()
 
 	// 1. 创建 Backend
 	backend := backends.NewStateBackend()
@@ -39,7 +40,7 @@ func main() {
 			// 模拟长时间运行的任务
 			fmt.Printf("[%s] 开始执行任务: %s\n", spec.Name, description)
 			time.Sleep(5 * time.Second) // 模拟5秒的处理时间
-			
+
 			result := fmt.Sprintf(`[%s] 任务完成报告
 任务描述: %s
 执行时间: 5秒
@@ -50,7 +51,7 @@ func main() {
 1. 任务已成功完成
 2. 处理了大量数据
 3. 生成了详细报告`, spec.Name, description, spec.Prompt, parentContext)
-			
+
 			fmt.Printf("[%s] 任务完成\n", spec.Name)
 			return result, nil
 		}
@@ -100,7 +101,8 @@ func main() {
 	fmt.Println()
 
 	// 8. 演示异步执行
-	fmt.Println("=== 演示 1: 异步启动多个任务 ===\n")
+	fmt.Println("=== 演示 1: 异步启动多个任务 ===")
+	fmt.Println()
 
 	ctx := context.Background()
 
@@ -138,7 +140,8 @@ func main() {
 	fmt.Printf("  状态: %s\n\n", task2Result["status"])
 
 	// 9. 列出所有任务
-	fmt.Println("=== 演示 2: 列出所有任务 ===\n")
+	fmt.Println("=== 演示 2: 列出所有任务 ===")
+	fmt.Println()
 	listResult, _ := toolMap["list_subagents"].Execute(ctx, map[string]interface{}{}, nil)
 	listData := listResult.(map[string]interface{})
 	fmt.Printf("当前任务数: %v\n", listData["count"])
@@ -151,7 +154,8 @@ func main() {
 	fmt.Println()
 
 	// 10. 轮询检查任务状态
-	fmt.Println("=== 演示 3: 轮询任务状态 ===\n")
+	fmt.Println("=== 演示 3: 轮询任务状态 ===")
+	fmt.Println()
 
 	checkTask := func(taskID string, taskName string) {
 		for i := 0; i < 10; i++ {
@@ -198,7 +202,8 @@ func main() {
 	<-done
 
 	// 11. 演示停止和恢复
-	fmt.Println("=== 演示 4: 停止和恢复任务 ===\n")
+	fmt.Println("=== 演示 4: 停止和恢复任务 ===")
+	fmt.Println()
 
 	// 启动一个新任务
 	fmt.Println("启动任务 3: 长时间运行的分析...")
@@ -240,7 +245,8 @@ func main() {
 	fmt.Printf("新的 task_id: %s\n\n", resumeData["new_task_id"])
 
 	// 12. 最终列出所有任务
-	fmt.Println("=== 最终任务列表 ===\n")
+	fmt.Println("=== 最终任务列表 ===")
+	fmt.Println()
 	finalListResult, _ := toolMap["list_subagents"].Execute(ctx, map[string]interface{}{}, nil)
 	finalListData := finalListResult.(map[string]interface{})
 	fmt.Printf("总任务数: %v\n", finalListData["count"])

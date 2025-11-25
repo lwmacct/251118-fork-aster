@@ -573,14 +573,14 @@ func (h *AgentHandler) Resume(c *gin.Context) {
 // Chat handles chat requests
 func (h *AgentHandler) Chat(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	var req struct {
-		TemplateID    string                 `json:"template_id" binding:"required"`
-		Input         string                 `json:"input" binding:"required"`
-		ModelConfig   *types.ModelConfig     `json:"model_config"`
-		Sandbox       *types.SandboxConfig   `json:"sandbox"`
-		Middlewares   []string               `json:"middlewares"`
-		Metadata      map[string]interface{} `json:"metadata"`
+		TemplateID  string                 `json:"template_id" binding:"required"`
+		Input       string                 `json:"input" binding:"required"`
+		ModelConfig *types.ModelConfig     `json:"model_config"`
+		Sandbox     *types.SandboxConfig   `json:"sandbox"`
+		Middlewares []string               `json:"middlewares"`
+		Metadata    map[string]interface{} `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -602,7 +602,7 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 		Middlewares: req.Middlewares,
 		Metadata:    req.Metadata,
 	}
-	
+
 	// If ModelConfig is provided but missing API key, try to fill from environment
 	if cfg.ModelConfig != nil && cfg.ModelConfig.APIKey == "" {
 		provider := cfg.ModelConfig.Provider
@@ -671,14 +671,14 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 // StreamChat handles streaming chat requests
 func (h *AgentHandler) StreamChat(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	var req struct {
-		TemplateID    string                 `json:"template_id" binding:"required"`
-		Input         string                 `json:"input" binding:"required"`
-		ModelConfig   *types.ModelConfig     `json:"model_config"`
-		Sandbox       *types.SandboxConfig   `json:"sandbox"`
-		Middlewares   []string               `json:"middlewares"`
-		Metadata      map[string]interface{} `json:"metadata"`
+		TemplateID  string                 `json:"template_id" binding:"required"`
+		Input       string                 `json:"input" binding:"required"`
+		ModelConfig *types.ModelConfig     `json:"model_config"`
+		Sandbox     *types.SandboxConfig   `json:"sandbox"`
+		Middlewares []string               `json:"middlewares"`
+		Metadata    map[string]interface{} `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -700,7 +700,7 @@ func (h *AgentHandler) StreamChat(c *gin.Context) {
 		Middlewares: req.Middlewares,
 		Metadata:    req.Metadata,
 	}
-	
+
 	// Fill API key from environment if missing
 	if cfg.ModelConfig != nil && cfg.ModelConfig.APIKey == "" {
 		provider := cfg.ModelConfig.Provider
@@ -767,7 +767,7 @@ func (h *AgentHandler) StreamChat(c *gin.Context) {
 			flusher.Flush()
 			break
 		}
-		
+
 		if event != nil {
 			// Extract text content from event
 			var textContent string
@@ -776,7 +776,7 @@ func (h *AgentHandler) StreamChat(c *gin.Context) {
 					textContent += tb.Text
 				}
 			}
-			
+
 			if textContent != "" {
 				c.SSEvent("message", gin.H{
 					"type": "text_delta",

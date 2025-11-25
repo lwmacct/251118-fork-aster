@@ -39,7 +39,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("ingest: %v", err)
 	}
-	fmt.Fprintf(os.Stdout, "Inserted %d chunks\n", len(chunks))
+	if _, err := fmt.Fprintf(os.Stdout, "Inserted %d chunks\n", len(chunks)); err != nil {
+		log.Printf("Failed to write output: %v", err)
+	}
 
 	// 检索
 	hits, err := pipe.Search(ctx, "什么是 Aster？", 3, map[string]interface{}{
@@ -49,8 +51,12 @@ func main() {
 		log.Fatalf("search: %v", err)
 	}
 
-	fmt.Fprintf(os.Stdout, "Top hits:\n")
+	if _, err := fmt.Fprintf(os.Stdout, "Top hits:\n"); err != nil {
+		log.Printf("Failed to write output: %v", err)
+	}
 	for i, h := range hits {
-		fmt.Fprintf(os.Stdout, "%d) score=%.4f text=%.50s...\n", i+1, h.Score, h.Text)
+		if _, err := fmt.Fprintf(os.Stdout, "%d) score=%.4f text=%.50s...\n", i+1, h.Score, h.Text); err != nil {
+			log.Printf("Failed to write output: %v", err)
+		}
 	}
 }

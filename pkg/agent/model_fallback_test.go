@@ -13,14 +13,14 @@ import (
 
 // MockProvider 模拟 Provider
 type MockProvider struct {
-	name          string
-	shouldFail    bool
-	failCount     int
-	currentFails  int
-	completeFunc  func(context.Context, []types.Message, *provider.StreamOptions) (*provider.CompleteResponse, error)
-	streamFunc    func(context.Context, []types.Message, *provider.StreamOptions) (<-chan provider.StreamChunk, error)
-	capabilities  provider.ProviderCapabilities
-	systemPrompt  string
+	name         string
+	shouldFail   bool
+	failCount    int
+	currentFails int
+	completeFunc func(context.Context, []types.Message, *provider.StreamOptions) (*provider.CompleteResponse, error)
+	streamFunc   func(context.Context, []types.Message, *provider.StreamOptions) (<-chan provider.StreamChunk, error)
+	capabilities provider.ProviderCapabilities
+	systemPrompt string
 }
 
 func (m *MockProvider) Complete(ctx context.Context, messages []types.Message, opts *provider.StreamOptions) (*provider.CompleteResponse, error) {

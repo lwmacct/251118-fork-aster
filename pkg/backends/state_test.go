@@ -38,7 +38,9 @@ func TestStateBackend(t *testing.T) {
 
 	t.Run("Read with offset and limit", func(t *testing.T) {
 		content := "line1\nline2\nline3\nline4\nline5"
-		backend.Write(ctx, "/test2.txt", content)
+		if _, err := backend.Write(ctx, "/test2.txt", content); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
 
 		// 读取第2-3行 (offset=1, limit=2)
 		readContent, err := backend.Read(ctx, "/test2.txt", 1, 2)
@@ -54,7 +56,9 @@ func TestStateBackend(t *testing.T) {
 
 	t.Run("Edit - Replace first", func(t *testing.T) {
 		content := "hello world\nhello again\nhello there"
-		backend.Write(ctx, "/test3.txt", content)
+		if _, err := backend.Write(ctx, "/test3.txt", content); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
 
 		result, err := backend.Edit(ctx, "/test3.txt", "hello", "hi", false)
 		if err != nil {
@@ -78,7 +82,9 @@ func TestStateBackend(t *testing.T) {
 
 	t.Run("Edit - Replace all", func(t *testing.T) {
 		content := "hello world\nhello again\nhello there"
-		backend.Write(ctx, "/test4.txt", content)
+		if _, err := backend.Write(ctx, "/test4.txt", content); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
 
 		result, err := backend.Edit(ctx, "/test4.txt", "hello", "hi", true)
 		if err != nil {
@@ -97,8 +103,12 @@ func TestStateBackend(t *testing.T) {
 	})
 
 	t.Run("GrepRaw", func(t *testing.T) {
-		backend.Write(ctx, "/file1.txt", "error: something wrong\ninfo: all good\nerror: another issue")
-		backend.Write(ctx, "/file2.txt", "warning: be careful\nerror: bad thing")
+		if _, err := backend.Write(ctx, "/file1.txt", "error: something wrong\ninfo: all good\nerror: another issue"); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
+		if _, err := backend.Write(ctx, "/file2.txt", "warning: be careful\nerror: bad thing"); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
 
 		matches, err := backend.GrepRaw(ctx, "error:", "", "")
 		if err != nil {
@@ -116,10 +126,18 @@ func TestStateBackend(t *testing.T) {
 	})
 
 	t.Run("GlobInfo", func(t *testing.T) {
-		backend.Write(ctx, "/src/main.go", "package main")
-		backend.Write(ctx, "/src/utils.go", "package utils")
-		backend.Write(ctx, "/test/test.go", "package test")
-		backend.Write(ctx, "/README.md", "# Readme")
+		if _, err := backend.Write(ctx, "/src/main.go", "package main"); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
+		if _, err := backend.Write(ctx, "/src/utils.go", "package utils"); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
+		if _, err := backend.Write(ctx, "/test/test.go", "package test"); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
+		if _, err := backend.Write(ctx, "/README.md", "# Readme"); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
 
 		// 匹配所有 .go 文件
 		results, err := backend.GlobInfo(ctx, "*.go", "/")
@@ -134,9 +152,15 @@ func TestStateBackend(t *testing.T) {
 	})
 
 	t.Run("ListInfo", func(t *testing.T) {
-		backend.Write(ctx, "/dir1/file1.txt", "content1")
-		backend.Write(ctx, "/dir1/file2.txt", "content2")
-		backend.Write(ctx, "/dir2/file3.txt", "content3")
+		if _, err := backend.Write(ctx, "/dir1/file1.txt", "content1"); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
+		if _, err := backend.Write(ctx, "/dir1/file2.txt", "content2"); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
+		if _, err := backend.Write(ctx, "/dir2/file3.txt", "content3"); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
 
 		// 列出根目录
 		results, err := backend.ListInfo(ctx, "/")
@@ -162,8 +186,12 @@ func TestStateBackend_LoadFiles(t *testing.T) {
 	ctx := context.Background()
 
 	// 写入一些数据
-	backend.Write(ctx, "/file1.txt", "content1")
-	backend.Write(ctx, "/file2.txt", "content2")
+	if _, err := backend.Write(ctx, "/file1.txt", "content1"); err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
+	if _, err := backend.Write(ctx, "/file2.txt", "content2"); err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
 
 	// 获取文件数据
 	files := backend.GetFiles()

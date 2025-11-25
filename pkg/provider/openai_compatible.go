@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/astercloud/aster/pkg/types"
+	"github.com/astercloud/aster/pkg/util"
 )
 
 // OpenAICompatibleProvider OpenAI 兼容格式的通用 Provider
@@ -351,6 +352,12 @@ func (p *OpenAICompatibleProvider) convertTools(tools []ToolSchema) []map[string
 				"description": tool.Description,
 				"parameters":  tool.InputSchema,
 			},
+			// TODO: OpenAI API 暂不支持 input_examples，待官方支持后启用
+			// 参考: https://platform.openai.com/docs/api-reference/chat/create
+			// 实现参考: pkg/provider/anthropic.go buildRequest() 中的 InputExamples 处理
+			// if len(tool.InputExamples) > 0 {
+			//     function["input_examples"] = tool.InputExamples
+			// }
 		})
 	}
 	return result
@@ -358,7 +365,8 @@ func (p *OpenAICompatibleProvider) convertTools(tools []ToolSchema) []map[string
 
 // createHTTPRequest 创建 HTTP 请求
 func (p *OpenAICompatibleProvider) createHTTPRequest(ctx context.Context, requestBody map[string]interface{}) (*http.Request, error) {
-	bodyBytes, err := json.Marshal(requestBody)
+	// 使用确定性序列化以优化 KV-Cache 命中率
+	bodyBytes, err := util.MarshalDeterministic(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}

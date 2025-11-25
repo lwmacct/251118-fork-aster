@@ -174,7 +174,7 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 					"验证是否有执行权限",
 				},
 				"command":     command,
-				"background": true,
+				"background":  true,
 				"duration_ms": time.Since(start).Milliseconds(),
 			}, nil
 		}
@@ -182,9 +182,9 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 		// 后台任务启动成功
 		taskID = taskInfo.ID
 		result = &sandbox.ExecResult{
-			Code:    0, // 后台任务通常立即返回，实际状态由TaskManager管理
-			Stdout:  "", // 初始输出为空，通过BashOutput获取
-			Stderr:  "",
+			Code:   0,  // 后台任务通常立即返回，实际状态由TaskManager管理
+			Stdout: "", // 初始输出为空，通过BashOutput获取
+			Stderr: "",
 		}
 	} else {
 		// 前台任务模式：直接执行
@@ -375,4 +375,48 @@ func (t *BashTool) Prompt() string {
 - 长时间运行的命令会自动调整超时
 - 危险命令（如rm -rf /）会被阻止
 - 所有命令都在沙箱环境中执行`
+}
+
+// Examples 返回 Bash 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *BashTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "列出当前目录文件",
+			Input: map[string]interface{}{
+				"command": "ls -la",
+			},
+		},
+		{
+			Description: "查找所有 Go 源文件",
+			Input: map[string]interface{}{
+				"command": "find . -name '*.go' -type f",
+			},
+		},
+		{
+			Description: "在后台运行构建命令",
+			Input: map[string]interface{}{
+				"command":    "go build -v ./...",
+				"background": true,
+				"timeout":    300000,
+			},
+		},
+		{
+			Description: "设置环境变量执行命令",
+			Input: map[string]interface{}{
+				"command": "echo $MY_VAR && env | grep MY",
+				"environment": map[string]string{
+					"MY_VAR": "hello_world",
+				},
+			},
+		},
+		{
+			Description: "在指定目录运行 npm 安装",
+			Input: map[string]interface{}{
+				"command":     "npm install",
+				"working_dir": "/app/frontend",
+				"timeout":     600000,
+			},
+		},
+	}
 }

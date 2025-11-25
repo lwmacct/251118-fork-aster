@@ -51,6 +51,26 @@ type ToolResultBlock struct {
 	ToolUseID string `json:"tool_use_id"`
 	Content   string `json:"content"`
 	IsError   bool   `json:"is_error,omitempty"`
+
+	// 以下字段用于可恢复压缩（Manus Context Engineering）
+	// Compressed 标记内容是否已被压缩
+	Compressed bool `json:"compressed,omitempty"`
+	// OriginalLength 原始内容长度（用于统计和验证）
+	OriginalLength int `json:"original_length,omitempty"`
+	// ContentHash 原始内容哈希（用于验证恢复）
+	ContentHash string `json:"content_hash,omitempty"`
+	// References 可恢复的引用列表（文件路径、URL 等）
+	References []ToolResultReference `json:"references,omitempty"`
+}
+
+// ToolResultReference 工具结果中的引用
+type ToolResultReference struct {
+	// Type 引用类型: "file_path", "url", "function", "class"
+	Type string `json:"type"`
+	// Value 引用值
+	Value string `json:"value"`
+	// Context 上下文信息（可选）
+	Context string `json:"context,omitempty"`
 }
 
 func (t *ToolResultBlock) IsContentBlock() {}

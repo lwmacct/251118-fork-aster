@@ -7,18 +7,18 @@ import (
 
 // JSONSchema JSON Schema 定义
 type JSONSchema struct {
-	Type        string                `json:"type,omitempty"`
+	Type        string                 `json:"type,omitempty"`
 	Properties  map[string]*JSONSchema `json:"properties,omitempty"`
-	Items       *JSONSchema           `json:"items,omitempty"`
-	Required    []string              `json:"required,omitempty"`
-	Description string                `json:"description,omitempty"`
-	Enum        []interface{}         `json:"enum,omitempty"`
-	Minimum     *float64              `json:"minimum,omitempty"`
-	Maximum     *float64              `json:"maximum,omitempty"`
-	MinLength   *int                  `json:"minLength,omitempty"`
-	MaxLength   *int                  `json:"maxLength,omitempty"`
-	Pattern     string                `json:"pattern,omitempty"`
-	Format      string                `json:"format,omitempty"`
+	Items       *JSONSchema            `json:"items,omitempty"`
+	Required    []string               `json:"required,omitempty"`
+	Description string                 `json:"description,omitempty"`
+	Enum        []interface{}          `json:"enum,omitempty"`
+	Minimum     *float64               `json:"minimum,omitempty"`
+	Maximum     *float64               `json:"maximum,omitempty"`
+	MinLength   *int                   `json:"minLength,omitempty"`
+	MaxLength   *int                   `json:"maxLength,omitempty"`
+	Pattern     string                 `json:"pattern,omitempty"`
+	Format      string                 `json:"format,omitempty"`
 }
 
 // SchemaValidator JSON Schema 验证器
@@ -74,7 +74,7 @@ func (sv *SchemaValidator) validateValue(value interface{}, schema *JSONSchema, 
 // validateType 验证类型
 func (sv *SchemaValidator) validateType(value interface{}, expectedType string, path string) error {
 	actualType := getJSONType(value)
-	
+
 	// integer 可以是 number
 	if expectedType == "integer" && actualType == "number" {
 		if _, ok := value.(float64); ok {

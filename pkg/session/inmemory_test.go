@@ -30,17 +30,19 @@ func TestInMemoryService_Create(t *testing.T) {
 	})
 
 	t.Run("多个会话独立", func(t *testing.T) {
-		sess1, _ := service.Create(ctx, &CreateRequest{
+		sess1, err := service.Create(ctx, &CreateRequest{
 			AppName: "app1",
 			UserID:  "user-1",
 			AgentID: "agent-1",
 		})
+		require.NoError(t, err)
 
-		sess2, _ := service.Create(ctx, &CreateRequest{
+		sess2, err := service.Create(ctx, &CreateRequest{
 			AppName: "app2",
 			UserID:  "user-2",
 			AgentID: "agent-2",
 		})
+		require.NoError(t, err)
 
 		assert.NotEqual(t, sess1.ID(), sess2.ID())
 		assert.NotEqual(t, sess1.AppName(), sess2.AppName())
@@ -87,11 +89,13 @@ func TestInMemoryService_List(t *testing.T) {
 		// 准备测试数据
 		userID := "user-list-test"
 		for i := 0; i < 5; i++ {
-			service.Create(ctx, &CreateRequest{
+			if _, err := service.Create(ctx, &CreateRequest{
 				AppName: "test-app",
 				UserID:  userID,
 				AgentID: "agent-1",
-			})
+			}); err != nil {
+				t.Fatalf("Create failed: %v", err)
+			}
 		}
 
 		sessions, err := service.List(ctx, &ListRequest{
@@ -105,11 +109,13 @@ func TestInMemoryService_List(t *testing.T) {
 		service := NewInMemoryService()
 		userID := "user-list-test"
 		for i := 0; i < 5; i++ {
-			service.Create(ctx, &CreateRequest{
+			if _, err := service.Create(ctx, &CreateRequest{
 				AppName: "test-app",
 				UserID:  userID,
 				AgentID: "agent-1",
-			})
+			}); err != nil {
+				t.Fatalf("Create failed: %v", err)
+			}
 		}
 
 		sessions, err := service.List(ctx, &ListRequest{
@@ -124,11 +130,13 @@ func TestInMemoryService_List(t *testing.T) {
 		service := NewInMemoryService()
 		userID := "user-list-test"
 		for i := 0; i < 5; i++ {
-			service.Create(ctx, &CreateRequest{
+			if _, err := service.Create(ctx, &CreateRequest{
 				AppName: "test-app",
 				UserID:  userID,
 				AgentID: "agent-1",
-			})
+			}); err != nil {
+				t.Fatalf("Create failed: %v", err)
+			}
 		}
 
 		sessions, err := service.List(ctx, &ListRequest{
@@ -144,16 +152,20 @@ func TestInMemoryService_List(t *testing.T) {
 		service := NewInMemoryService()
 		userID := "user-app-filter"
 		// 创建不同 AppName 的会话
-		service.Create(ctx, &CreateRequest{
+		if _, err := service.Create(ctx, &CreateRequest{
 			AppName: "app-normal",
 			UserID:  userID,
 			AgentID: "agent-1",
-		})
-		service.Create(ctx, &CreateRequest{
+		}); err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+		if _, err := service.Create(ctx, &CreateRequest{
 			AppName: "app-special",
 			UserID:  userID,
 			AgentID: "agent-1",
-		})
+		}); err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
 
 		sessions, err := service.List(ctx, &ListRequest{
 			UserID:  userID,
@@ -251,7 +263,9 @@ func TestInMemoryService_AppendEvent(t *testing.T) {
 					Content: "Response",
 				},
 			}
-			service.AppendEvent(ctx, sess.ID(), event)
+			if err := service.AppendEvent(ctx, sess.ID(), event); err != nil {
+				t.Errorf("AppendEvent failed: %v", err)
+			}
 		}
 
 		events, _ := service.GetEvents(ctx, sess.ID(), nil)
@@ -348,7 +362,9 @@ func TestInMemoryService_GetEvents(t *testing.T) {
 				Content: "Message",
 			},
 		}
-		service.AppendEvent(ctx, sess.ID(), event)
+		if err := service.AppendEvent(ctx, sess.ID(), event); err != nil {
+			t.Fatalf("AppendEvent failed: %v", err)
+		}
 	}
 
 	t.Run("获取所有事件", func(t *testing.T) {
@@ -367,14 +383,16 @@ func TestInMemoryService_GetEvents(t *testing.T) {
 
 	t.Run("按 InvocationID 过滤", func(t *testing.T) {
 		// 添加不同 InvocationID 的事件
-		service.AppendEvent(ctx, sess.ID(), &Event{
+		if err := service.AppendEvent(ctx, sess.ID(), &Event{
 			ID:           "evt-special",
 			Timestamp:    time.Now(),
 			InvocationID: "inv-special",
 			AgentID:      "agent-1",
 			Branch:       "root",
 			Author:       "user",
-		})
+		}); err != nil {
+			t.Fatalf("AppendEvent failed: %v", err)
+		}
 
 		// EventFilter不支持InvocationID，获取所有事件后手动过滤
 		events, err := service.GetEvents(ctx, sess.ID(), nil)
@@ -392,14 +410,16 @@ func TestInMemoryService_GetEvents(t *testing.T) {
 
 	t.Run("按 Branch 过滤", func(t *testing.T) {
 		// 添加不同 Branch 的事件
-		service.AppendEvent(ctx, sess.ID(), &Event{
+		if err := service.AppendEvent(ctx, sess.ID(), &Event{
 			ID:           "evt-branch",
 			Timestamp:    time.Now(),
 			InvocationID: "inv-1",
 			AgentID:      "agent-1",
 			Branch:       "root.sub",
 			Author:       "user",
-		})
+		}); err != nil {
+			t.Fatalf("AppendEvent failed: %v", err)
+		}
 
 		events, err := service.GetEvents(ctx, sess.ID(), &EventFilter{
 			Branch: "root.sub",
@@ -443,7 +463,9 @@ func TestInMemoryService_GetState(t *testing.T) {
 				},
 			},
 		}
-		service.AppendEvent(ctx, sess.ID(), event)
+		if err := service.AppendEvent(ctx, sess.ID(), event); err != nil {
+			t.Fatalf("AppendEvent failed: %v", err)
+		}
 
 		// 通过Session接口访问状态
 		retrievedSess, err := service.Get(ctx, &GetRequest{
@@ -486,7 +508,9 @@ func TestInMemoryService_GetState(t *testing.T) {
 				},
 			},
 		}
-		service.AppendEvent(ctx, sess.ID(), event)
+		if err := service.AppendEvent(ctx, sess.ID(), event); err != nil {
+			t.Fatalf("AppendEvent failed: %v", err)
+		}
 
 		// 通过Session接口访问状态
 		retrievedSess, err := service.Get(ctx, &GetRequest{
@@ -542,7 +566,9 @@ func TestInMemoryService_Concurrency(t *testing.T) {
 						Branch:       "root",
 						Author:       "user",
 					}
-					service.AppendEvent(ctx, sess.ID(), event)
+					if err := service.AppendEvent(ctx, sess.ID(), event); err != nil {
+						t.Errorf("AppendEvent failed: %v", err)
+					}
 				}
 				done <- true
 			}(i)
@@ -571,7 +597,7 @@ func TestInMemoryService_StateScopes(t *testing.T) {
 			AgentID: "agent-1",
 		})
 		// App 级状态（所有用户共享）
-		service.AppendEvent(ctx, sess.ID(), &Event{
+		if err := service.AppendEvent(ctx, sess.ID(), &Event{
 			ID:           "evt-1",
 			Timestamp:    time.Now(),
 			InvocationID: "inv-1",
@@ -583,10 +609,12 @@ func TestInMemoryService_StateScopes(t *testing.T) {
 					"app:feature_enabled": true,
 				},
 			},
-		})
+		}); err != nil {
+			t.Fatalf("AppendEvent failed: %v", err)
+		}
 
 		// User 级状态（该用户所有会话共享）
-		service.AppendEvent(ctx, sess.ID(), &Event{
+		if err := service.AppendEvent(ctx, sess.ID(), &Event{
 			ID:           "evt-2",
 			Timestamp:    time.Now(),
 			InvocationID: "inv-1",
@@ -598,10 +626,12 @@ func TestInMemoryService_StateScopes(t *testing.T) {
 					"user:preference": "value",
 				},
 			},
-		})
+		}); err != nil {
+			t.Fatalf("AppendEvent failed: %v", err)
+		}
 
 		// Session 级状态（当前会话）
-		service.AppendEvent(ctx, sess.ID(), &Event{
+		if err := service.AppendEvent(ctx, sess.ID(), &Event{
 			ID:           "evt-3",
 			Timestamp:    time.Now(),
 			InvocationID: "inv-1",
@@ -613,7 +643,9 @@ func TestInMemoryService_StateScopes(t *testing.T) {
 					"session:data": "session-specific",
 				},
 			},
-		})
+		}); err != nil {
+			t.Fatalf("AppendEvent failed: %v", err)
+		}
 
 		// 验证各作用域
 		retrievedSess, err := service.Get(ctx, &GetRequest{

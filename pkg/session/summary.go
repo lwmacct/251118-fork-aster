@@ -12,11 +12,11 @@ import (
 
 // SummarizerConfig Session 摘要器配置
 type SummarizerConfig struct {
-	Provider           provider.Provider
-	MaxMessagesPerCall int     // 每次摘要的最大消息数
-	MinMessagesToSummarize int // 触发摘要的最小消息数
-	Temperature        float64 // 摘要生成温度
-	SystemPrompt       string  // 自定义系统提示词
+	Provider               provider.Provider
+	MaxMessagesPerCall     int     // 每次摘要的最大消息数
+	MinMessagesToSummarize int     // 触发摘要的最小消息数
+	Temperature            float64 // 摘要生成温度
+	SystemPrompt           string  // 自定义系统提示词
 }
 
 // Summarizer Session 摘要器
@@ -80,7 +80,9 @@ func (s *Summarizer) SummarizeSession(ctx context.Context, messages []types.Mess
 	originalSysPrompt := ""
 	if caps := s.provider.Capabilities(); caps.SupportSystemPrompt {
 		// 保存原始系统提示词（如果需要恢复）
-		s.provider.SetSystemPrompt(s.sysPrompt)
+		if err := s.provider.SetSystemPrompt(s.sysPrompt); err != nil {
+			return nil, fmt.Errorf("set system prompt: %w", err)
+		}
 	}
 
 	response, err := s.provider.Complete(ctx, summaryMessages, nil)
@@ -90,7 +92,7 @@ func (s *Summarizer) SummarizeSession(ctx context.Context, messages []types.Mess
 
 	// 恢复原始系统提示词
 	if originalSysPrompt != "" {
-		s.provider.SetSystemPrompt(originalSysPrompt)
+		_ = s.provider.SetSystemPrompt(originalSysPrompt)
 	}
 
 	// 提取文本内容
@@ -102,12 +104,12 @@ func (s *Summarizer) SummarizeSession(ctx context.Context, messages []types.Mess
 	}
 
 	summary := &SessionSummary{
-		Text:          summaryText,
-		MessageCount:  len(messages),
-		GeneratedAt:   time.Now(),
-		TokensUsed:    int(response.Usage.TotalTokens),
-		KeyTopics:     extractKeyTopics(summaryText),
-		Participants:  extractParticipants(messages),
+		Text:         summaryText,
+		MessageCount: len(messages),
+		GeneratedAt:  time.Now(),
+		TokensUsed:   int(response.Usage.TotalTokens),
+		KeyTopics:    extractKeyTopics(summaryText),
+		Participants: extractParticipants(messages),
 	}
 
 	return summary, nil
@@ -131,7 +133,9 @@ func (s *Summarizer) SummarizeIncremental(ctx context.Context, previousSummary s
 	}
 
 	if caps := s.provider.Capabilities(); caps.SupportSystemPrompt {
-		s.provider.SetSystemPrompt(s.sysPrompt)
+		if err := s.provider.SetSystemPrompt(s.sysPrompt); err != nil {
+			return nil, fmt.Errorf("set system prompt: %w", err)
+		}
 	}
 
 	response, err := s.provider.Complete(ctx, summaryMessages, nil)
@@ -175,7 +179,7 @@ func (s *Summarizer) buildSummaryPrompt(messages []types.Message) string {
 	for i, msg := range messages {
 		role := string(msg.Role)
 		content := extractTextContent(msg)
-		
+
 		prompt.WriteString(fmt.Sprintf("**%s** (Message %d):\n", role, i+1))
 		prompt.WriteString(content)
 		prompt.WriteString("\n\n")
@@ -210,7 +214,7 @@ func (s *Summarizer) buildIncrementalSummaryPrompt(previousSummary string, newMe
 	for i, msg := range newMessages {
 		role := string(msg.Role)
 		content := extractTextContent(msg)
-		
+
 		prompt.WriteString(fmt.Sprintf("**%s** (Message %d):\n", role, i+1))
 		prompt.WriteString(content)
 		prompt.WriteString("\n\n")
@@ -248,19 +252,19 @@ func extractTextContent(msg types.Message) string {
 // extractKeyTopics 从摘要中提取关键主题
 func extractKeyTopics(summary string) []string {
 	topics := []string{}
-	
+
 	// 简单的主题提取逻辑
 	lines := strings.Split(summary, "\n")
 	inTopicsSection := false
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		if strings.Contains(strings.ToLower(line), "main topics") {
 			inTopicsSection = true
 			continue
 		}
-		
+
 		if inTopicsSection {
 			if strings.HasPrefix(line, "-") || strings.HasPrefix(line, "*") {
 				topic := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "-"), "*"))
@@ -273,24 +277,24 @@ func extractKeyTopics(summary string) []string {
 			}
 		}
 	}
-	
+
 	return topics
 }
 
 // extractParticipants 提取参与者
 func extractParticipants(messages []types.Message) []string {
 	participantSet := make(map[string]bool)
-	
+
 	for _, msg := range messages {
 		role := string(msg.Role)
 		participantSet[role] = true
 	}
-	
+
 	participants := make([]string, 0, len(participantSet))
 	for participant := range participantSet {
 		participants = append(participants, participant)
 	}
-	
+
 	return participants
 }
 

@@ -334,7 +334,7 @@ func (c *ToolCache) getFromFile(key string) (interface{}, bool) {
 	// 检查是否过期
 	if entry.IsExpired() {
 		// 删除过期文件
-		os.Remove(filePath)
+		_ = os.Remove(filePath)
 		return nil, false
 	}
 
@@ -455,7 +455,7 @@ func (c *ToolCache) cleanupFiles() {
 		}
 
 		if cacheEntry.IsExpired() {
-			os.Remove(filePath)
+			_ = os.Remove(filePath)
 			c.stats.Evictions++
 		}
 	}

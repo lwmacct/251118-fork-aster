@@ -101,9 +101,9 @@ type RoomStep struct {
 
 func NewRoomStep(name string, room *core.Room) *RoomStep {
 	return &RoomStep{
-		id:    uuid.New().String(),
-		name:  name,
-		room:  room,
+		id:   uuid.New().String(),
+		name: name,
+		room: room,
 		config: &StepConfig{
 			Name:        name,
 			Type:        StepTypeRoom,

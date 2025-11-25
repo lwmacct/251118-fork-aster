@@ -13,6 +13,7 @@ func RegisterAll(registry *tools.Registry) {
 
 	// 执行工具
 	registry.Register("Bash", NewBashTool)
+	registry.Register("CodeExecute", NewCodeExecuteTool)
 
 	// 网络工具
 	registry.Register("HttpRequest", NewHttpRequestTool)
@@ -31,6 +32,9 @@ func RegisterAll(registry *tools.Registry) {
 
 	// 语义搜索工具
 	registry.Register("SemanticSearch", NewSemanticSearchTool)
+
+	// 工具搜索工具（Tool Search Tool）
+	registry.Register("ToolSearch", NewToolSearchTool)
 }
 
 // FileSystemTools 返回文件系统工具列表
@@ -40,7 +44,7 @@ func FileSystemTools() []string {
 
 // ExecutionTools 返回执行工具列表
 func ExecutionTools() []string {
-	return []string{"Bash"}
+	return []string{"Bash", "CodeExecute"}
 }
 
 // NetworkTools 返回网络工具列表
@@ -63,6 +67,11 @@ func SemanticTools() []string {
 	return []string{"SemanticSearch"}
 }
 
+// DiscoveryTools 返回工具发现相关的工具列表
+func DiscoveryTools() []string {
+	return []string{"ToolSearch"}
+}
+
 // AllTools 返回所有内置工具列表
 func AllTools() []string {
 	tools := FileSystemTools()
@@ -71,5 +80,6 @@ func AllTools() []string {
 	tools = append(tools, SkillTools()...)
 	tools = append(tools, TaskManagementTools()...)
 	tools = append(tools, SemanticTools()...)
+	tools = append(tools, DiscoveryTools()...)
 	return tools
 }

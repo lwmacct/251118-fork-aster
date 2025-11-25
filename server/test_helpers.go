@@ -79,11 +79,11 @@ func NewMockProviderFactory() *MockProviderFactory {
 
 func (f *MockProviderFactory) Create(config *types.ModelConfig) (provider.Provider, error) {
 	key := config.Provider + "/" + config.Model
-	
+
 	if p, exists := f.providers[key]; exists {
 		return p, nil
 	}
-	
+
 	// 创建新的 mock provider
 	p := &MockProvider{}
 	f.providers[key] = p

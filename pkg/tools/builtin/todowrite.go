@@ -428,3 +428,55 @@ func (t *TodoWriteTool) Prompt() string {
 - 数据导入导出功能
 - 集成全局存储管理器`
 }
+
+// Examples 返回 TodoWrite 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *TodoWriteTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "创建任务列表",
+			Input: map[string]interface{}{
+				"todos": []map[string]interface{}{
+					{
+						"content":    "实现用户认证模块",
+						"status":     "pending",
+						"activeForm": "实现用户认证模块中",
+					},
+					{
+						"content":    "编写单元测试",
+						"status":     "pending",
+						"activeForm": "编写单元测试中",
+					},
+				},
+			},
+		},
+		{
+			Description: "更新任务状态为进行中",
+			Input: map[string]interface{}{
+				"action":  "update",
+				"todo_id": "todo_123456",
+				"todos": []map[string]interface{}{
+					{
+						"content":    "实现用户认证模块",
+						"status":     "in_progress",
+						"activeForm": "实现用户认证模块中",
+					},
+				},
+			},
+		},
+		{
+			Description: "标记任务为已完成",
+			Input: map[string]interface{}{
+				"action":  "update",
+				"todo_id": "todo_123456",
+				"todos": []map[string]interface{}{
+					{
+						"content":    "实现用户认证模块",
+						"status":     "completed",
+						"activeForm": "已完成用户认证模块",
+					},
+				},
+			},
+		},
+	}
+}

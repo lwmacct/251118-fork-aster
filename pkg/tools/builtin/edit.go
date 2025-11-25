@@ -353,3 +353,44 @@ func (t *EditTool) Prompt() string {
 - 编辑前验证
 - 详细的操作日志`
 }
+
+// Examples 返回 Edit 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *EditTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "修改函数名称",
+			Input: map[string]interface{}{
+				"file_path":  "/app/src/utils.go",
+				"old_string": "func oldFunction(",
+				"new_string": "func newFunction(",
+			},
+		},
+		{
+			Description: "替换所有导入路径",
+			Input: map[string]interface{}{
+				"file_path":   "/app/src/main.go",
+				"old_string":  "github.com/old/package",
+				"new_string":  "github.com/new/package",
+				"replace_all": true,
+			},
+		},
+		{
+			Description: "修改配置值并创建备份",
+			Input: map[string]interface{}{
+				"file_path":  "/app/config.yaml",
+				"old_string": "port: 8080",
+				"new_string": "port: 9090",
+				"backup":     true,
+			},
+		},
+		{
+			Description: "修改多行代码块",
+			Input: map[string]interface{}{
+				"file_path":  "/app/src/handler.go",
+				"old_string": "if err != nil {\n\treturn err\n}",
+				"new_string": "if err != nil {\n\tlog.Error(err)\n\treturn fmt.Errorf(\"handler error: %w\", err)\n}",
+			},
+		},
+	}
+}

@@ -92,8 +92,12 @@ func setupMySQLContainer(t *testing.T) (service *Service, cleanup func()) {
 	require.NoError(t, err, "Failed to create MySQL service")
 
 	cleanup = func() {
-		service.Close()
-		container.Terminate(ctx)
+		if err := service.Close(); err != nil {
+			t.Errorf("Failed to close service: %v", err)
+		}
+		if err := container.Terminate(ctx); err != nil {
+			t.Errorf("Failed to terminate container: %v", err)
+		}
 	}
 
 	return service, cleanup

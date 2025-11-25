@@ -59,7 +59,8 @@ func (t *ExpensiveTool) Execute(ctx context.Context, input map[string]interface{
 }
 
 func main() {
-	fmt.Println("=== 工具缓存示例 ===\n")
+	fmt.Println("=== 工具缓存示例 ===")
+	fmt.Println()
 
 	// 示例 1: 内存缓存
 	fmt.Println("示例 1: 内存缓存")

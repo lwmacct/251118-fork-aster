@@ -91,22 +91,22 @@ func (tp *TypedParser) ExtractAndParse(ctx context.Context, text string) (map[st
 
 // TypedOutputSpec 类型化输出规范
 type TypedOutputSpec struct {
-	StructType       interface{}            // Go struct 类型（用于反射）
-	Schema           *JSONSchema            // JSON Schema 验证
-	RequiredFields   []string               // 必填字段
-	Strict           bool                   // 严格模式（验证失败则报错）
-	AllowTextBackup  bool                   // 解析失败时是否允许保留原始文本
+	StructType       interface{}             // Go struct 类型（用于反射）
+	Schema           *JSONSchema             // JSON Schema 验证
+	RequiredFields   []string                // 必填字段
+	Strict           bool                    // 严格模式（验证失败则报错）
+	AllowTextBackup  bool                    // 解析失败时是否允许保留原始文本
 	CustomValidation func(interface{}) error // 自定义验证函数
 }
 
 // TypedParseResult 类型化解析结果
 type TypedParseResult struct {
-	RawText       string                 // 原始文本
-	RawJSON       string                 // 提取的 JSON
-	Data          interface{}            // 解析后的数据（绑定到 struct）
-	MissingFields []string               // 缺失的必填字段
-	ValidationErrors []string            // 验证错误
-	Success       bool                   // 是否成功
+	RawText          string      // 原始文本
+	RawJSON          string      // 提取的 JSON
+	Data             interface{} // 解析后的数据（绑定到 struct）
+	MissingFields    []string    // 缺失的必填字段
+	ValidationErrors []string    // 验证错误
+	Success          bool        // 是否成功
 }
 
 // ParseTyped 执行类型化解析
@@ -150,8 +150,9 @@ func ParseTyped(ctx context.Context, text string, spec TypedOutputSpec) (*TypedP
 	// 检查必填字段
 	if len(spec.RequiredFields) > 0 {
 		var dataMap map[string]interface{}
-		json.Unmarshal([]byte(rawJSON), &dataMap)
-		result.MissingFields = checkRequiredFields(dataMap, spec.RequiredFields)
+		if err := json.Unmarshal([]byte(rawJSON), &dataMap); err == nil {
+			result.MissingFields = checkRequiredFields(dataMap, spec.RequiredFields)
+		}
 	}
 
 	// 自定义验证

@@ -71,14 +71,30 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 	log.Printf("[runModelStep] Using STREAMING mode (real-time feedback)")
 	a.setBreakpoint(types.BreakpointStreamingModel)
 
-	// 准备工具Schema
+	// 准备工具Schema（包含使用示例）
 	toolSchemas := make([]provider.ToolSchema, 0, len(a.toolMap))
 	for _, tool := range a.toolMap {
-		toolSchemas = append(toolSchemas, provider.ToolSchema{
+		schema := provider.ToolSchema{
 			Name:        tool.Name(),
 			Description: tool.Description(),
 			InputSchema: tool.InputSchema(),
-		})
+		}
+		// 检查工具是否实现了 ExampleableTool 接口
+		if exampleable, ok := tool.(tools.ExampleableTool); ok {
+			examples := exampleable.Examples()
+			if len(examples) > 0 {
+				providerExamples := make([]provider.ToolExample, len(examples))
+				for i, ex := range examples {
+					providerExamples[i] = provider.ToolExample{
+						Description: ex.Description,
+						Input:       ex.Input,
+						Output:      ex.Output,
+					}
+				}
+				schema.InputExamples = providerExamples
+			}
+		}
+		toolSchemas = append(toolSchemas, schema)
 	}
 	toolNames := make([]string, len(toolSchemas))
 	for i, ts := range toolSchemas {
@@ -755,14 +771,30 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 
 // runNonStreamingStep 非流式执行模型步骤（快速模式）
 func (a *Agent) runNonStreamingStep(ctx context.Context) error {
-	// 准备工具Schema
+	// 准备工具Schema（包含使用示例）
 	toolSchemas := make([]provider.ToolSchema, 0, len(a.toolMap))
 	for _, tool := range a.toolMap {
-		toolSchemas = append(toolSchemas, provider.ToolSchema{
+		schema := provider.ToolSchema{
 			Name:        tool.Name(),
 			Description: tool.Description(),
 			InputSchema: tool.InputSchema(),
-		})
+		}
+		// 检查工具是否实现了 ExampleableTool 接口
+		if exampleable, ok := tool.(tools.ExampleableTool); ok {
+			examples := exampleable.Examples()
+			if len(examples) > 0 {
+				providerExamples := make([]provider.ToolExample, len(examples))
+				for i, ex := range examples {
+					providerExamples[i] = provider.ToolExample{
+						Description: ex.Description,
+						Input:       ex.Input,
+						Output:      ex.Output,
+					}
+				}
+				schema.InputExamples = providerExamples
+			}
+		}
+		toolSchemas = append(toolSchemas, schema)
 	}
 
 	// 准备消息

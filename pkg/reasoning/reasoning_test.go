@@ -132,7 +132,9 @@ func TestChainShouldContinue(t *testing.T) {
 					Confidence: 0.9,
 					NextAction: tt.nextAction,
 				}
-				chain.AddStep(step)
+				if err := chain.AddStep(step); err != nil {
+					t.Fatalf("AddStep failed: %v", err)
+				}
 			}
 
 			got := chain.ShouldContinue()
@@ -149,21 +151,25 @@ func TestChainSummary(t *testing.T) {
 		MaxSteps: 5,
 	})
 
-	chain.AddStep(Step{
+	if err := chain.AddStep(Step{
 		Title:      "Analyze Problem",
 		Action:     "Break down the problem",
 		Result:     "Identified 3 key components",
 		Confidence: 0.9,
 		Status:     StepStatusCompleted,
-	})
+	}); err != nil {
+		t.Fatalf("AddStep failed: %v", err)
+	}
 
-	chain.AddStep(Step{
+	if err := chain.AddStep(Step{
 		Title:      "Propose Solution",
 		Action:     "Design solution approach",
 		Result:     "Created implementation plan",
 		Confidence: 0.85,
 		Status:     StepStatusCompleted,
-	})
+	}); err != nil {
+		t.Fatalf("AddStep failed: %v", err)
+	}
 
 	summary := chain.Summary()
 
@@ -186,10 +192,12 @@ func TestChainToJSON(t *testing.T) {
 		MaxSteps: 5,
 	})
 
-	chain.AddStep(Step{
+	if err := chain.AddStep(Step{
 		Title:      "Test Step",
 		Confidence: 0.9,
-	})
+	}); err != nil {
+		t.Fatalf("AddStep failed: %v", err)
+	}
 
 	jsonStr, err := chain.ToJSON()
 	if err != nil {
@@ -220,7 +228,9 @@ func TestUpdateStep(t *testing.T) {
 		Status:     StepStatusPending,
 	}
 
-	chain.AddStep(step)
+	if err := chain.AddStep(step); err != nil {
+		t.Fatalf("AddStep failed: %v", err)
+	}
 	stepID := chain.Steps[0].ID
 
 	// 更新步骤
@@ -282,20 +292,24 @@ func TestStepLifecycle(t *testing.T) {
 
 	// 更新步骤状态
 	stepID := current.ID
-	chain.UpdateStep(stepID, map[string]interface{}{
+	if err := chain.UpdateStep(stepID, map[string]interface{}{
 		"status": StepStatusRunning,
-	})
+	}); err != nil {
+		t.Fatalf("UpdateStep failed: %v", err)
+	}
 
 	if chain.Steps[0].Status != StepStatusRunning {
 		t.Error("step status should be running")
 	}
 
 	// 完成步骤
-	chain.UpdateStep(stepID, map[string]interface{}{
+	if err := chain.UpdateStep(stepID, map[string]interface{}{
 		"status":     StepStatusCompleted,
 		"result":     "Test completed successfully",
 		"confidence": 0.95,
-	})
+	}); err != nil {
+		t.Fatalf("UpdateStep failed: %v", err)
+	}
 
 	if chain.Steps[0].Status != StepStatusCompleted {
 		t.Error("step status should be completed")

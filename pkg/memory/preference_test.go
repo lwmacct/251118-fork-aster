@@ -59,7 +59,9 @@ func TestPreferenceManager_GetPreference(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref)
+	if err := manager.AddPreference(context.Background(), pref); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 获取偏好
 	retrieved, err := manager.GetPreference(context.Background(), "user-1", CategoryUI, "theme")
@@ -96,7 +98,9 @@ func TestPreferenceManager_ListPreferences(t *testing.T) {
 	}
 
 	for _, pref := range prefs {
-		manager.AddPreference(context.Background(), pref)
+		if err := manager.AddPreference(context.Background(), pref); err != nil {
+			t.Fatalf("AddPreference failed: %v", err)
+		}
 	}
 
 	// 列出所有偏好
@@ -132,7 +136,9 @@ func TestPreferenceManager_UpdatePreference(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref)
+	if err := manager.AddPreference(context.Background(), pref); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 更新偏好
 	err := manager.UpdatePreference(context.Background(), "user-1", CategoryUI, "theme", "light")
@@ -159,7 +165,9 @@ func TestPreferenceManager_DeletePreference(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref)
+	if err := manager.AddPreference(context.Background(), pref); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 删除偏好
 	err := manager.DeletePreference(context.Background(), "user-1", CategoryUI, "theme")
@@ -188,7 +196,9 @@ func TestPreferenceManager_ConflictKeepLatest(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref1)
+	if err := manager.AddPreference(context.Background(), pref1); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 添加冲突的偏好（相同 category 和 key）
 	pref2 := &Preference{
@@ -199,7 +209,9 @@ func TestPreferenceManager_ConflictKeepLatest(t *testing.T) {
 		Strength:   0.6,
 		Confidence: 0.7,
 	}
-	manager.AddPreference(context.Background(), pref2)
+	if err := manager.AddPreference(context.Background(), pref2); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 验证保留了最新的值
 	result, _ := manager.GetPreference(context.Background(), "user-1", CategoryUI, "theme")
@@ -222,7 +234,9 @@ func TestPreferenceManager_ConflictKeepStronger(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref1)
+	if err := manager.AddPreference(context.Background(), pref1); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 添加强度更低的冲突偏好
 	pref2 := &Preference{
@@ -233,7 +247,9 @@ func TestPreferenceManager_ConflictKeepStronger(t *testing.T) {
 		Strength:   0.6,
 		Confidence: 0.7,
 	}
-	manager.AddPreference(context.Background(), pref2)
+	if err := manager.AddPreference(context.Background(), pref2); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 验证保留了强度更高的值
 	result, _ := manager.GetPreference(context.Background(), "user-1", CategoryUI, "theme")
@@ -256,7 +272,9 @@ func TestPreferenceManager_ConflictMerge(t *testing.T) {
 		Strength:   0.6,
 		Confidence: 0.8,
 	}
-	manager.AddPreference(context.Background(), pref1)
+	if err := manager.AddPreference(context.Background(), pref1); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 添加冲突的偏好
 	pref2 := &Preference{
@@ -267,7 +285,9 @@ func TestPreferenceManager_ConflictMerge(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref2)
+	if err := manager.AddPreference(context.Background(), pref2); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 验证强度被合并
 	result, _ := manager.GetPreference(context.Background(), "user-1", CategoryUI, "theme")
@@ -291,7 +311,9 @@ func TestPreferenceManager_GetTopPreferences(t *testing.T) {
 	}
 
 	for _, pref := range prefs {
-		manager.AddPreference(context.Background(), pref)
+		if err := manager.AddPreference(context.Background(), pref); err != nil {
+			t.Fatalf("AddPreference failed: %v", err)
+		}
 	}
 
 	// 获取 TOP 2
@@ -330,7 +352,9 @@ func TestPreferenceManager_ApplyDecay(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref)
+	if err := manager.AddPreference(context.Background(), pref); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 手动设置更新时间为 1 天前
 	manager.mu.Lock()
@@ -368,7 +392,9 @@ func TestPreferenceManager_ApplyDecay_RemoveWeak(t *testing.T) {
 		Strength:   0.5,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref)
+	if err := manager.AddPreference(context.Background(), pref); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 手动设置更新时间为 1 天前
 	manager.mu.Lock()
@@ -400,7 +426,9 @@ func TestPreferenceManager_GetStats(t *testing.T) {
 	}
 
 	for _, pref := range prefs {
-		manager.AddPreference(context.Background(), pref)
+		if err := manager.AddPreference(context.Background(), pref); err != nil {
+			t.Fatalf("AddPreference failed: %v", err)
+		}
 	}
 
 	stats := manager.GetStats("user-1")

@@ -167,8 +167,8 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 		"bash_id":        bashID,
 		"command":        task.Command,
 		"status":         task.Status,
-		"stdout":         stdout,         // 原始stdout，保持完整换行
-		"new_output":     fullOutput,     // 合并后的输出，已修复换行逻辑
+		"stdout":         stdout,     // 原始stdout，保持完整换行
+		"new_output":     fullOutput, // 合并后的输出，已修复换行逻辑
 		"duration_ms":    duration.Milliseconds(),
 		"start_time":     task.StartTime.Unix(),
 		"last_check":     time.Now().Unix(),
@@ -177,9 +177,9 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 		"filter":         filter,
 		"lines_limit":    lines,
 		// 添加输出格式标记，帮助前端正确处理换行
-		"output_format":  "text",
-		"has_stdout":     stdout != "",
-		"has_stderr":     stderr != "",
+		"output_format": "text",
+		"has_stdout":    stdout != "",
+		"has_stderr":    stderr != "",
 	}
 
 	// 添加stderr（如果请求）
@@ -388,4 +388,32 @@ func (t *BashOutputTool) Prompt() string {
 - 建议与后台任务管理器集成
 - 可实现输出缓存机制
 - 支持多种输出格式（JSON/文本）`
+}
+
+// Examples 返回 BashOutput 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *BashOutputTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "获取后台任务的输出",
+			Input: map[string]interface{}{
+				"bash_id": "task_123456",
+			},
+		},
+		{
+			Description: "获取输出并过滤错误信息",
+			Input: map[string]interface{}{
+				"bash_id": "task_123456",
+				"filter":  "error|ERROR|Error",
+				"lines":   50,
+			},
+		},
+		{
+			Description: "获取资源使用信息",
+			Input: map[string]interface{}{
+				"bash_id":       "task_123456",
+				"resource_info": true,
+			},
+		},
+	}
 }

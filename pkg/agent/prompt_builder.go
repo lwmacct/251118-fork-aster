@@ -18,8 +18,8 @@ import (
 type PromptModule interface {
 	Name() string
 	Build(ctx *PromptContext) (string, error)
-	Priority() int                      // 模块优先级，决定注入顺序
-	Condition(ctx *PromptContext) bool  // 是否应该注入此模块
+	Priority() int                     // 模块优先级，决定注入顺序
+	Condition(ctx *PromptContext) bool // 是否应该注入此模块
 }
 
 // PromptContext 构建上下文
@@ -228,12 +228,22 @@ func (pb *PromptBuilder) compress(ctx context.Context, prompt string, pCtx *Prom
 }
 
 // collectEnvironmentInfo 收集环境信息
-func collectEnvironmentInfo(ctx context.Context, workDir string) *EnvironmentInfo {
+// sessionTime 参数用于 KV-Cache 优化：在同一会话中保持时间戳稳定，避免缓存失效
+// 如果 sessionTime 为零值，则使用当前时间（向后兼容）
+func collectEnvironmentInfo(ctx context.Context, workDir string, sessionTime time.Time) *EnvironmentInfo {
+	var date time.Time
+	if !sessionTime.IsZero() {
+		// 使用会话固定时间（只保留日期部分，提高缓存命中率）
+		date = sessionTime.Truncate(24 * time.Hour)
+	} else {
+		date = time.Now()
+	}
+
 	env := &EnvironmentInfo{
 		WorkingDir: workDir,
 		Platform:   runtime.GOOS,
 		OSVersion:  getOSVersion(),
-		Date:       time.Now(),
+		Date:       date,
 	}
 
 	// 检查是否是 Git 仓库

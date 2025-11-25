@@ -47,7 +47,7 @@ func (c *LLMPromptCompressor) Compress(ctx context.Context, prompt string, targe
 
 	opts := &provider.StreamOptions{
 		System:      systemPrompt,
-		Temperature: 0.3, // 低温度，保证稳定性
+		Temperature: 0.3,                  // 低温度，保证稳定性
 		MaxTokens:   targetLength * 4 / 3, // 预留一些空间
 	}
 

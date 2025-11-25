@@ -29,25 +29,25 @@ func NewSearcher(config SearcherConfig) *Searcher {
 
 // SearchOptions 搜索选项
 type SearchOptions struct {
-	Query      string    // 搜索关键词
-	AgentID    string    // 限定 Agent ID
-	StartTime  time.Time // 开始时间
-	EndTime    time.Time // 结束时间
-	Limit      int       // 返回结果数量限制
-	Offset     int       // 偏移量
-	MatchMode  string    // 匹配模式: "exact", "contains", "fuzzy"
-	OnlyUser   bool      // 只搜索用户消息
-	OnlyAssistant bool   // 只搜索助手消息
+	Query         string    // 搜索关键词
+	AgentID       string    // 限定 Agent ID
+	StartTime     time.Time // 开始时间
+	EndTime       time.Time // 结束时间
+	Limit         int       // 返回结果数量限制
+	Offset        int       // 偏移量
+	MatchMode     string    // 匹配模式: "exact", "contains", "fuzzy"
+	OnlyUser      bool      // 只搜索用户消息
+	OnlyAssistant bool      // 只搜索助手消息
 }
 
 // SearchResult 搜索结果
 type SearchResult struct {
-	AgentID     string         `json:"agent_id"`
+	AgentID      string        `json:"agent_id"`
 	MessageIndex int           `json:"message_index"`
-	Message     types.Message  `json:"message"`
-	Snippet     string         `json:"snippet"`
-	Relevance   float64        `json:"relevance"`
-	Timestamp   time.Time      `json:"timestamp"`
+	Message      types.Message `json:"message"`
+	Snippet      string        `json:"snippet"`
+	Relevance    float64       `json:"relevance"`
+	Timestamp    time.Time     `json:"timestamp"`
 }
 
 // SearchHistory 搜索历史消息
@@ -109,7 +109,7 @@ func (s *Searcher) SearchHistory(ctx context.Context, opts SearchOptions) ([]Sea
 
 		if matched {
 			snippet := generateSnippet(content, opts.Query, 150)
-			
+
 			results = append(results, SearchResult{
 				AgentID:      opts.AgentID,
 				MessageIndex: i,
@@ -181,7 +181,7 @@ func (s *Searcher) SearchAcrossSessions(ctx context.Context, agentIDs []string, 
 // FindSimilarMessages 查找相似消息
 func (s *Searcher) FindSimilarMessages(ctx context.Context, agentID string, referenceMessage types.Message, limit int) ([]SearchResult, error) {
 	content := extractTextContent(referenceMessage)
-	
+
 	opts := SearchOptions{
 		Query:     content,
 		AgentID:   agentID,

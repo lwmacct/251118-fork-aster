@@ -114,8 +114,12 @@ func TestFilesystemTools_PathValidationIntegration(t *testing.T) {
 	backend := backends.NewStateBackend()
 
 	// 准备测试数据
-	backend.Write(ctx, "/workspace/safe.txt", "safe content")
-	backend.Write(ctx, "/etc/dangerous.txt", "dangerous content")
+	if _, err := backend.Write(ctx, "/workspace/safe.txt", "safe content"); err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
+	if _, err := backend.Write(ctx, "/etc/dangerous.txt", "dangerous content"); err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
 
 	middleware := NewFilesystemMiddleware(&FilesystemMiddlewareConfig{
 		Backend:              backend,
@@ -330,7 +334,9 @@ func TestFilesystemMiddleware_SystemPromptOverride(t *testing.T) {
 				return &ModelResponse{}, nil
 			}
 
-			middleware.WrapModelCall(ctx, req, handler)
+			if _, err := middleware.WrapModelCall(ctx, req, handler); err != nil {
+				t.Errorf("WrapModelCall failed: %v", err)
+			}
 		})
 	}
 }
@@ -385,7 +391,7 @@ func BenchmarkPathValidation(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		path := paths[i%len(paths)]
-		middleware.validatePath(path)
+		_, _ = middleware.validatePath(path)
 	}
 }
 
@@ -406,6 +412,6 @@ func BenchmarkPathValidation_Disabled(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		path := paths[i%len(paths)]
-		middleware.validatePath(path)
+		_, _ = middleware.validatePath(path)
 	}
 }

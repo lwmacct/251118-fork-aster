@@ -1,7 +1,6 @@
 package builtin
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -37,7 +36,7 @@ func TestBashOutputTool_GetOutput(t *testing.T) {
 
 	// 启动一个长时间运行的后台任务
 	bashInput := map[string]interface{}{
-		"command":    fmt.Sprintf("for i in {1..5}; do echo 'Line $i'; sleep 0.1; done"),
+		"command":    "for i in {1..5}; do echo 'Line $i'; sleep 0.1; done",
 		"background": true,
 	}
 
@@ -423,7 +422,7 @@ func TestBashOutputTool_ClearCache(t *testing.T) {
 	}
 
 	result1 := ExecuteToolWithInput(t, bashOutputTool, outputInput1)
-	result1 = AssertToolSuccess(t, result1)
+	_ = AssertToolSuccess(t, result1)
 
 	// 第二次获取输出并清除缓存
 	outputInput2 := map[string]interface{}{

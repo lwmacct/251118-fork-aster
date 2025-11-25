@@ -423,7 +423,7 @@ func (a *Agent) buildSystemPrompt(ctx context.Context) error {
 	if a.sandbox != nil {
 		workDir = a.sandbox.WorkDir()
 	}
-	envInfo := collectEnvironmentInfo(ctx, workDir)
+	envInfo := collectEnvironmentInfo(ctx, workDir, a.createdAt)
 
 	// 添加环境信息模块
 	builder.AddModule(&EnvironmentModule{})
@@ -865,6 +865,68 @@ func (a *Agent) GetSystemPrompt() string {
 	defer a.mu.RUnlock()
 
 	return a.template.SystemPrompt
+}
+
+// ExecuteToolDirect 直接执行工具（程序化工具调用）
+// 这个方法允许 Agent 或外部代码直接调用工具，绕过 LLM 决策
+// 主要用于程序化工具编排场景
+func (a *Agent) ExecuteToolDirect(ctx context.Context, toolName string, input map[string]interface{}) (interface{}, error) {
+	a.mu.RLock()
+	tool, exists := a.toolMap[toolName]
+	a.mu.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("tool not found: %s", toolName)
+	}
+
+	// 构建工具上下文
+	tc := a.buildToolContext(ctx)
+
+	// 执行工具
+	result, err := tool.Execute(ctx, input, tc)
+	if err != nil {
+		return nil, fmt.Errorf("execute tool %s: %w", toolName, err)
+	}
+
+	return result, nil
+}
+
+// ExecuteToolsDirect 批量直接执行工具（顺序执行）
+func (a *Agent) ExecuteToolsDirect(ctx context.Context, calls []ToolCall) []ToolCallResult {
+	results := make([]ToolCallResult, len(calls))
+
+	for i, call := range calls {
+		result, err := a.ExecuteToolDirect(ctx, call.Name, call.Input)
+		if err != nil {
+			results[i] = ToolCallResult{
+				Name:    call.Name,
+				Success: false,
+				Error:   err.Error(),
+			}
+		} else {
+			results[i] = ToolCallResult{
+				Name:    call.Name,
+				Success: true,
+				Result:  result,
+			}
+		}
+	}
+
+	return results
+}
+
+// ToolCall 工具调用参数
+type ToolCall struct {
+	Name  string                 `json:"name"`
+	Input map[string]interface{} `json:"input"`
+}
+
+// ToolCallResult 工具调用结果
+type ToolCallResult struct {
+	Name    string      `json:"name"`
+	Success bool        `json:"success"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   string      `json:"error,omitempty"`
 }
 
 // Close 关闭Agent

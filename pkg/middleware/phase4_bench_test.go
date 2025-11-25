@@ -35,7 +35,7 @@ func BenchmarkSummarizationMiddleware_NoSummarization(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		middleware.WrapModelCall(ctx, req, handler)
+		_, _ = middleware.WrapModelCall(ctx, req, handler)
 	}
 }
 
@@ -70,7 +70,7 @@ func BenchmarkSummarizationMiddleware_WithSummarization(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		middleware.WrapModelCall(ctx, req, handler)
+		_, _ = middleware.WrapModelCall(ctx, req, handler)
 	}
 }
 
@@ -103,7 +103,7 @@ func BenchmarkAgentMemoryMiddleware_LazyLoad(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// 第一次会触发加载,后续直接使用缓存
-		middleware.WrapModelCall(ctx, req, handler)
+		_, _ = middleware.WrapModelCall(ctx, req, handler)
 	}
 }
 
@@ -120,7 +120,9 @@ func BenchmarkAgentMemoryMiddleware_AlreadyLoaded(b *testing.B) {
 	})
 
 	// 预先加载
-	middleware.OnAgentStart(ctx, "test")
+	if err := middleware.OnAgentStart(ctx, "test"); err != nil {
+		b.Fatalf("OnAgentStart failed: %v", err)
+	}
 
 	req := &ModelRequest{
 		SystemPrompt: "Original prompt",
@@ -138,7 +140,7 @@ func BenchmarkAgentMemoryMiddleware_AlreadyLoaded(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		middleware.WrapModelCall(ctx, req, handler)
+		_, _ = middleware.WrapModelCall(ctx, req, handler)
 	}
 }
 
@@ -220,7 +222,7 @@ func BenchmarkPhase4Stack(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		memoryMW.WrapModelCall(ctx, req, summarizationHandler)
+		_, _ = memoryMW.WrapModelCall(ctx, req, summarizationHandler)
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/astercloud/aster/pkg/types"
+	"github.com/astercloud/aster/pkg/util"
 )
 
 const (
@@ -116,7 +117,8 @@ func (p *GeminiProvider) Stream(
 	url := fmt.Sprintf("%s/models/%s:streamGenerateContent?alt=sse&key=%s",
 		p.baseURL, p.config.Model, p.config.APIKey)
 
-	bodyBytes, err := json.Marshal(requestBody)
+	// 使用确定性序列化以优化 KV-Cache 命中率
+	bodyBytes, err := util.MarshalDeterministic(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
@@ -162,7 +164,8 @@ func (p *GeminiProvider) Complete(
 	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s",
 		p.baseURL, p.config.Model, p.config.APIKey)
 
-	bodyBytes, err := json.Marshal(requestBody)
+	// 使用确定性序列化以优化 KV-Cache 命中率
+	bodyBytes, err := util.MarshalDeterministic(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
@@ -369,6 +372,9 @@ func (p *GeminiProvider) convertTools(tools []ToolSchema) GeminiTool {
 			Name:        tool.Name,
 			Description: tool.Description,
 			Parameters:  tool.InputSchema,
+			// TODO: Gemini API 暂不支持 input_examples，待官方支持后启用
+			// 参考: https://ai.google.dev/api/caching
+			// 实现参考: pkg/provider/anthropic.go buildRequest() 中的 InputExamples 处理
 		})
 	}
 

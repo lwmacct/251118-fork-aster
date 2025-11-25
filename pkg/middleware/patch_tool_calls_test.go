@@ -224,7 +224,9 @@ func TestPatchToolCallsMiddleware_FailedCallsTracking(t *testing.T) {
 			return nil, errors.New("test error")
 		}
 
-		middleware.WrapToolCall(ctx, req, handler)
+		if _, err := middleware.WrapToolCall(ctx, req, handler); err != nil {
+			t.Errorf("WrapToolCall failed: %v", err)
+		}
 	}
 
 	// 应该只保留最近的 5 条
@@ -264,7 +266,10 @@ func TestPatchToolCallsMiddleware_WithoutHints(t *testing.T) {
 		panic("test panic")
 	}
 
-	resp, _ := middleware.WrapToolCall(ctx, req, handler)
+	resp, err := middleware.WrapToolCall(ctx, req, handler)
+	if err != nil {
+		t.Errorf("WrapToolCall failed: %v", err)
+	}
 
 	resultMap := resp.Result.(map[string]interface{})
 
@@ -299,7 +304,9 @@ func TestPatchToolCallsMiddleware_FailedCallDetails(t *testing.T) {
 		return nil, errors.New("detailed error")
 	}
 
-	middleware.WrapToolCall(ctx, req, handler)
+	if _, err := middleware.WrapToolCall(ctx, req, handler); err != nil {
+		t.Errorf("WrapToolCall failed: %v", err)
+	}
 
 	failedCalls := middleware.GetFailedCalls()
 	if len(failedCalls) != 1 {

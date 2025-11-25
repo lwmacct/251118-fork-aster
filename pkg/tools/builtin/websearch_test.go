@@ -30,13 +30,21 @@ func TestWebSearchTool_MissingAPIKey(t *testing.T) {
 	oldAPIKey := os.Getenv("WF_TAVILY_API_KEY")
 	oldAPIKey2 := os.Getenv("TAVILY_API_KEY")
 	defer func() {
-		os.Setenv("WF_TAVILY_API_KEY", oldAPIKey)
-		os.Setenv("TAVILY_API_KEY", oldAPIKey2)
+		if err := os.Setenv("WF_TAVILY_API_KEY", oldAPIKey); err != nil {
+			t.Errorf("Failed to restore env: %v", err)
+		}
+		if err := os.Setenv("TAVILY_API_KEY", oldAPIKey2); err != nil {
+			t.Errorf("Failed to restore env: %v", err)
+		}
 	}()
 
 	// 清除环境变量
-	os.Unsetenv("WF_TAVILY_API_KEY")
-	os.Unsetenv("TAVILY_API_KEY")
+	if err := os.Unsetenv("WF_TAVILY_API_KEY"); err != nil {
+		t.Fatalf("Failed to unset env: %v", err)
+	}
+	if err := os.Unsetenv("TAVILY_API_KEY"); err != nil {
+		t.Fatalf("Failed to unset env: %v", err)
+	}
 
 	tool, err := NewWebSearchTool(nil)
 	if err != nil {
@@ -77,7 +85,9 @@ func TestWebSearchTool_SuccessfulSearch(t *testing.T) {
 
 		// 解析请求体
 		var reqBody map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&reqBody)
+		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+			t.Errorf("Failed to decode request body: %v", err)
+		}
 
 		// 验证必需参数
 		if query, ok := reqBody["query"].(string); !ok || query == "" {
@@ -109,10 +119,16 @@ func TestWebSearchTool_SuccessfulSearch(t *testing.T) {
 
 	// 保存原有环境变量
 	oldAPIKey := os.Getenv("WF_TAVILY_API_KEY")
-	defer os.Setenv("WF_TAVILY_API_KEY", oldAPIKey)
+	defer func() {
+		if err := os.Setenv("WF_TAVILY_API_KEY", oldAPIKey); err != nil {
+			t.Errorf("Failed to restore env: %v", err)
+		}
+	}()
 
 	// 设置测试 API key
-	os.Setenv("WF_TAVILY_API_KEY", "test-api-key")
+	if err := os.Setenv("WF_TAVILY_API_KEY", "test-api-key"); err != nil {
+		t.Fatalf("Failed to set env: %v", err)
+	}
 
 	_, err := NewWebSearchTool(nil)
 	if err != nil {
@@ -129,10 +145,16 @@ func TestWebSearchTool_SuccessfulSearch(t *testing.T) {
 func TestWebSearchTool_InvalidQuery(t *testing.T) {
 	// 保存原有环境变量
 	oldAPIKey := os.Getenv("WF_TAVILY_API_KEY")
-	defer os.Setenv("WF_TAVILY_API_KEY", oldAPIKey)
+	defer func() {
+		if err := os.Setenv("WF_TAVILY_API_KEY", oldAPIKey); err != nil {
+			t.Errorf("Failed to restore env: %v", err)
+		}
+	}()
 
 	// 设置测试 API key
-	os.Setenv("WF_TAVILY_API_KEY", "test-api-key")
+	if err := os.Setenv("WF_TAVILY_API_KEY", "test-api-key"); err != nil {
+		t.Fatalf("Failed to set env: %v", err)
+	}
 
 	tool, err := NewWebSearchTool(nil)
 	if err != nil {
@@ -161,10 +183,16 @@ func TestWebSearchTool_InvalidQuery(t *testing.T) {
 func TestWebSearchTool_MaxResultsValidation(t *testing.T) {
 	// 保存原有环境变量
 	oldAPIKey := os.Getenv("WF_TAVILY_API_KEY")
-	defer os.Setenv("WF_TAVILY_API_KEY", oldAPIKey)
+	defer func() {
+		if err := os.Setenv("WF_TAVILY_API_KEY", oldAPIKey); err != nil {
+			t.Errorf("Failed to restore env: %v", err)
+		}
+	}()
 
 	// 设置测试 API key
-	os.Setenv("WF_TAVILY_API_KEY", "test-api-key")
+	if err := os.Setenv("WF_TAVILY_API_KEY", "test-api-key"); err != nil {
+		t.Fatalf("Failed to set env: %v", err)
+	}
 
 	tool, err := NewWebSearchTool(nil)
 	if err != nil {
@@ -202,10 +230,16 @@ func TestWebSearchTool_MaxResultsValidation(t *testing.T) {
 func TestWebSearchTool_TopicValidation(t *testing.T) {
 	// 保存原有环境变量
 	oldAPIKey := os.Getenv("WF_TAVILY_API_KEY")
-	defer os.Setenv("WF_TAVILY_API_KEY", oldAPIKey)
+	defer func() {
+		if err := os.Setenv("WF_TAVILY_API_KEY", oldAPIKey); err != nil {
+			t.Errorf("Failed to restore env: %v", err)
+		}
+	}()
 
 	// 设置测试 API key
-	os.Setenv("WF_TAVILY_API_KEY", "test-api-key")
+	if err := os.Setenv("WF_TAVILY_API_KEY", "test-api-key"); err != nil {
+		t.Fatalf("Failed to set env: %v", err)
+	}
 
 	tool, err := NewWebSearchTool(nil)
 	if err != nil {
@@ -264,17 +298,27 @@ func TestWebSearchTool_APIKeyFromEnvironment(t *testing.T) {
 			oldAPIKey1 := os.Getenv("WF_TAVILY_API_KEY")
 			oldAPIKey2 := os.Getenv("TAVILY_API_KEY")
 			defer func() {
-				os.Setenv("WF_TAVILY_API_KEY", oldAPIKey1)
-				os.Setenv("TAVILY_API_KEY", oldAPIKey2)
+				if err := os.Setenv("WF_TAVILY_API_KEY", oldAPIKey1); err != nil {
+					t.Errorf("Failed to restore env: %v", err)
+				}
+				if err := os.Setenv("TAVILY_API_KEY", oldAPIKey2); err != nil {
+					t.Errorf("Failed to restore env: %v", err)
+				}
 			}()
 
 			// 清除环境变量
-			os.Unsetenv("WF_TAVILY_API_KEY")
-			os.Unsetenv("TAVILY_API_KEY")
+			if err := os.Unsetenv("WF_TAVILY_API_KEY"); err != nil {
+				t.Fatalf("Failed to unset env: %v", err)
+			}
+			if err := os.Unsetenv("TAVILY_API_KEY"); err != nil {
+				t.Fatalf("Failed to unset env: %v", err)
+			}
 
 			// 设置测试环境变量
 			if tt.envVar != "" {
-				os.Setenv(tt.envVar, tt.envVal)
+				if err := os.Setenv(tt.envVar, tt.envVal); err != nil {
+					t.Fatalf("Failed to set env: %v", err)
+				}
 			}
 
 			tool, err := NewWebSearchTool(nil)

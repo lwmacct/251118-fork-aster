@@ -40,7 +40,7 @@ func main() {
 
 	// Initialize template registry
 	templateRegistry := agent.NewTemplateRegistry()
-	
+
 	// Register builtin templates
 	registerDefaultTemplates(templateRegistry)
 
@@ -57,7 +57,7 @@ func main() {
 			model = "claude-sonnet-4-5"
 		}
 	}
-	
+
 	var apiKey string
 	switch provider {
 	case "deepseek":
@@ -69,7 +69,7 @@ func main() {
 	default:
 		apiKey = os.Getenv(provider + "_API_KEY")
 	}
-	
+
 	defaultModel := &types.ModelConfig{
 		Provider: provider,
 		Model:    model,
@@ -165,7 +165,7 @@ func registerDefaultTemplates(registry *agent.TemplateRegistry) {
 	if provider == "" {
 		provider = "anthropic"
 	}
-	
+
 	model := os.Getenv("MODEL")
 	if model == "" {
 		if provider == "deepseek" {
@@ -174,11 +174,11 @@ func registerDefaultTemplates(registry *agent.TemplateRegistry) {
 			model = "claude-sonnet-4"
 		}
 	}
-	
+
 	// Register "chat" template - simple chat agent with prompt compression
 	registry.Register(&types.AgentTemplateDefinition{
-		ID:           "chat",
-		Model:        model,
+		ID:    "chat",
+		Model: model,
 		SystemPrompt: `You are a helpful AI assistant with access to various tools. When users ask you to:
 
 1. Read files or directories: Use the Read tool
@@ -234,19 +234,19 @@ IMPORTANT: Always follow security best practices:
 			// 对话历史压缩配置 - 类似 Claude Code 的 tokenBudget 机制
 			ConversationCompression: &types.ConversationCompressionConfig{
 				Enabled:           true,
-				TokenBudget:       5000,  // 降低预算便于测试 (生产环境建议 200000)
-				Threshold:         0.80,  // 80% 使用率触发压缩
-				MinMessagesToKeep: 4,     // 保留最近 4 条消息
+				TokenBudget:       5000, // 降低预算便于测试 (生产环境建议 200000)
+				Threshold:         0.80, // 80% 使用率触发压缩
+				MinMessagesToKeep: 4,    // 保留最近 4 条消息
 				SummaryLanguage:   "zh",
 				UseLLMSummarizer:  false, // 使用规则摘要，速度更快
 			},
 		},
 	})
-	
+
 	// Register "default-agent" template (alias for chat)
 	registry.Register(&types.AgentTemplateDefinition{
-		ID:           "default-agent",
-		Model:        model,
+		ID:    "default-agent",
+		Model: model,
 		SystemPrompt: `You are a helpful AI assistant with access to various tools. When users ask you to:
 
 1. Read files or directories: Use the Read tool
@@ -262,13 +262,13 @@ Always use the appropriate tool when possible instead of just explaining what yo
 When you receive a tool request, think about what tool is needed and use it. After using a tool, explain what you found or did.
 
 If you're unsure whether to use a tool, err on the side of using it - it's better to try and help than to just describe.`,
-		Tools:        "*",
+		Tools: "*",
 	})
 
 	// Register "code-assistant" template
 	registry.Register(&types.AgentTemplateDefinition{
-		ID:           "code-assistant",
-		Model:        model,
+		ID:    "code-assistant",
+		Model: model,
 		SystemPrompt: `You are an expert programming assistant with access to various tools. When users ask for code-related help:
 
 1. Read source files: Use the Read tool
@@ -281,8 +281,8 @@ If you're unsure whether to use a tool, err on the side of using it - it's bette
 Always prefer to actually read the code, make the changes, or run the commands rather than just describing what to do. Use your tools to examine real code and make real modifications.
 
 Explain what you're doing and why, but focus on actually solving the programming problem using available tools.`,
-		Tools:        "*",
+		Tools: "*",
 	})
-	
+
 	fmt.Printf("✅ Registered default templates (Provider: %s, Model: %s)\n", provider, model)
 }

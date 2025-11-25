@@ -529,10 +529,10 @@ func (po *PromptOptimizer) truncate(prompt string, maxLength int) string {
 
 // PromptStats Prompt 统计信息
 type PromptStats struct {
-	TotalLength    int
-	LineCount      int
-	SectionCount   int
-	ModuleCount    int
+	TotalLength     int
+	LineCount       int
+	SectionCount    int
+	ModuleCount     int
 	EstimatedTokens int
 }
 
@@ -570,7 +570,7 @@ func FormatStats(stats *PromptStats) string {
 
 // PromptCompressor Prompt 压缩器（使用 LLM 进行智能压缩）
 type PromptCompressor struct {
-	TargetLength int
+	TargetLength     int
 	PreserveSections []string // 需要保留的段落标题
 }
 

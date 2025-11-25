@@ -12,6 +12,7 @@ import (
 	"github.com/astercloud/aster/pkg/store"
 	"github.com/astercloud/aster/pkg/structured"
 	"github.com/astercloud/aster/pkg/tools"
+	"github.com/astercloud/aster/pkg/tools/builtin"
 	"github.com/astercloud/aster/pkg/types"
 )
 
@@ -35,11 +36,19 @@ func main() {
 	ctx := context.Background()
 
 	// 创建依赖
+	jsonStore, err := store.NewJSONStore(".aster-structured-output")
+	if err != nil {
+		log.Fatalf("Failed to create store: %v", err)
+	}
+
+	toolRegistry := tools.NewRegistry()
+	builtin.RegisterAll(toolRegistry)
+
 	deps := &agent.Dependencies{
-		Store:            store.NewMemoryStore(),
+		Store:            jsonStore,
 		SandboxFactory:   sandbox.NewFactory(),
-		ToolRegistry:     tools.DefaultRegistry,
-		ProviderFactory:  provider.NewFactory(),
+		ToolRegistry:     toolRegistry,
+		ProviderFactory:  provider.NewMultiProviderFactory(),
 		TemplateRegistry: createTemplateRegistry(),
 	}
 
@@ -65,7 +74,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create agent: %v", err)
 	}
-	defer ag.Close()
+	defer func() {
+		if err := ag.Close(); err != nil {
+			log.Printf("Failed to close agent: %v", err)
+		}
+	}()
 
 	// 示例 1: 生成任务列表
 	fmt.Println("=== Example 1: Generate Task List ===")
@@ -104,7 +117,7 @@ Return the result in JSON format with the following structure:
 
 	// 示例 2: 使用 Schema 验证
 	fmt.Println("\n=== Example 2: With Schema Validation ===")
-	
+
 	schema := structured.MustGenerateSchema(Task{})
 	fmt.Printf("Generated Schema:\n")
 	schemaJSON, _ := schema.ToJSON()
@@ -112,7 +125,7 @@ Return the result in JSON format with the following structure:
 
 	// 示例 3: 类型化解析
 	fmt.Println("\n=== Example 3: Typed Parsing ===")
-	
+
 	spec := structured.TypedOutputSpec{
 		StructType:     &TaskList{},
 		RequiredFields: []string{"tasks", "total"},
@@ -134,7 +147,7 @@ Return the result in JSON format with the following structure:
 	if parseResult.Success {
 		fmt.Println("✓ Parsing successful")
 		fmt.Printf("✓ Validation passed\n")
-		
+
 		parsedList := parseResult.Data.(*TaskList)
 		jsonOutput, _ := json.MarshalIndent(parsedList, "", "  ")
 		fmt.Printf("\nParsed Data:\n%s\n", jsonOutput)
@@ -150,9 +163,7 @@ func createTemplateRegistry() *agent.TemplateRegistry {
 	registry := agent.NewTemplateRegistry()
 
 	registry.Register(&types.AgentTemplateDefinition{
-		ID:          "structured-agent",
-		Name:        "Structured Output Agent",
-		Description: "An agent that generates structured JSON outputs",
+		ID: "structured-agent",
 		SystemPrompt: `You are an AI assistant that generates structured JSON outputs.
 
 When asked to create data structures:
@@ -164,7 +175,7 @@ When asked to create data structures:
 
 Wrap your JSON output in markdown code blocks for clarity.`,
 		Model: "claude-3-5-sonnet-20241022",
-		Tools: []interface{}{},
+		Tools: []string{},
 	})
 
 	return registry

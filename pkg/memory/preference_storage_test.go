@@ -10,7 +10,11 @@ import (
 
 func TestNewFilePreferenceStorage(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-preferences")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, err := NewFilePreferenceStorage(tmpDir)
 	if err != nil {
@@ -29,7 +33,11 @@ func TestNewFilePreferenceStorage(t *testing.T) {
 
 func TestFilePreferenceStorage_Save(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-preferences-save")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 
@@ -59,7 +67,11 @@ func TestFilePreferenceStorage_Save(t *testing.T) {
 
 func TestFilePreferenceStorage_Load(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-preferences-load")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 
@@ -75,7 +87,9 @@ func TestFilePreferenceStorage_Load(t *testing.T) {
 			Confidence: 0.9,
 		},
 	}
-	storage.Save(context.Background(), "user-1", original)
+	if err := storage.Save(context.Background(), "user-1", original); err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
 
 	// 加载偏好
 	loaded, err := storage.Load(context.Background(), "user-1")
@@ -98,7 +112,11 @@ func TestFilePreferenceStorage_Load(t *testing.T) {
 
 func TestFilePreferenceStorage_Load_NotExist(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-preferences-not-exist")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 
@@ -115,7 +133,11 @@ func TestFilePreferenceStorage_Load_NotExist(t *testing.T) {
 
 func TestFilePreferenceStorage_Delete(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-preferences-delete")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 
@@ -123,7 +145,9 @@ func TestFilePreferenceStorage_Delete(t *testing.T) {
 	preferences := []*Preference{
 		{ID: "pref-1", UserID: "user-1", Category: CategoryUI, Key: "theme", Value: "dark"},
 	}
-	storage.Save(context.Background(), "user-1", preferences)
+	if err := storage.Save(context.Background(), "user-1", preferences); err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
 
 	// 删除
 	err := storage.Delete(context.Background(), "user-1")
@@ -140,7 +164,11 @@ func TestFilePreferenceStorage_Delete(t *testing.T) {
 
 func TestFilePreferenceStorage_List(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-preferences-list")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 
@@ -150,7 +178,9 @@ func TestFilePreferenceStorage_List(t *testing.T) {
 		prefs := []*Preference{
 			{ID: "pref-1", UserID: userID, Category: CategoryUI, Key: "theme", Value: "dark"},
 		}
-		storage.Save(context.Background(), userID, prefs)
+		if err := storage.Save(context.Background(), userID, prefs); err != nil {
+			t.Fatalf("Save failed: %v", err)
+		}
 	}
 
 	// 列出所有用户
@@ -166,7 +196,11 @@ func TestFilePreferenceStorage_List(t *testing.T) {
 
 func TestNewPersistentPreferenceManager(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-persistent-manager")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 	config := DefaultPreferenceManagerConfig()
@@ -184,7 +218,11 @@ func TestNewPersistentPreferenceManager(t *testing.T) {
 
 func TestPersistentPreferenceManager_SaveLoadUser(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-persistent-save-load")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 	manager := NewPersistentPreferenceManager(DefaultPreferenceManagerConfig(), storage)
@@ -198,7 +236,9 @@ func TestPersistentPreferenceManager_SaveLoadUser(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref)
+	if err := manager.AddPreference(context.Background(), pref); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 保存
 	err := manager.SaveUser(context.Background(), "user-1")
@@ -228,7 +268,11 @@ func TestPersistentPreferenceManager_SaveLoadUser(t *testing.T) {
 
 func TestPersistentPreferenceManager_DeleteUser(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-persistent-delete")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 	manager := NewPersistentPreferenceManager(DefaultPreferenceManagerConfig(), storage)
@@ -242,8 +286,12 @@ func TestPersistentPreferenceManager_DeleteUser(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref)
-	manager.SaveUser(context.Background(), "user-1")
+	if err := manager.AddPreference(context.Background(), pref); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
+	if err := manager.SaveUser(context.Background(), "user-1"); err != nil {
+		t.Fatalf("SaveUser failed: %v", err)
+	}
 
 	// 删除用户
 	err := manager.DeleteUser(context.Background(), "user-1")
@@ -266,7 +314,11 @@ func TestPersistentPreferenceManager_DeleteUser(t *testing.T) {
 
 func TestPersistentPreferenceManager_SaveAll(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-persistent-save-all")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 	manager := NewPersistentPreferenceManager(DefaultPreferenceManagerConfig(), storage)
@@ -282,7 +334,9 @@ func TestPersistentPreferenceManager_SaveAll(t *testing.T) {
 			Strength:   0.8,
 			Confidence: 0.9,
 		}
-		manager.AddPreference(context.Background(), pref)
+		if err := manager.AddPreference(context.Background(), pref); err != nil {
+			t.Fatalf("AddPreference failed: %v", err)
+		}
 	}
 
 	// 保存所有
@@ -302,7 +356,11 @@ func TestPersistentPreferenceManager_SaveAll(t *testing.T) {
 
 func TestPersistentPreferenceManager_LoadAll(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-persistent-load-all")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 	manager := NewPersistentPreferenceManager(DefaultPreferenceManagerConfig(), storage)
@@ -318,9 +376,13 @@ func TestPersistentPreferenceManager_LoadAll(t *testing.T) {
 			Strength:   0.8,
 			Confidence: 0.9,
 		}
-		manager.AddPreference(context.Background(), pref)
+		if err := manager.AddPreference(context.Background(), pref); err != nil {
+			t.Fatalf("AddPreference failed: %v", err)
+		}
 	}
-	manager.SaveAll(context.Background())
+	if err := manager.SaveAll(context.Background()); err != nil {
+		t.Fatalf("SaveAll failed: %v", err)
+	}
 
 	// 创建新的管理器并加载所有
 	newManager := NewPersistentPreferenceManager(DefaultPreferenceManagerConfig(), storage)
@@ -340,7 +402,11 @@ func TestPersistentPreferenceManager_LoadAll(t *testing.T) {
 
 func TestPersistentPreferenceManager_AutoSave(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-persistent-autosave")
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 	manager := NewPersistentPreferenceManager(DefaultPreferenceManagerConfig(), storage)
@@ -354,7 +420,9 @@ func TestPersistentPreferenceManager_AutoSave(t *testing.T) {
 		Strength:   0.8,
 		Confidence: 0.9,
 	}
-	manager.AddPreference(context.Background(), pref)
+	if err := manager.AddPreference(context.Background(), pref); err != nil {
+		t.Fatalf("AddPreference failed: %v", err)
+	}
 
 	// 启动自动保存（1 秒间隔）
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

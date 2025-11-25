@@ -255,7 +255,7 @@ func (e *Engine) parseTextStep(text string) (*Step, error) {
 	// 提取置信度
 	confidencePattern := regexp.MustCompile(`(?i)confidence:\s*(0?\.\d+|1\.0?)`)
 	if matches := confidencePattern.FindStringSubmatch(text); len(matches) > 1 {
-		fmt.Sscanf(matches[1], "%f", &step.Confidence)
+		_, _ = fmt.Sscanf(matches[1], "%f", &step.Confidence)
 	}
 
 	// 提取下一步行动

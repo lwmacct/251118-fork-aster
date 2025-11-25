@@ -103,6 +103,22 @@ type StreamOptions struct {
 	MaxTokens   int
 	Temperature float64
 	System      string
+
+	// ToolChoice 工具选择策略（Anthropic API 支持）
+	// 可选值: nil (默认), "auto", "any", 或指定工具名
+	ToolChoice *ToolChoiceOption `json:"tool_choice,omitempty"`
+}
+
+// ToolChoiceOption 工具选择选项
+type ToolChoiceOption struct {
+	// Type 选择类型: "auto", "any", "tool"
+	Type string `json:"type"`
+
+	// Name 当 Type="tool" 时，指定工具名称
+	Name string `json:"name,omitempty"`
+
+	// DisableParallelToolUse 禁用并行工具调用
+	DisableParallelToolUse bool `json:"disable_parallel_tool_use,omitempty"`
 }
 
 // CompleteResponse 完整响应
@@ -111,11 +127,22 @@ type CompleteResponse struct {
 	Usage   *TokenUsage
 }
 
+// ToolExample 工具使用示例（与 tools.ToolExample 保持一致）
+type ToolExample struct {
+	Description string                 `json:"description"`
+	Input       map[string]interface{} `json:"input"`
+	Output      interface{}            `json:"output,omitempty"`
+}
+
 // ToolSchema 工具Schema
 type ToolSchema struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	InputSchema map[string]interface{} `json:"input_schema"`
+
+	// InputExamples 工具使用示例，帮助 LLM 更准确地调用工具
+	// 参考 Anthropic 的 Tool Use Examples 功能
+	InputExamples []ToolExample `json:"input_examples,omitempty"`
 }
 
 // ProviderCapabilities 模型能力（扩展版本）

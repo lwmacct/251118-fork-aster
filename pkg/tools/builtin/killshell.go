@@ -345,3 +345,32 @@ func (t *KillShellTool) Prompt() string {
 - 清理机制保护
 - 详细的操作日志`
 }
+
+// Examples 返回 KillShell 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *KillShellTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "优雅终止后台进程",
+			Input: map[string]interface{}{
+				"shell_id": "task_123456",
+			},
+		},
+		{
+			Description: "强制终止进程",
+			Input: map[string]interface{}{
+				"shell_id": "task_123456",
+				"force":    true,
+			},
+		},
+		{
+			Description: "发送特定信号并等待退出",
+			Input: map[string]interface{}{
+				"shell_id": "task_123456",
+				"signal":   "SIGINT",
+				"wait":     true,
+				"timeout":  30,
+			},
+		},
+	}
+}

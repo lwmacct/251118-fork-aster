@@ -29,16 +29,17 @@ func (s *Server) registerAgentRoutes(rg *gin.RouterGroup) {
 }
 
 // registerWebSocketRoutes registers WebSocket routes
-func (s *Server) registerWebSocketRoutes(rg *gin.RouterGroup) {
-	// Create WebSocket handler
-	h := handlers.NewWebSocketHandler(s.store, s.deps.AgentDeps, s.agentRegistry)
-
-	ws := rg.Group("/ws")
-	{
-		ws.GET("", h.HandleWebSocket)
-		ws.GET("/stats", h.GetStats)
-	}
-}
+// Deprecated: WebSocket routes are now registered in registerRoutes
+// func (s *Server) registerWebSocketRoutes(rg *gin.RouterGroup) {
+// 	// Create WebSocket handler
+// 	h := handlers.NewWebSocketHandler(s.store, s.deps.AgentDeps, s.agentRegistry)
+//
+// 	ws := rg.Group("/ws")
+// 	{
+// 		ws.GET("", h.HandleWebSocket)
+// 		ws.GET("/stats", h.GetStats)
+// 	}
+// }
 
 // registerMemoryRoutes registers all memory-related routes
 func (s *Server) registerMemoryRoutes(rg *gin.RouterGroup) {

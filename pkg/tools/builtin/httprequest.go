@@ -228,3 +228,40 @@ Example usage:
   "timeout": 10
 }`
 }
+
+// Examples 返回 HttpRequest 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *HttpRequestTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "发送 GET 请求获取 JSON 数据",
+			Input: map[string]interface{}{
+				"url":    "https://api.example.com/users/1",
+				"method": "GET",
+				"headers": map[string]string{
+					"Accept": "application/json",
+				},
+			},
+		},
+		{
+			Description: "发送 POST 请求创建资源",
+			Input: map[string]interface{}{
+				"url":    "https://api.example.com/users",
+				"method": "POST",
+				"headers": map[string]string{
+					"Content-Type":  "application/json",
+					"Authorization": "Bearer token123",
+				},
+				"body": `{"name": "John", "email": "john@example.com"}`,
+			},
+		},
+		{
+			Description: "发送带超时的请求",
+			Input: map[string]interface{}{
+				"url":     "https://slow-api.example.com/data",
+				"method":  "GET",
+				"timeout": 60,
+			},
+		},
+	}
+}

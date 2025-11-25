@@ -257,3 +257,33 @@ func (t *WriteTool) Prompt() string {
 - 文件备份保护
 - 写入权限检查`
 }
+
+// Examples 返回 Write 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *WriteTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "创建新的配置文件",
+			Input: map[string]interface{}{
+				"file_path": "/app/config.yaml",
+				"content":   "server:\n  port: 8080\n  host: localhost",
+			},
+		},
+		{
+			Description: "追加日志到文件",
+			Input: map[string]interface{}{
+				"file_path": "/var/log/app.log",
+				"content":   "2024-01-15 10:30:00 INFO Application started",
+				"append":    true,
+			},
+		},
+		{
+			Description: "创建文件并备份已存在的版本",
+			Input: map[string]interface{}{
+				"file_path": "/app/src/main.go",
+				"content":   "package main\n\nfunc main() {\n\tprintln(\"Hello\")\n}",
+				"backup":    true,
+			},
+		},
+	}
+}

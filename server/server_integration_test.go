@@ -40,17 +40,17 @@ func TestAgentLifecycle(t *testing.T) {
 		if w.Code != http.StatusCreated {
 			t.Logf("Create agent failed with status %d: %s", w.Code, w.Body.String())
 		}
-		
+
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		
+
 		if !resp["success"].(bool) {
 			t.Logf("Response indicates failure: %+v", resp)
 		}
-		
+
 		assert.True(t, resp["success"].(bool))
 		data := resp["data"].(map[string]interface{})
 		agentID = data["id"].(string)
@@ -143,11 +143,11 @@ func TestPoolOperations(t *testing.T) {
 		srv.Router().ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		
+
 		data := resp["data"].(map[string]interface{})
 		agentID = data["agent_id"].(string)
 		assert.NotEmpty(t, agentID)
@@ -205,11 +205,11 @@ func TestRoomOperations(t *testing.T) {
 
 	srv.Router().ServeHTTP(w, req)
 	require.Equal(t, http.StatusCreated, w.Code)
-	
+
 	var createResp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &createResp)
 	require.NoError(t, err)
-	
+
 	data := createResp["data"].(map[string]interface{})
 	roomID := data["id"].(string)
 	require.NotEmpty(t, roomID)
@@ -293,11 +293,11 @@ func TestMemoryOperations(t *testing.T) {
 		srv.Router().ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		
+
 		data := resp["data"].(map[string]interface{})
 		memoryID = data["id"].(string)
 		assert.NotEmpty(t, memoryID)
@@ -372,11 +372,11 @@ func TestSessionOperations(t *testing.T) {
 		srv.Router().ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		
+
 		data := resp["data"].(map[string]interface{})
 		sessionID = data["id"].(string)
 		assert.NotEmpty(t, sessionID)
@@ -452,11 +452,11 @@ func TestWorkflowOperations(t *testing.T) {
 		srv.Router().ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		
+
 		data := resp["data"].(map[string]interface{})
 		workflowID = data["id"].(string)
 		assert.NotEmpty(t, workflowID)
@@ -549,7 +549,7 @@ func TestErrorHandling(t *testing.T) {
 			} else {
 				req = httptest.NewRequest(tt.method, tt.path, nil)
 			}
-			
+
 			w := httptest.NewRecorder()
 			srv.Router().ServeHTTP(w, req)
 
@@ -599,20 +599,20 @@ func TestConcurrentRequests(t *testing.T) {
 			t.Fatalf("Timeout waiting for concurrent requests, completed: %d/%d", completed, numRequests)
 		}
 	}
-	
+
 	t.Logf("All %d concurrent requests completed", numRequests)
 }
 
 // TestRateLimiting 测试速率限制（如果启用）
 func TestRateLimiting(t *testing.T) {
 	t.Skip("Rate limiting not yet implemented")
-	
+
 	// TODO: 实现速率限制测试
 }
 
 // TestAuthentication 测试认证（如果启用）
 func TestAuthentication(t *testing.T) {
 	t.Skip("Authentication testing requires separate setup")
-	
+
 	// TODO: 实现认证测试
 }

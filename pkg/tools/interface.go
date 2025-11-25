@@ -49,6 +49,50 @@ type Tool interface {
 	Prompt() string
 }
 
+// ToolExample 工具使用示例
+// 用于向 LLM 展示工具的正确使用方式，提升复杂参数处理的准确率
+type ToolExample struct {
+	// Description 示例描述，说明这个示例演示的场景
+	Description string `json:"description"`
+
+	// Input 示例输入参数
+	Input map[string]interface{} `json:"input"`
+
+	// Output 可选的预期输出，用于展示工具返回格式
+	Output interface{} `json:"output,omitempty"`
+}
+
+// ExampleableTool 支持使用示例的工具接口
+// 实现此接口的工具可以提供使用示例，帮助 LLM 更准确地调用工具
+type ExampleableTool interface {
+	Tool
+	// Examples 返回工具使用示例列表
+	// 建议提供 1-5 个示例，涵盖常见使用场景
+	Examples() []ToolExample
+}
+
+// DeferrableConfig 延迟加载配置
+// 用于工具搜索工具的按需发现机制
+type DeferrableConfig struct {
+	// DeferLoading 是否延迟加载，为 true 时工具不会预先加载到 LLM 上下文
+	DeferLoading bool `json:"defer_loading"`
+
+	// Category 工具分类，用于搜索过滤
+	// 例如: "filesystem", "execution", "network", "mcp", "custom"
+	Category string `json:"category,omitempty"`
+
+	// Keywords 搜索关键词，用于 BM25 索引
+	Keywords []string `json:"keywords,omitempty"`
+}
+
+// DeferrableTool 支持延迟加载的工具接口
+// 实现此接口的工具可以被工具搜索工具按需发现和激活
+type DeferrableTool interface {
+	Tool
+	// DeferConfig 返回延迟加载配置
+	DeferConfig() *DeferrableConfig
+}
+
 // ToolConfig 工具配置(用于持久化)
 type ToolConfig struct {
 	Name       string                 `json:"name"`

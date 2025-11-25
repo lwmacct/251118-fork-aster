@@ -346,3 +346,34 @@ func (t *TaskTool) Prompt() string {
 - 可实现任务结果缓存
 - 支持代理执行日志记录`
 }
+
+// Examples 返回 Task 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *TaskTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "启动代码探索代理",
+			Input: map[string]interface{}{
+				"subagent_type": "Explore",
+				"prompt":        "搜索所有与用户认证相关的代码文件",
+			},
+		},
+		{
+			Description: "启动通用代理执行复杂任务",
+			Input: map[string]interface{}{
+				"subagent_type":   "general-purpose",
+				"prompt":          "分析项目架构并生成文档",
+				"model":           "sonnet",
+				"timeout_minutes": 60,
+			},
+		},
+		{
+			Description: "恢复之前暂停的任务",
+			Input: map[string]interface{}{
+				"subagent_type": "general-purpose",
+				"prompt":        "",
+				"resume":        "task_123456",
+			},
+		},
+	}
+}

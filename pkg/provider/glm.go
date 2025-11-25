@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/astercloud/aster/pkg/types"
+	"github.com/astercloud/aster/pkg/util"
 )
 
 const (
@@ -52,8 +53,8 @@ func (gp *GLMProvider) Complete(ctx context.Context, messages []types.Message, o
 	reqBody := gp.buildRequest(messages, opts)
 	reqBody["stream"] = false // 关键:设置为非流式
 
-	// 序列化
-	jsonData, err := json.Marshal(reqBody)
+	// 序列化（使用确定性序列化以优化 KV-Cache 命中率）
+	jsonData, err := util.MarshalDeterministic(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
@@ -123,8 +124,8 @@ func (gp *GLMProvider) Stream(ctx context.Context, messages []types.Message, opt
 	// 构建请求体
 	reqBody := gp.buildRequest(messages, opts)
 
-	// 序列化
-	jsonData, err := json.Marshal(reqBody)
+	// 序列化（使用确定性序列化以优化 KV-Cache 命中率）
+	jsonData, err := util.MarshalDeterministic(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
@@ -132,7 +133,7 @@ func (gp *GLMProvider) Stream(ctx context.Context, messages []types.Message, opt
 	// 记录请求内容（用于调试）
 	if tools, ok := reqBody["tools"].([]map[string]interface{}); ok && len(tools) > 0 {
 		log.Printf("[GLMProvider] Request body includes %d tools", len(tools))
-		toolsJSON, _ := json.MarshalIndent(reqBody["tools"], "", "  ")
+		toolsJSON, _ := util.MarshalDeterministicIndent(reqBody["tools"], "", "  ")
 		log.Printf("[GLMProvider] Full tools definition:\n%s", string(toolsJSON))
 	}
 
@@ -217,6 +218,9 @@ func (gp *GLMProvider) buildRequest(messages []types.Message, opts *StreamOption
 						"description": tool.Description,
 						"parameters":  tool.InputSchema,
 					},
+					// TODO: GLM API 暂不支持 input_examples，待官方支持后启用
+					// 参考: https://open.bigmodel.cn/dev/api
+					// 实现参考: pkg/provider/anthropic.go buildRequest() 中的 InputExamples 处理
 				}
 				tools = append(tools, toolMap)
 			}

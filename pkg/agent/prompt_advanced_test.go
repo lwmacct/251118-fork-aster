@@ -39,12 +39,12 @@ func TestPromptBuilder_AllModules(t *testing.T) {
 			MaxTokens: 100000,
 		},
 		Metadata: map[string]interface{}{
-			"agent_type":                "code_assistant",
-			"show_capabilities":         true,
-			"show_limitations":          true,
-			"enable_security":           true,
-			"enable_performance_hints":  true,
-			"custom_instructions":       "Always write tests for your code.",
+			"agent_type":               "code_assistant",
+			"show_capabilities":        true,
+			"show_limitations":         true,
+			"enable_security":          true,
+			"enable_performance_hints": true,
+			"custom_instructions":      "Always write tests for your code.",
 		},
 	}
 
@@ -96,9 +96,9 @@ func TestPromptBuilder_RoomCollaboration(t *testing.T) {
 			WorkDir: "/tmp/test",
 		},
 		Metadata: map[string]interface{}{
-			"room_id":            "room-123",
-			"room_member_count":  3,
-			"room_members":       []string{"alice", "bob", "charlie"},
+			"room_id":           "room-123",
+			"room_member_count": 3,
+			"room_members":      []string{"alice", "bob", "charlie"},
 		},
 	}
 
@@ -141,10 +141,10 @@ func TestPromptBuilder_WorkflowContext(t *testing.T) {
 			WorkDir: "/tmp/test",
 		},
 		Metadata: map[string]interface{}{
-			"workflow_id":           "wf-456",
-			"workflow_current_step": "data_processing",
-			"workflow_total_steps":  5,
-			"workflow_step_index":   2,
+			"workflow_id":            "wf-456",
+			"workflow_current_step":  "data_processing",
+			"workflow_total_steps":   5,
+			"workflow_step_index":    2,
 			"workflow_previous_step": "data_collection",
 			"workflow_next_step":     "data_analysis",
 		},

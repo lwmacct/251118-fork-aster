@@ -268,3 +268,31 @@ func (t *ReadTool) Prompt() string {
 - 沙箱环境隔离
 - 权限检查集成`
 }
+
+// Examples 返回 Read 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *ReadTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "读取整个配置文件",
+			Input: map[string]interface{}{
+				"file_path": "/app/config.yaml",
+			},
+		},
+		{
+			Description: "读取文件的前100行",
+			Input: map[string]interface{}{
+				"file_path": "/var/log/app.log",
+				"limit":     100,
+			},
+		},
+		{
+			Description: "从第50行开始读取20行",
+			Input: map[string]interface{}{
+				"file_path": "/app/src/main.go",
+				"offset":    50,
+				"limit":     20,
+			},
+		},
+	}
+}

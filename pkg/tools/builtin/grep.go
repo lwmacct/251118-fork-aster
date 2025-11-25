@@ -495,3 +495,45 @@ func (t *GrepTool) Prompt() string {
 - 沙箱环境隔离
 - 超时控制`
 }
+
+// Examples 返回 Grep 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *GrepTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "搜索所有包含 TODO 的文件",
+			Input: map[string]interface{}{
+				"pattern":     "TODO",
+				"output_mode": "files_with_matches",
+			},
+		},
+		{
+			Description: "搜索函数定义并显示上下文",
+			Input: map[string]interface{}{
+				"pattern":          "func\\s+\\w+\\(",
+				"path":             "/app/src",
+				"output_mode":      "content",
+				"context_lines":    3,
+				"case_insensitive": false,
+			},
+		},
+		{
+			Description: "统计每个文件中 error 出现的次数",
+			Input: map[string]interface{}{
+				"pattern":          "error",
+				"output_mode":      "count",
+				"case_insensitive": true,
+			},
+		},
+		{
+			Description: "在指定类型文件中搜索",
+			Input: map[string]interface{}{
+				"pattern":     "import\\s+\"",
+				"path":        "/app",
+				"file_types":  []string{"go"},
+				"output_mode": "content",
+				"max_results": 50,
+			},
+		},
+	}
+}

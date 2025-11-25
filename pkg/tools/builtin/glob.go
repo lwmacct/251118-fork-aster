@@ -360,3 +360,39 @@ func (t *GlobTool) Prompt() string {
 - 权限检查集成
 - 结果数量限制`
 }
+
+// Examples 返回 Glob 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *GlobTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "查找所有 Go 源文件",
+			Input: map[string]interface{}{
+				"pattern": "**/*.go",
+			},
+		},
+		{
+			Description: "在 src 目录中查找 TypeScript 文件",
+			Input: map[string]interface{}{
+				"pattern": "**/*.{ts,tsx}",
+				"path":    "/app/src",
+			},
+		},
+		{
+			Description: "查找测试文件并排除 vendor 目录",
+			Input: map[string]interface{}{
+				"pattern":          "**/*_test.go",
+				"exclude_patterns": []string{"vendor/**", "node_modules/**"},
+			},
+		},
+		{
+			Description: "查找配置文件并按修改时间排序",
+			Input: map[string]interface{}{
+				"pattern":     "*.{yaml,yml,json}",
+				"path":        "/app/config",
+				"sort_by":     "modified_time",
+				"max_results": 20,
+			},
+		},
+	}
+}

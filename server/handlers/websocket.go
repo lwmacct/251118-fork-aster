@@ -116,9 +116,9 @@ func (h *WebSocketHandler) readPump(wsConn *WebSocketConnection) {
 		h.closeConnection(wsConn)
 	}()
 
-	wsConn.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	_ = wsConn.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	wsConn.Conn.SetPongHandler(func(string) error {
-		wsConn.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		_ = wsConn.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 		return nil
 	})
 
@@ -160,15 +160,15 @@ func (h *WebSocketHandler) writePump(wsConn *WebSocketConnection) {
 	ticker := time.NewTicker(54 * time.Second)
 	defer func() {
 		ticker.Stop()
-		wsConn.Conn.Close()
+		_ = wsConn.Conn.Close()
 	}()
 
 	for {
 		select {
 		case message, ok := <-wsConn.Send:
-			wsConn.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			_ = wsConn.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if !ok {
-				wsConn.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = wsConn.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
@@ -177,7 +177,7 @@ func (h *WebSocketHandler) writePump(wsConn *WebSocketConnection) {
 			}
 
 		case <-ticker.C:
-			wsConn.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			_ = wsConn.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := wsConn.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
@@ -213,7 +213,7 @@ func (h *WebSocketHandler) handleMessage(wsConn *WebSocketConnection, msg *WebSo
 // handleChat handles chat messages
 func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[string]interface{}) {
 	// Reset read deadline to prevent timeout during long-running LLM requests
-	wsConn.Conn.SetReadDeadline(time.Now().Add(5 * time.Minute))
+	_ = wsConn.Conn.SetReadDeadline(time.Now().Add(5 * time.Minute))
 
 	// Extract parameters
 	templateID, _ := payload["template_id"].(string)
@@ -352,9 +352,9 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 
 			if event != nil {
 				logging.Info(wsConn.ctx, "websocket.stream.event.received", map[string]interface{}{
-					"agent_id":   ag.ID(),
-					"event_id":   event.ID,
-					"author":     event.Author,
+					"agent_id":    ag.ID(),
+					"event_id":    event.ID,
+					"author":      event.Author,
 					"has_content": len(event.Content.ContentBlocks) > 0,
 				})
 
@@ -368,7 +368,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 
 				if textContent != "" {
 					logging.Info(wsConn.ctx, "websocket.stream.sending_text_delta", map[string]interface{}{
-						"agent_id":   ag.ID(),
+						"agent_id":    ag.ID(),
 						"text_length": len(textContent),
 						"preview":     textContent[:min(50, len(textContent))],
 					})
@@ -440,7 +440,11 @@ func (h *WebSocketHandler) closeConnection(wsConn *WebSocketConnection) {
 
 	if wsConn.Agent != nil {
 		h.registry.Unregister((*wsConn.Agent).ID())
-		(*wsConn.Agent).Close()
+		if err := (*wsConn.Agent).Close(); err != nil {
+			logging.Error(wsConn.ctx, "failed to close agent", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}
 
 	logging.Info(wsConn.ctx, "websocket.disconnected", map[string]interface{}{

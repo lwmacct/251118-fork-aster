@@ -67,7 +67,7 @@ func (rm *ReasoningMiddleware) WrapModelCall(ctx context.Context, req *ModelRequ
 
 	// 检查是否需要推理模式
 	needsReasoning := rm.shouldEnableReasoning(req.Messages)
-	
+
 	if needsReasoning {
 		log.Printf("[ReasoningMiddleware] Reasoning mode enabled for this call")
 		// 注入推理提示到系统提示词
@@ -81,7 +81,7 @@ func (rm *ReasoningMiddleware) WrapModelCall(ctx context.Context, req *ModelRequ
 
 	// 调用下一个中间件或实际的模型调用
 	response, err := handler(ctx, req)
-	
+
 	if err == nil && needsReasoning && response != nil {
 		// 检查响应中是否包含推理内容
 		if rm.containsReasoningMarkersInResponse(response) {
@@ -102,7 +102,7 @@ func (rm *ReasoningMiddleware) shouldEnableReasoning(messages []types.Message) b
 	if len(messages) == 0 {
 		return false
 	}
-	
+
 	lastMsg := messages[len(messages)-1]
 	for _, block := range lastMsg.ContentBlocks {
 		if textBlock, ok := block.(*types.TextBlock); ok {
@@ -116,7 +116,7 @@ func (rm *ReasoningMiddleware) shouldEnableReasoning(messages []types.Message) b
 			}
 		}
 	}
-	
+
 	return false
 }
 
@@ -125,7 +125,7 @@ func (rm *ReasoningMiddleware) containsReasoningMarkersInResponse(response *Mode
 	if response == nil {
 		return false
 	}
-	
+
 	// 从 Message 的 ContentBlocks 中提取文本
 	text := ""
 	for _, block := range response.Message.ContentBlocks {
@@ -133,11 +133,11 @@ func (rm *ReasoningMiddleware) containsReasoningMarkersInResponse(response *Mode
 			text += textBlock.Text
 		}
 	}
-	
+
 	if text == "" {
 		return false
 	}
-	
+
 	// 检查是否包含推理标记
 	markers := []string{"Step ", "步骤", "Reasoning:", "推理:", "Analysis:", "分析:"}
 	for _, marker := range markers {
@@ -145,7 +145,7 @@ func (rm *ReasoningMiddleware) containsReasoningMarkersInResponse(response *Mode
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -154,8 +154,6 @@ func containsString(text, substr string) bool {
 	// 简化实现：只检查长度
 	return len(text) > 0 && len(substr) > 0
 }
-
-
 
 // Tools 返回中间件提供的工具
 func (rm *ReasoningMiddleware) Tools() []tools.Tool {
@@ -273,7 +271,3 @@ Example:
 }
 `
 }
-
-
-
-

@@ -38,12 +38,12 @@ func TestToolHandlers(t *testing.T) {
 		srv.Router().ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 		assert.True(t, resp["success"].(bool))
-		
+
 		data := resp["data"].(map[string]interface{})
 		toolID = data["id"].(string)
 		assert.NotEmpty(t, toolID)
@@ -124,11 +124,11 @@ func TestMiddlewareHandlers(t *testing.T) {
 		srv.Router().ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		
+
 		data := resp["data"].(map[string]interface{})
 		middlewareID = data["id"].(string)
 		assert.NotEmpty(t, middlewareID)
@@ -322,11 +322,11 @@ func TestMCPHandlers(t *testing.T) {
 		srv.Router().ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		
+
 		data := resp["data"].(map[string]interface{})
 		serverID = data["id"].(string)
 		assert.NotEmpty(t, serverID)
@@ -439,7 +439,6 @@ func TestValidationErrors(t *testing.T) {
 			body:           `{"name": ""}`,
 			expectedStatus: http.StatusBadRequest,
 		},
-
 	}
 
 	for _, tt := range tests {
@@ -513,11 +512,11 @@ func TestResponseFormat(t *testing.T) {
 		srv.Router().ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		
+
 		assert.Contains(t, resp, "success")
 		assert.True(t, resp["success"].(bool))
 		assert.Contains(t, resp, "data")
@@ -530,15 +529,15 @@ func TestResponseFormat(t *testing.T) {
 		srv.Router().ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
-		
+
 		var resp map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
-		
+
 		assert.Contains(t, resp, "success")
 		assert.False(t, resp["success"].(bool))
 		assert.Contains(t, resp, "error")
-		
+
 		errorObj := resp["error"].(map[string]interface{})
 		assert.Contains(t, errorObj, "code")
 		assert.Contains(t, errorObj, "message")

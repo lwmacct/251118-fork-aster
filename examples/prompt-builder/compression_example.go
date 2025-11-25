@@ -75,8 +75,8 @@ func templateCompressionExample() {
 		Runtime: &types.AgentTemplateRuntime{
 			PromptCompression: &types.PromptCompressionConfig{
 				Enabled:          true,
-				MaxLength:        5000,  // 超过 5000 字符触发压缩
-				TargetLength:     3000,  // 压缩到 3000 字符
+				MaxLength:        5000, // 超过 5000 字符触发压缩
+				TargetLength:     3000, // 压缩到 3000 字符
 				Mode:             "hybrid",
 				Level:            2, // 中度压缩
 				PreserveSections: []string{"Tools Manual", "Security Guidelines"},

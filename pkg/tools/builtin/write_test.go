@@ -75,7 +75,7 @@ func TestWriteTool_OverwriteExisting(t *testing.T) {
 	}
 
 	result := ExecuteToolWithRealFS(t, tool, input)
-	result = AssertToolSuccess(t, result)
+	_ = AssertToolSuccess(t, result)
 
 	// 验证文件被覆盖
 	AssertFileContent(t, filePath, newContent)
@@ -102,7 +102,7 @@ func TestWriteTool_AppendMode(t *testing.T) {
 	}
 
 	result := ExecuteToolWithRealFS(t, tool, input)
-	result = AssertToolSuccess(t, result)
+	_ = AssertToolSuccess(t, result)
 
 	// 验证内容被追加
 	expectedContent := originalContent + appendContent
@@ -130,7 +130,7 @@ func TestWriteTool_AutoCreateDirectory(t *testing.T) {
 	}
 
 	result := ExecuteToolWithRealFS(t, tool, input)
-	result = AssertToolSuccess(t, result)
+	_ = AssertToolSuccess(t, result)
 
 	// 验证目录和文件都被创建
 	AssertFileExists(t, filePath)
@@ -155,7 +155,11 @@ func BenchmarkWriteTool_SmallFile(b *testing.B) {
 	}
 
 	// 清理文件
-	defer os.Remove(filePath)
+	defer func() {
+		if err := os.Remove(filePath); err != nil {
+			b.Errorf("Failed to remove file: %v", err)
+		}
+	}()
 
 	BenchmarkTool(b, tool, input)
 }

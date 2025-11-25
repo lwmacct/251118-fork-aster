@@ -255,6 +255,6 @@ func BenchmarkBackendWrite(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		backend.Write(ctx, "/bench.txt", "test content")
+		_, _ = backend.Write(ctx, "/bench.txt", "test content")
 	}
 }

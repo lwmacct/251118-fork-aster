@@ -114,7 +114,7 @@ func (t *WebSearchTool) Execute(ctx context.Context, input map[string]interface{
 		"max_results":         maxResults,
 		"include_raw_content": includeRawContent,
 	}
-	
+
 	// Tavily API的search_depth只接受"basic"或"advanced"
 	// 我们的topic映射: general->basic, news->basic, finance->basic
 	if topic != "" {
@@ -211,4 +211,34 @@ Example usage:
   "max_results": 5,
   "topic": "general"
 }`
+}
+
+// Examples 返回 WebSearch 工具的使用示例
+// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
+func (t *WebSearchTool) Examples() []tools.ToolExample {
+	return []tools.ToolExample{
+		{
+			Description: "搜索技术文档",
+			Input: map[string]interface{}{
+				"query":       "Go language context package usage",
+				"max_results": 5,
+			},
+		},
+		{
+			Description: "搜索最新新闻",
+			Input: map[string]interface{}{
+				"query":       "AI industry news 2025",
+				"max_results": 10,
+				"topic":       "news",
+			},
+		},
+		{
+			Description: "搜索金融信息并获取完整内容",
+			Input: map[string]interface{}{
+				"query":               "Tesla stock price analysis",
+				"topic":               "finance",
+				"include_raw_content": true,
+			},
+		},
+	}
 }

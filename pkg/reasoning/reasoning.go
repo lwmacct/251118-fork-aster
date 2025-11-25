@@ -54,8 +54,8 @@ type Chain struct {
 
 // ChainConfig 推理链配置
 type ChainConfig struct {
-	MinSteps int     // 最小推理步数
-	MaxSteps int     // 最大推理步数
+	MinSteps      int     // 最小推理步数
+	MaxSteps      int     // 最大推理步数
 	MinConfidence float64 // 最小置信度阈值
 }
 

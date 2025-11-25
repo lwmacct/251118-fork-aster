@@ -43,14 +43,14 @@ type SubAgent interface {
 
 // SubAgentMiddlewareConfig 子代理中间件配置
 type SubAgentMiddlewareConfig struct {
-	Specs                  []SubAgentSpec           // 子代理规格列表
-	Factory                SubAgentFactory          // 子代理工厂
-	Manager                builtin.SubagentManager  // 子代理管理器（可选，默认使用 FileSubagentManager）
-	EnableParallel         bool                     // 是否支持并行执行
-	EnableGeneralPurpose   bool                     // 是否启用通用子代理(默认 true)
-	EnableAsync            bool                     // 是否启用异步执行（默认 false）
-	EnableProcessIsolation bool                     // 是否启用进程级隔离（默认 false）
-	DefaultTimeout         time.Duration            // 默认超时时间（默认 1 小时）
+	Specs                  []SubAgentSpec          // 子代理规格列表
+	Factory                SubAgentFactory         // 子代理工厂
+	Manager                builtin.SubagentManager // 子代理管理器（可选，默认使用 FileSubagentManager）
+	EnableParallel         bool                    // 是否支持并行执行
+	EnableGeneralPurpose   bool                    // 是否启用通用子代理(默认 true)
+	EnableAsync            bool                    // 是否启用异步执行（默认 false）
+	EnableProcessIsolation bool                    // 是否启用进程级隔离（默认 false）
+	DefaultTimeout         time.Duration           // 默认超时时间（默认 1 小时）
 	ParentMiddlewareGetter func() []Middleware
 }
 

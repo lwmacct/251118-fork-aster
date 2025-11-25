@@ -3,6 +3,7 @@ package builtin
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -115,8 +116,10 @@ func TestHttpRequestTool_POST_WithBody(t *testing.T) {
 		}
 
 		// 读取请求体
-		body := make([]byte, r.ContentLength)
-		r.Body.Read(body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("Failed to read body: %v", err)
+		}
 
 		if string(body) != "test data" {
 			t.Errorf("Expected body='test data', got '%s'", string(body))

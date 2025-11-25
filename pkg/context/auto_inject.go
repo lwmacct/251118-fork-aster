@@ -15,7 +15,7 @@ type InjectorConfig struct {
 	EnableUserInfo     bool   // 注入用户信息
 	EnableSystemInfo   bool   // 注入系统信息
 	CustomContext      string // 自定义上下文
-	
+
 	// 可选的数据提供者
 	LocationProvider     LocationProvider
 	SessionStateProvider SessionStateProvider
@@ -82,11 +82,11 @@ func (ci *ContextInjector) InjectContext(ctx context.Context, systemPrompt strin
 	// 构建完整的系统提示词
 	var builder strings.Builder
 	builder.WriteString(systemPrompt)
-	
+
 	if !strings.HasSuffix(systemPrompt, "\n") {
 		builder.WriteString("\n")
 	}
-	
+
 	builder.WriteString("\n## Context Information\n\n")
 	builder.WriteString(strings.Join(additions, "\n\n"))
 
@@ -96,14 +96,14 @@ func (ci *ContextInjector) InjectContext(ctx context.Context, systemPrompt strin
 // buildDateTimeContext 构建日期时间上下文
 func (ci *ContextInjector) buildDateTimeContext() string {
 	now := time.Now()
-	
+
 	var builder strings.Builder
 	builder.WriteString("### Current Date and Time\n\n")
 	builder.WriteString(fmt.Sprintf("- Date: %s\n", now.Format("2006-01-02")))
 	builder.WriteString(fmt.Sprintf("- Time: %s\n", now.Format("15:04:05")))
 	builder.WriteString(fmt.Sprintf("- Day of Week: %s\n", now.Weekday().String()))
 	builder.WriteString(fmt.Sprintf("- Timezone: %s\n", now.Location().String()))
-	
+
 	return builder.String()
 }
 
@@ -116,7 +116,7 @@ func (ci *ContextInjector) buildLocationContext(ctx context.Context) string {
 
 	var builder strings.Builder
 	builder.WriteString("### Location Information\n\n")
-	
+
 	if location.City != "" {
 		builder.WriteString(fmt.Sprintf("- City: %s\n", location.City))
 	}
@@ -142,7 +142,7 @@ func (ci *ContextInjector) buildSessionStateContext(ctx context.Context) string 
 
 	var builder strings.Builder
 	builder.WriteString("### Session State\n\n")
-	
+
 	if state.SessionID != "" {
 		builder.WriteString(fmt.Sprintf("- Session ID: %s\n", state.SessionID))
 	}
@@ -152,7 +152,7 @@ func (ci *ContextInjector) buildSessionStateContext(ctx context.Context) string 
 	if state.Duration > 0 {
 		builder.WriteString(fmt.Sprintf("- Session Duration: %s\n", state.Duration.String()))
 	}
-	
+
 	// 添加自定义状态
 	if len(state.CustomState) > 0 {
 		builder.WriteString("- Custom State:\n")
@@ -173,7 +173,7 @@ func (ci *ContextInjector) buildUserInfoContext(ctx context.Context) string {
 
 	var builder strings.Builder
 	builder.WriteString("### User Information\n\n")
-	
+
 	if userInfo.Name != "" {
 		builder.WriteString(fmt.Sprintf("- Name: %s\n", userInfo.Name))
 	}
@@ -183,7 +183,7 @@ func (ci *ContextInjector) buildUserInfoContext(ctx context.Context) string {
 	if userInfo.Timezone != "" {
 		builder.WriteString(fmt.Sprintf("- Timezone: %s\n", userInfo.Timezone))
 	}
-	
+
 	// 添加用户偏好
 	if len(userInfo.Preferences) > 0 {
 		builder.WriteString("- Preferences:\n")
@@ -201,7 +201,7 @@ func (ci *ContextInjector) buildSystemInfoContext() string {
 	builder.WriteString("### System Information\n\n")
 	builder.WriteString("- Platform: Aster AI Agent Framework\n")
 	builder.WriteString("- Version: 1.0.0\n")
-	
+
 	return builder.String()
 }
 
@@ -212,11 +212,11 @@ type LocationProvider interface {
 
 // LocationInfo 位置信息
 type LocationInfo struct {
-	City     string
-	Country  string
-	Timezone string
-	Language string
-	Latitude float64
+	City      string
+	Country   string
+	Timezone  string
+	Language  string
+	Latitude  float64
 	Longitude float64
 }
 

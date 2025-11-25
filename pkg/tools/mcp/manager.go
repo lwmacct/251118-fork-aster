@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/astercloud/aster/pkg/tools"
+	"github.com/astercloud/aster/pkg/tools/search"
 )
 
 // MCPManager MCP Server 管理器
@@ -136,4 +137,74 @@ func (m *MCPManager) RemoveServer(serverID string) error {
 
 	delete(m.servers, serverID)
 	return nil
+}
+
+// ConnectServerDeferred 连接 MCP Server 但使用延迟加载模式
+// 只发现工具并添加到索引，不立即注册到 Registry
+func (m *MCPManager) ConnectServerDeferred(ctx context.Context, serverID string, index *search.ToolIndex) error {
+	m.mu.RLock()
+	server, exists := m.servers[serverID]
+	m.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("server not found: %s", serverID)
+	}
+
+	// 连接并发现工具
+	if err := server.Connect(ctx); err != nil {
+		return fmt.Errorf("connect to server: %w", err)
+	}
+
+	// 将工具添加到索引（延迟加载模式）
+	if err := server.IndexToolsToIndex(index); err != nil {
+		return fmt.Errorf("index tools: %w", err)
+	}
+
+	return nil
+}
+
+// ConnectAllDeferred 连接所有 MCP Server 使用延迟加载模式
+func (m *MCPManager) ConnectAllDeferred(ctx context.Context, index *search.ToolIndex) error {
+	m.mu.RLock()
+	serverIDs := make([]string, 0, len(m.servers))
+	for id := range m.servers {
+		serverIDs = append(serverIDs, id)
+	}
+	m.mu.RUnlock()
+
+	// 连接所有 Server（延迟模式）
+	for _, serverID := range serverIDs {
+		if err := m.ConnectServerDeferred(ctx, serverID, index); err != nil {
+			return fmt.Errorf("connect server %s: %w", serverID, err)
+		}
+	}
+
+	return nil
+}
+
+// ActivateTool 激活延迟加载的 MCP 工具
+func (m *MCPManager) ActivateTool(toolName string) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// 遍历所有服务器查找工具
+	for _, server := range m.servers {
+		if err := server.RegisterToolDeferred(toolName); err == nil {
+			return nil // 成功注册
+		}
+	}
+
+	return fmt.Errorf("tool not found in any server: %s", toolName)
+}
+
+// GetAllToolIndexEntries 获取所有服务器的工具索引条目
+func (m *MCPManager) GetAllToolIndexEntries() []search.ToolIndexEntry {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	entries := make([]search.ToolIndexEntry, 0)
+	for _, server := range m.servers {
+		entries = append(entries, server.GetToolIndexEntries()...)
+	}
+	return entries
 }

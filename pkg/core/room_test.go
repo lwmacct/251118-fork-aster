@@ -13,7 +13,11 @@ func TestRoom_JoinAndLeave(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	room := NewRoom(pool)
 	ctx := context.Background()
@@ -63,7 +67,11 @@ func TestRoom_JoinDuplicate(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	room := NewRoom(pool)
 	ctx := context.Background()
@@ -95,7 +103,11 @@ func TestRoom_JoinNonexistentAgent(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	room := NewRoom(pool)
 
@@ -113,7 +125,11 @@ func TestRoom_GetMembers(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	room := NewRoom(pool)
 	ctx := context.Background()
@@ -218,7 +234,11 @@ func TestRoom_Say(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	room := NewRoom(pool)
 	ctx := context.Background()
@@ -237,8 +257,12 @@ func TestRoom_Say(t *testing.T) {
 	}
 
 	// 加入 Room
-	room.Join("alice", "agent-1")
-	room.Join("bob", "agent-2")
+	if err := room.Join("alice", "agent-1"); err != nil {
+		t.Fatalf("Failed to join room: %v", err)
+	}
+	if err := room.Join("bob", "agent-2"); err != nil {
+		t.Fatalf("Failed to join room: %v", err)
+	}
 
 	// 发送消息
 	err = room.Say(ctx, "alice", "Hello @bob!")
@@ -273,7 +297,11 @@ func TestRoom_Broadcast(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	room := NewRoom(pool)
 	ctx := context.Background()
@@ -287,7 +315,9 @@ func TestRoom_Broadcast(t *testing.T) {
 		}
 
 		name := string(rune('a' + i - 1)) // a, b, c
-		room.Join(name, "agent-"+string(rune('0'+i)))
+		if err := room.Join(name, "agent-"+string(rune('0'+i))); err != nil {
+			t.Fatalf("Failed to join room: %v", err)
+		}
 	}
 
 	// 广播消息
@@ -320,7 +350,11 @@ func TestRoom_SendTo(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	room := NewRoom(pool)
 	ctx := context.Background()
@@ -339,8 +373,12 @@ func TestRoom_SendTo(t *testing.T) {
 	}
 
 	// 加入 Room
-	room.Join("alice", "agent-1")
-	room.Join("bob", "agent-2")
+	if err := room.Join("alice", "agent-1"); err != nil {
+		t.Fatalf("Failed to join room: %v", err)
+	}
+	if err := room.Join("bob", "agent-2"); err != nil {
+		t.Fatalf("Failed to join room: %v", err)
+	}
 
 	// 发送点对点消息
 	err = room.SendTo(ctx, "alice", "bob", "Private message")
@@ -372,7 +410,11 @@ func TestRoom_ClearHistory(t *testing.T) {
 		Dependencies: deps,
 		MaxAgents:    10,
 	})
-	defer pool.Shutdown()
+	defer func() {
+		if err := pool.Shutdown(); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
 
 	room := NewRoom(pool)
 	ctx := context.Background()
@@ -384,8 +426,12 @@ func TestRoom_ClearHistory(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	room.Join("alice", "agent-1")
-	room.Broadcast(ctx, "Test message")
+	if err := room.Join("alice", "agent-1"); err != nil {
+		t.Fatalf("Failed to join room: %v", err)
+	}
+	if err := room.Broadcast(ctx, "Test message"); err != nil {
+		t.Fatalf("Failed to broadcast: %v", err)
+	}
 
 	time.Sleep(50 * time.Millisecond)
 

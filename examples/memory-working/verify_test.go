@@ -68,8 +68,12 @@ func TestWorkingMemoryScope(t *testing.T) {
 	resource := "resource-1"
 
 	// Thread scope - 不同 thread 应该隔离
-	threadManager.Update(ctx, thread1, resource, "Thread 1 content")
-	threadManager.Update(ctx, thread2, resource, "Thread 2 content")
+	if err := threadManager.Update(ctx, thread1, resource, "Thread 1 content"); err != nil {
+		t.Fatalf("Failed to update thread1: %v", err)
+	}
+	if err := threadManager.Update(ctx, thread2, resource, "Thread 2 content"); err != nil {
+		t.Fatalf("Failed to update thread2: %v", err)
+	}
 
 	content1, _ := threadManager.Get(ctx, thread1, resource)
 	content2, _ := threadManager.Get(ctx, thread2, resource)
@@ -79,7 +83,9 @@ func TestWorkingMemoryScope(t *testing.T) {
 	}
 
 	// Resource scope - 相同 resource 应该共享
-	resourceManager.Update(ctx, thread1, resource, "Shared content")
+	if err := resourceManager.Update(ctx, thread1, resource, "Shared content"); err != nil {
+		t.Fatalf("Failed to update resource: %v", err)
+	}
 
 	contentFromThread1, _ := resourceManager.Get(ctx, thread1, resource)
 	contentFromThread2, _ := resourceManager.Get(ctx, thread2, resource)

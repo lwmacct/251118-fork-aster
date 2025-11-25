@@ -156,7 +156,9 @@ func TestSessionMemoryManager_RevokeAccess(t *testing.T) {
 	)
 
 	// 共享
-	manager.ShareMemory(context.Background(), memID, "session-1", "session-2", AccessRead)
+	if err := manager.ShareMemory(context.Background(), memID, "session-1", "session-2", AccessRead); err != nil {
+		t.Fatalf("ShareMemory failed: %v", err)
+	}
 
 	// 验证可访问
 	_, err := manager.GetMemory(context.Background(), memID, "session-2")
@@ -222,7 +224,9 @@ func TestSessionMemoryManager_UpdateMemory_WritePermission(t *testing.T) {
 	)
 
 	// 只读权限
-	manager.ShareMemory(context.Background(), memID, "session-1", "session-2", AccessRead)
+	if err := manager.ShareMemory(context.Background(), memID, "session-1", "session-2", AccessRead); err != nil {
+		t.Fatalf("ShareMemory failed: %v", err)
+	}
 
 	// session-2 尝试更新（应该失败）
 	err := manager.UpdateMemory(
@@ -238,7 +242,9 @@ func TestSessionMemoryManager_UpdateMemory_WritePermission(t *testing.T) {
 	}
 
 	// 读写权限
-	manager.ShareMemory(context.Background(), memID, "session-1", "session-3", AccessWrite)
+	if err := manager.ShareMemory(context.Background(), memID, "session-1", "session-3", AccessWrite); err != nil {
+		t.Fatalf("ShareMemory failed: %v", err)
+	}
 
 	// session-3 更新（应该成功）
 	err = manager.UpdateMemory(
@@ -291,7 +297,9 @@ func TestSessionMemoryManager_DeleteMemory_OnlyOwner(t *testing.T) {
 		ScopePrivate,
 	)
 
-	manager.ShareMemory(context.Background(), memID, "session-1", "session-2", AccessFullControl)
+	if err := manager.ShareMemory(context.Background(), memID, "session-1", "session-2", AccessFullControl); err != nil {
+		t.Fatalf("ShareMemory failed: %v", err)
+	}
 
 	// 即使有完全控制权限，非所有者也不能删除
 	err := manager.DeleteMemory(context.Background(), memID, "session-2")
@@ -311,8 +319,12 @@ func TestSessionMemoryManager_ListSessionMemories(t *testing.T) {
 	manager := NewSessionMemoryManager(config)
 
 	// 添加不同作用域的记忆
-	manager.AddMemory(context.Background(), "session-1", "Private 1", nil, ScopePrivate)
-	manager.AddMemory(context.Background(), "session-1", "Private 2", nil, ScopePrivate)
+	if _, err := manager.AddMemory(context.Background(), "session-1", "Private 1", nil, ScopePrivate); err != nil {
+		t.Fatalf("AddMemory failed: %v", err)
+	}
+	if _, err := manager.AddMemory(context.Background(), "session-1", "Private 2", nil, ScopePrivate); err != nil {
+		t.Fatalf("AddMemory failed: %v", err)
+	}
 	globalMemID, _ := manager.AddMemory(context.Background(), "session-1", "Global", nil, ScopeGlobal)
 
 	// session-1 应该看到 3 条记忆
@@ -340,8 +352,12 @@ func TestSessionMemoryManager_ListSessionMemories_Scope(t *testing.T) {
 	config := DefaultSessionManagerConfig()
 	manager := NewSessionMemoryManager(config)
 
-	manager.AddMemory(context.Background(), "session-1", "Private", nil, ScopePrivate)
-	manager.AddMemory(context.Background(), "session-1", "Global", nil, ScopeGlobal)
+	if _, err := manager.AddMemory(context.Background(), "session-1", "Private", nil, ScopePrivate); err != nil {
+		t.Fatalf("AddMemory failed: %v", err)
+	}
+	if _, err := manager.AddMemory(context.Background(), "session-1", "Global", nil, ScopeGlobal); err != nil {
+		t.Fatalf("AddMemory failed: %v", err)
+	}
 
 	// 只列出私有记忆
 	memories, _ := manager.ListSessionMemories(context.Background(), "session-1", ScopePrivate)
@@ -358,9 +374,15 @@ func TestSessionMemoryManager_GetStats(t *testing.T) {
 	config := DefaultSessionManagerConfig()
 	manager := NewSessionMemoryManager(config)
 
-	manager.AddMemory(context.Background(), "session-1", "Mem1", nil, ScopePrivate)
-	manager.AddMemory(context.Background(), "session-1", "Mem2", nil, ScopeGlobal)
-	manager.AddMemory(context.Background(), "session-2", "Mem3", nil, ScopePrivate)
+	if _, err := manager.AddMemory(context.Background(), "session-1", "Mem1", nil, ScopePrivate); err != nil {
+		t.Fatalf("AddMemory failed: %v", err)
+	}
+	if _, err := manager.AddMemory(context.Background(), "session-1", "Mem2", nil, ScopeGlobal); err != nil {
+		t.Fatalf("AddMemory failed: %v", err)
+	}
+	if _, err := manager.AddMemory(context.Background(), "session-2", "Mem3", nil, ScopePrivate); err != nil {
+		t.Fatalf("AddMemory failed: %v", err)
+	}
 
 	stats := manager.GetStats()
 
