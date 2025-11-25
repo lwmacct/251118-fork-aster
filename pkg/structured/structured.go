@@ -87,9 +87,10 @@ func extractJSONSegment(text string) (string, error) {
 
 	depth := 0
 	for i, r := range text[start:] {
-		if r == open {
+		switch r {
+		case open:
 			depth++
-		} else if r == close {
+		case close:
 			depth--
 			if depth == 0 {
 				return strings.TrimSpace(text[start : start+i+1]), nil

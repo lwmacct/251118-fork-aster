@@ -341,8 +341,7 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 					taskID: taskID,
 				}
 				isInterruptible = true
-				pausable = false
-				cancelable = true
+				// pausable and cancelable assignments removed (ineffectual)
 			}
 			if isInterruptible {
 				a.registerRunningTool(tu.ID, interruptible)
@@ -374,14 +373,16 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 							DurationMs: status.EndTime.Sub(status.StartTime).Milliseconds(),
 						}
 					} else {
-						errMsg := "task failed"
+						var taskErr error
 						if status.Error != nil {
-							errMsg = status.Error.Error()
+							taskErr = status.Error
+						} else {
+							taskErr = fmt.Errorf("task failed")
 						}
 						execResult = &tools.ExecuteResult{
 							Success:    false,
 							Output:     status.Result,
-							Error:      fmt.Errorf(errMsg),
+							Error:      taskErr,
 							StartedAt:  status.StartTime,
 							EndedAt:    *status.EndTime,
 							DurationMs: status.EndTime.Sub(status.StartTime).Milliseconds(),
@@ -415,15 +416,13 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 						Call:   a.snapshotToolCall(tu.ID),
 						Reason: "cancelled",
 					})
-					break
+					goto longRunningDone
 				case <-ticker.C:
 				}
 			}
 
-			// 长时任务结束后，如果 execResult 仍未设置，兜底为失败
-			if execResult == nil {
-				execResult = &tools.ExecuteResult{Success: false, Error: fmt.Errorf("long-running tool ended without status")}
-			}
+		longRunningDone:
+			// execResult is always set in the loop above (error, terminal state, or ctx.Done)
 		}
 	} else if a.middlewareStack != nil {
 		// 使用 middleware stack

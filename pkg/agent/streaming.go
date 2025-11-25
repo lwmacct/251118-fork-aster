@@ -371,7 +371,8 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, yield func(*session.E
 		for chunk := range chunkCh {
 			log.Printf("[Agent Stream] 处理chunk: type=%s, index=%d, delta=%v", chunk.Type, chunk.Index, chunk.Delta)
 
-			if chunk.Type == "content_block_delta" {
+			switch chunk.Type {
+			case "content_block_delta":
 				if delta, ok := chunk.Delta.(map[string]interface{}); ok {
 					if chunkType, ok := delta["type"].(string); ok {
 						switch chunkType {
@@ -408,38 +409,38 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, yield func(*session.E
 						}
 					}
 				}
-			} else if chunk.Type == "content_block_start" {
-				// 开始新的工具调用
-				if toolInfo, ok := chunk.Delta.(map[string]interface{}); ok {
-					if name, ok := toolInfo["name"].(string); ok {
-						if id, ok := toolInfo["id"].(string); ok {
-							log.Printf("[Agent Stream] 开始工具调用: name=%s, id=%s", name, id)
-							currentToolCall = &types.ToolCall{
-								ID:   id,
-								Name: name,
-							}
-							argumentsBuilder.Reset()
+		case "content_block_start":
+			// 开始新的工具调用
+			if toolInfo, ok := chunk.Delta.(map[string]interface{}); ok {
+				if name, ok := toolInfo["name"].(string); ok {
+					if id, ok := toolInfo["id"].(string); ok {
+						log.Printf("[Agent Stream] 开始工具调用: name=%s, id=%s", name, id)
+						currentToolCall = &types.ToolCall{
+							ID:   id,
+							Name: name,
 						}
+						argumentsBuilder.Reset()
 					}
-				}
-			} else if chunk.Type == "message_delta" {
-				// 消息结束，处理完整的工具调用
-				if currentToolCall != nil && argumentsBuilder.Len() > 0 {
-					argsStr := argumentsBuilder.String()
-					log.Printf("[Agent Stream] 工具调用完成，参数: %s", truncate(argsStr, 200))
-
-					// 解析JSON参数
-					var input map[string]interface{}
-					if err := json.Unmarshal([]byte(argsStr), &input); err != nil {
-						log.Printf("[Agent Stream] 解析工具参数失败: %v", err)
-						input = make(map[string]interface{})
-					}
-
-					currentToolCall.Arguments = input
-					toolCalls = append(toolCalls, *currentToolCall)
-					currentToolCall = nil
 				}
 			}
+		case "message_delta":
+			// 消息结束，处理完整的工具调用
+			if currentToolCall != nil && argumentsBuilder.Len() > 0 {
+				argsStr := argumentsBuilder.String()
+				log.Printf("[Agent Stream] 工具调用完成，参数: %s", truncate(argsStr, 200))
+
+				// 解析JSON参数
+				var input map[string]interface{}
+				if err := json.Unmarshal([]byte(argsStr), &input); err != nil {
+					log.Printf("[Agent Stream] 解析工具参数失败: %v", err)
+					input = make(map[string]interface{})
+				}
+
+				currentToolCall.Arguments = input
+				toolCalls = append(toolCalls, *currentToolCall)
+				currentToolCall = nil
+			}
+	}
 		}
 
 		// 构建最终消息
