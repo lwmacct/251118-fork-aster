@@ -35,7 +35,7 @@ jobs:
 
       - name: golangci-lint
         timeout-minutes: 4
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.1.6
           args: --timeout=2m --disable=errcheck --enable=govet,ineffassign,staticcheck,unused ./pkg/...
