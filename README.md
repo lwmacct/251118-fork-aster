@@ -37,7 +37,7 @@ aster 采用洋葱模型的 Middleware 架构，每个请求和响应都会依�
 
 ### 🎯 核心能力
 - **事件驱动架构**: Progress/Control/Monitor 三通道设计，清晰分离数据流、审批流、治理流
-- **流式处理**: 基于 Go 1.23 iter.Seq2 的流式接口，内存占用降低 80%+，支持实时响应和背压控制
+- **流式处理**: 基于 stream.Reader 的流式接口，内存占用降低 80%+，支持实时响应和背压控制
 - **完整 Workflow 系统**: 8种步骤类型 + Router 动态路由 + WorkflowAgent 智能编排，支持复杂业务流程
 - **安全防护栏 (Guardrails)**: PII 检测、提示注入防护、OpenAI 内容审核，企业级安全保障
 - **云端沙箱集成**: 原生支持阿里云 AgentBay、火山引擎等云平台安全沙箱
@@ -172,7 +172,15 @@ wf.AddStep(workflow.NewConditionStep("check", checkQuality, highQualityStep, low
 wf.AddStep(workflow.NewParallelStep("finalize", validateTask, saveTask))
 
 // 执行
-for event, err := range wf.Execute(ctx, input) {
+reader := wf.Execute(ctx, input)
+for {
+    event, err := reader.Recv()
+    if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
+        continue
+    }
     // 处理事件
 }
 ```
@@ -291,7 +299,15 @@ loop, _ := workflow.NewLoopAgent(workflow.LoopConfig{
 })
 
 // 执行工作流
-for event, err := range sequential.Execute(ctx, "处理任务") {
+reader := sequential.Execute(ctx, "处理任务")
+for {
+    event, err := reader.Recv()
+    if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
+        continue
+    }
     fmt.Printf("Event: %+v\n", event)
 }
 ```
@@ -307,9 +323,14 @@ import (
 )
 
 // 1. 流式处理 - 实时获取 Agent 响应
-for event, err := range agent.Stream(ctx, "分析大文件") {
+reader := agent.Stream(ctx, "分析大文件")
+for {
+    event, err := reader.Recv()
     if err != nil {
-        break
+        if errors.Is(err, io.EOF) {
+            break
+        }
+        continue
     }
     // 实时处理每个事件，内存占用 O(1)
     fmt.Printf("Event: %s\n", event.Content.Content)
@@ -507,7 +528,7 @@ defer tracer.EndSpan(ctx)
 
 ### Phase 7 - ADK-Go 架构对齐 ✅
 
-- [x] **iter.Seq2 流式接口**: 内存占用降低 80%+，支持背压控制
+- [x] **stream.Reader 流式接口**: 内存占用降低 80%+，支持背压控制
 - [x] **EventActions 完善**: ArtifactDelta、Escalate、SkipSummarization
 - [x] **OpenTelemetry 集成**: 分布式追踪、指标收集、日志关联
 - [x] **长时运行工具**: 异步任务管理、进度追踪、取消支持
@@ -544,7 +565,7 @@ aster 星尘云枢的开发受益于开源社区的诸多优秀项目和学术�
 - ✅ **Memory Consolidation**: LLM 驱动的智能记忆合并
 - ✅ **PII Auto-Redaction**: 自动化隐私数据脱敏
 - ✅ **Event-Driven Architecture**: Progress/Control/Monitor 三通道设计
-- ✅ **Streaming & Backpressure**: iter.Seq2 流式处理
+- ✅ **Streaming & Backpressure**: stream.Reader 流式处理
 - ✅ **Multi-Agent Orchestration**: Pool/Room/Workflow 协作机制
 - ✅ **Observability**: OpenTelemetry 完整集成
 
