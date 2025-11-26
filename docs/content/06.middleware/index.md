@@ -15,6 +15,7 @@ navigation: false
 - SubAgent - 子 Agent 支持
 - Summarization - 自动上下文总结
 - Memory - 记忆系统集成
+- SimplicityChecker - 简洁性检查（防止过度工程）
 
 ### [自定义中间件](/middleware/custom)
 - 创建自定义中间件

@@ -20,6 +20,7 @@ aster 提供了多个开箱即用的中间件，涵盖对话管理、文件操�
 | [HumanInTheLoop](#hitl) | 50 | 人工审批 | 敏感操作控制 |
 | [TodoList](#todolist) | 120 | 任务跟踪 | 任务规划管理 |
 | [PatchToolCalls](#patch) | 300 | 工具补丁 | 兼容性修复 |
+| [SimplicityChecker](#simplicity) | 600 | 简洁性检查 | 防止过度工程 |
 
 ## <a id="summarization"></a>📝 Summarization - 自动总结
 
@@ -549,6 +550,160 @@ patchMW := middleware.NewPatchToolCallsMiddleware(&middleware.PatchToolCallsMidd
 
 ---
 
+## <a id="simplicity"></a>🎯 SimplicityChecker - 简洁性检查
+
+**功能**: 检测代码中的过度工程迹象，发出警告但不阻断执行。
+
+**使用场景**:
+- 防止 Agent 创建过多辅助函数
+- 检测过早抽象（如创建不必要的接口）
+- 识别向后兼容 hack 模式
+- 警告过度配置和 feature flag 滥用
+
+### 配置
+
+```go
+import "github.com/astercloud/aster/pkg/middleware"
+
+simplicityMW := middleware.NewSimplicityCheckerMiddleware(&middleware.SimplicityCheckerConfig{
+    Enabled:                    true,   // 是否启用检测
+    MaxHelperFunctions:         3,      // 最大辅助函数创建数（单次会话）
+    WarnOnPrematureAbstraction: true,   // 是否警告过早抽象
+    WarnOnUnusedParams:         true,   // 是否警告未使用的参数重命名
+    OnWarning: func(warning middleware.SimplicityWarning) {
+        // 自定义警告回调
+        log.Printf("[简洁性] %s: %s", warning.Type, warning.Message)
+    },
+})
+```
+
+### 参数说明
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| Enabled | bool | true | 是否启用检测 |
+| MaxHelperFunctions | int | 3 | 单次会话允许的最大辅助函数数 |
+| WarnOnPrematureAbstraction | bool | true | 是否警告创建过多接口 |
+| WarnOnUnusedParams | bool | true | 是否警告向后兼容 hack |
+| OnWarning | func | nil | 警告回调函数 |
+
+### 检测规则
+
+**1. 辅助函数过多 (helper_overflow)**
+
+当创建过多以 `Helper`、`Util`、`Utils`、`Wrapper` 结尾的函数时触发。
+
+```go
+// 警告: 创建了过多的辅助函数
+func processDataHelper() {}
+func formatDateUtil() {}
+func wrapRequestWrapper() {}
+func parseJsonUtils() {}  // 第4个: 超过阈值，触发警告
+```
+
+**2. 过早抽象 (premature_abstraction)**
+
+当单次会话创建超过 2 个接口定义时触发。
+
+```go
+// 警告: 创建了较多接口定义
+type DataProcessor interface {}
+type DataFormatter interface {}
+type DataValidator interface {}  // 第3个: 触发警告
+```
+
+**3. 向后兼容 hack (backwards_compat_hack)**
+
+检测未使用变量重命名和 "// removed" 注释。
+
+```go
+// 警告: 发现向后兼容 hack 模式
+_unusedParam := value  // 未使用变量重命名
+// removed: old implementation  // removed 注释
+```
+
+**4. 过度工程 (over_engineering)**
+
+检测 feature flag、过多配置方法、单次添加超过 200 行代码。
+
+```go
+// 警告: 检测到可能的过度工程迹象
+if featureFlag.IsEnabled("new_feature") {}  // feature flag
+WithOption().SetConfig().Configure()        // 过度配置
+// 单次写入 > 200 行代码
+```
+
+### 使用示例
+
+```go
+func main() {
+    // 创建中间件
+    simplicityMW := middleware.NewSimplicityCheckerMiddleware(&middleware.SimplicityCheckerConfig{
+        MaxHelperFunctions: 2,
+        OnWarning: func(w middleware.SimplicityWarning) {
+            fmt.Printf("⚠️ [%s] %s\n  文件: %s\n", w.Type, w.Message, w.File)
+        },
+    })
+
+    // 注册到 Stack
+    stack := middleware.NewStack()
+    stack.Use(simplicityMW)
+
+    // 创建 Agent
+    ag, _ := agent.Create(ctx, config, &agent.Dependencies{
+        MiddlewareStack: stack,
+    })
+
+    // Agent 编写代码时会自动检测简洁性问题
+    ag.Chat(ctx, "请帮我实现数据处理功能")
+    // → 如果 Agent 创建了过多辅助函数，会在日志中看到警告
+}
+```
+
+### 警告类型
+
+| 类型 | 说明 |
+|------|------|
+| `helper_overflow` | 辅助函数过多 |
+| `premature_abstraction` | 过早抽象 |
+| `backwards_compat_hack` | 向后兼容 hack |
+| `over_engineering` | 过度工程 |
+| `unused_feature` | 未使用的功能 |
+
+### 获取警告历史
+
+```go
+// 获取所有已发出的警告
+warnings := simplicityMW.GetWarnings()
+for _, w := range warnings {
+    fmt.Printf("Type: %s, Message: %s, File: %s\n", w.Type, w.Message, w.File)
+}
+
+// 重置会话统计
+simplicityMW.Reset()
+```
+
+### 注册方式
+
+通过中间件注册表自动注册：
+
+```go
+registry := middleware.NewRegistry()
+
+// 使用默认配置
+mw, _ := registry.Create("simplicity", &middleware.MiddlewareFactoryConfig{})
+
+// 使用自定义配置
+mw, _ := registry.Create("simplicity", &middleware.MiddlewareFactoryConfig{
+    Options: map[string]interface{}{
+        "enabled":             true,
+        "max_helper_functions": 5,
+    },
+})
+```
+
+---
+
 ## 🎯 中间件组合最佳实践
 
 ### 完整功能 Agent
@@ -574,8 +729,11 @@ stack.Use(memoryMW)  // Priority: 150
 // 6. 子 Agent（任务委托）
 stack.Use(subagentMW)  // Priority: 200
 
-// 7. 工具补丁（最后执行）
+// 7. 工具补丁
 stack.Use(patchMW)  // Priority: 300
+
+// 8. 简洁性检查（代码质量监控）
+stack.Use(simplicityMW)  // Priority: 600
 
 // 创建 Agent
 ag, _ := agent.Create(ctx, config, &agent.Dependencies{
