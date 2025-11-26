@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 
 	"github.com/astercloud/aster/pkg/workflow"
 )
@@ -86,8 +88,13 @@ func main() {
 	}
 
 	eventCount := 0
-	for event, err := range wf.Execute(ctx, input) {
+	reader := wf.Execute(ctx, input)
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fmt.Printf("❌ Error: %v\n", err)
 			continue
 		}
@@ -163,8 +170,13 @@ func main() {
 	}
 
 	fmt.Println("输入: 'short'")
-	for event, err := range wf2.Execute(ctx, input2) {
+	reader2 := wf2.Execute(ctx, input2)
+	for {
+		event, err := reader2.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			continue
 		}
 		if event.Type == workflow.EventWorkflowCompleted {

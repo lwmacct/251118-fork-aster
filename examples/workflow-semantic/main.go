@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"iter"
+	"io"
 	"log"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/astercloud/aster/pkg/sandbox"
 	"github.com/astercloud/aster/pkg/session"
 	"github.com/astercloud/aster/pkg/store"
+	"github.com/astercloud/aster/pkg/stream"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/tools/builtin"
 	"github.com/astercloud/aster/pkg/types"
@@ -115,8 +117,13 @@ func main() {
 	fmt.Println("Question:", question)
 	fmt.Println()
 
-	for ev, err := range seq.Execute(ctx, question) {
+	reader := seq.Execute(ctx, question)
+	for {
+		ev, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			log.Fatalf("workflow error: %v", err)
 		}
 		if ev == nil {
@@ -157,8 +164,12 @@ func (a *SemanticQAWorkflowAgent) Name() string {
 	return a.name
 }
 
-func (a *SemanticQAWorkflowAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (a *SemanticQAWorkflowAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
+
 		// 1) 语义检索: 在 alice/world-facts 命名空间内查询
 		meta := map[string]interface{}{
 			"user_id":     "alice",
@@ -167,7 +178,7 @@ func (a *SemanticQAWorkflowAgent) Execute(ctx context.Context, message string) i
 
 		hits, err := a.semMem.Search(ctx, message, meta, 3)
 		if err != nil {
-			_ = yield(nil, fmt.Errorf("semantic search: %w", err))
+			writer.Send(nil, fmt.Errorf("semantic search: %w", err))
 			return
 		}
 
@@ -180,7 +191,7 @@ func (a *SemanticQAWorkflowAgent) Execute(ctx context.Context, message string) i
 			contextText += fmt.Sprintf("[DOC %d] %s", i+1, text)
 		}
 
-		if !yield(&session.Event{
+		if writer.Send(&session.Event{
 			ID:           fmt.Sprintf("evt-%s-context-%d", a.name, time.Now().UnixNano()),
 			Timestamp:    time.Now(),
 			InvocationID: "workflow-semantic-qa",
@@ -204,14 +215,14 @@ func (a *SemanticQAWorkflowAgent) Execute(ctx context.Context, message string) i
 
 		ag, err := agent.Create(ctx, agentConfig, a.deps)
 		if err != nil {
-			_ = yield(nil, fmt.Errorf("create agent: %w", err))
+			writer.Send(nil, fmt.Errorf("create agent: %w", err))
 			return
 		}
 		defer func() { _ = ag.Close() }()
 
 		prompt := fmt.Sprintf("Use the following context if it is helpful:\n\n%s\n\nQuestion: %s", contextText, message)
 		res, err := ag.Chat(ctx, prompt)
-		if !yield(&session.Event{
+		writer.Send(&session.Event{
 			ID:           fmt.Sprintf("evt-%s-answer-%d", a.name, time.Now().UnixNano()),
 			Timestamp:    time.Now(),
 			InvocationID: "workflow-semantic-qa",
@@ -221,8 +232,8 @@ func (a *SemanticQAWorkflowAgent) Execute(ctx context.Context, message string) i
 				Role:    types.RoleAssistant,
 				Content: res.Text,
 			},
-		}, err) {
-			return
-		}
-	}
+		}, err)
+	}()
+
+	return reader
 }

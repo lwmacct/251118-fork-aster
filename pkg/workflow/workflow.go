@@ -2,11 +2,13 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"iter"
+	"io"
 	"time"
 
 	"github.com/astercloud/aster/pkg/store"
+	"github.com/astercloud/aster/pkg/stream"
 	"github.com/google/uuid"
 )
 
@@ -305,11 +307,14 @@ func (w *Workflow) SaveRun(run *WorkflowRun) error {
 // ===== 执行 =====
 
 // Execute 执行 Workflow
-func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[*RunEvent, error] {
-	return func(yield func(*RunEvent, error) bool) {
+func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Reader[*RunEvent] {
+	reader, writer := stream.Pipe[*RunEvent](10)
+
+	go func() {
+		defer writer.Close()
 		// 验证输入
 		if err := w.ValidateInput(input.Input); err != nil {
-			yield(nil, fmt.Errorf("input validation failed: %w", err))
+			writer.Send(nil, fmt.Errorf("input validation failed: %w", err))
 			return
 		}
 
@@ -334,7 +339,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 		}
 
 		// 发送开始事件
-		if !yield(&RunEvent{
+		if writer.Send(&RunEvent{
 			Type:         EventWorkflowStarted,
 			EventID:      uuid.New().String(),
 			WorkflowID:   w.ID,
@@ -387,7 +392,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 
 			stepStartTime := time.Now()
 			if w.StreamEvents {
-				yield(&RunEvent{
+				writer.Send(&RunEvent{
 					Type:         EventStepStarted,
 					EventID:      uuid.New().String(),
 					WorkflowID:   w.ID,
@@ -406,8 +411,13 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 			var stepOutput *StepOutput
 			var stepError error
 
-			for output, err := range step.Execute(ctx, stepInput) {
+			stepReader := step.Execute(ctx, stepInput)
+			for {
+				output, err := stepReader.Recv()
 				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
 					stepError = err
 					break
 				}
@@ -415,7 +425,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 
 				// 流式进度事件
 				if w.StreamEvents && w.StreamExecutorEvents && output != nil {
-					yield(&RunEvent{
+					writer.Send(&RunEvent{
 						Type:         EventStepProgress,
 						EventID:      uuid.New().String(),
 						WorkflowID:   w.ID,
@@ -435,7 +445,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 				run.Metrics.FailedSteps++
 
 				if w.StreamEvents {
-					yield(&RunEvent{
+					writer.Send(&RunEvent{
 						Type:         EventStepFailed,
 						EventID:      uuid.New().String(),
 						WorkflowID:   w.ID,
@@ -461,7 +471,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 
 					_ = w.SaveRun(run)
 
-					yield(&RunEvent{
+					writer.Send(&RunEvent{
 						Type:         EventWorkflowFailed,
 						EventID:      uuid.New().String(),
 						WorkflowID:   w.ID,
@@ -495,7 +505,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 			}
 
 			if w.StreamEvents {
-				yield(&RunEvent{
+				writer.Send(&RunEvent{
 					Type:         EventStepCompleted,
 					EventID:      uuid.New().String(),
 					WorkflowID:   w.ID,
@@ -519,7 +529,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 
 				_ = w.SaveRun(run) // 显式忽略最后一个 SaveRun 错误
 
-				yield(&RunEvent{
+				writer.Send(&RunEvent{
 					Type:         EventWorkflowCancelled,
 					EventID:      uuid.New().String(),
 					WorkflowID:   w.ID,
@@ -549,7 +559,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 		session.State = sessionState
 		_ = w.SaveRun(run)
 
-		yield(&RunEvent{
+		writer.Send(&RunEvent{
 			Type:         EventWorkflowCompleted,
 			EventID:      uuid.New().String(),
 			WorkflowID:   w.ID,
@@ -564,7 +574,9 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) iter.Seq2[
 				"step_outputs": stepOutputs,
 			},
 		}, nil)
-	}
+	}()
+
+	return reader
 }
 
 // ===== 辅助方法 =====

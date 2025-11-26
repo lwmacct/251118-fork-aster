@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"iter"
 	"net/http"
 	"sync"
 	"time"
@@ -16,6 +16,7 @@ import (
 	"github.com/astercloud/aster/pkg/agent/workflow"
 	"github.com/astercloud/aster/pkg/evals"
 	"github.com/astercloud/aster/pkg/session"
+	"github.com/astercloud/aster/pkg/stream"
 	"github.com/astercloud/aster/pkg/types"
 )
 
@@ -203,8 +204,13 @@ func (s *Server) WorkflowDemoRunHandler() http.Handler {
 
 		var events []WorkflowEvent
 
-		for ev, err := range wf.Execute(ctx, req.Input) {
+		reader := wf.Execute(ctx, req.Input)
+		for {
+			ev, err := reader.Recv()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
 				resp := &WorkflowRunResponse{
 					ErrorMessage: err.Error(),
 				}
@@ -316,8 +322,13 @@ func (s *Server) WorkflowDemoRunEvalHandler() http.Handler {
 			rawEvents []session.Event
 		)
 
-		for ev, err := range wf.Execute(ctx, req.Input) {
+		reader := wf.Execute(ctx, req.Input)
+		for {
+			ev, err := reader.Recv()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
 				resp := &WorkflowRunEvalResponse{
 					WorkflowRunResponse: WorkflowRunResponse{
 						ErrorMessage: err.Error(),
@@ -521,8 +532,12 @@ func (a *LLMWorkflowAgent) Name() string {
 }
 
 // Execute 实现 workflow.Agent 接口。
-func (a *LLMWorkflowAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (a *LLMWorkflowAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
+
 		// 为每次执行创建一个独立的 Agent 实例
 		agentConfig := &types.AgentConfig{
 			TemplateID: a.templateID,
@@ -533,7 +548,7 @@ func (a *LLMWorkflowAgent) Execute(ctx context.Context, message string) iter.Seq
 
 		ag, err := agent.Create(ctx, agentConfig, a.deps)
 		if err != nil {
-			_ = yield(nil, err)
+			writer.Send(nil, err)
 			return
 		}
 		defer func() { _ = ag.Close() }()
@@ -543,7 +558,7 @@ func (a *LLMWorkflowAgent) Execute(ctx context.Context, message string) iter.Seq
 
 		// 调用底层 Agent
 		res, err := ag.Chat(ctx, prompt)
-		if !yield(&session.Event{
+		writer.Send(&session.Event{
 			ID:           fmt.Sprintf("evt-%s-%d", a.name, time.Now().UnixNano()),
 			Timestamp:    time.Now(),
 			InvocationID: "workflow-llm-demo",
@@ -556,10 +571,10 @@ func (a *LLMWorkflowAgent) Execute(ctx context.Context, message string) iter.Seq
 			Metadata: map[string]interface{}{
 				"agent_description": a.description,
 			},
-		}, err) {
-			return
-		}
-	}
+		}, err)
+	}()
+
+	return reader
 }
 
 // jsonNewDecoder 抽象出 json.NewDecoder, 方便测试/替换。

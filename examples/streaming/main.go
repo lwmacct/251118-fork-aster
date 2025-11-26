@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/astercloud/aster/pkg/agent"
@@ -62,9 +64,14 @@ func main() {
 
 // streamingExample 演示流式处理事件
 func streamingExample(ctx context.Context, ag *agent.Agent) {
-	// 使用 for range 迭代事件流
-	for event, err := range ag.Stream(ctx, "What is 2+2?") {
+	// 使用 Recv 循环迭代事件流
+	reader := ag.Stream(ctx, "What is 2+2?")
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			log.Printf("Error: %v", err)
 			break
 		}
@@ -101,15 +108,19 @@ func collectExample(ctx context.Context, ag *agent.Agent) {
 // filterExample 演示过滤事件
 func filterExample(ctx context.Context, ag *agent.Agent) {
 	// 只处理来自 assistant 的事件
-	stream := agent.StreamFilter(
+	reader := agent.StreamFilter(
 		ag.Stream(ctx, "Tell me a joke"),
 		func(event *session.Event) bool {
 			return event.Author == "assistant"
 		},
 	)
 
-	for event, err := range stream {
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			log.Printf("Error: %v", err)
 			break
 		}

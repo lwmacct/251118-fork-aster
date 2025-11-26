@@ -2,13 +2,15 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"iter"
+	"io"
 	"sync"
 	"time"
 
 	"github.com/astercloud/aster/pkg/agent"
 	"github.com/astercloud/aster/pkg/core"
+	"github.com/astercloud/aster/pkg/stream"
 	"github.com/google/uuid"
 )
 
@@ -18,7 +20,7 @@ type Step interface {
 	Name() string
 	Type() StepType
 	Description() string
-	Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error]
+	Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput]
 	Config() *StepConfig
 }
 
@@ -53,8 +55,11 @@ func (s *AgentStep) Type() StepType      { return StepTypeAgent }
 func (s *AgentStep) Description() string { return s.description }
 func (s *AgentStep) Config() *StepConfig { return s.config }
 
-func (s *AgentStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error] {
-	return func(yield func(*StepOutput, error) bool) {
+func (s *AgentStep) Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput] {
+	reader, writer := stream.Pipe[*StepOutput](1)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 
 		inputMessage := input.GetInputAsString()
@@ -75,8 +80,10 @@ func (s *AgentStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*St
 			Metrics:   &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }
 
 func (s *AgentStep) WithDescription(desc string) *AgentStep {
@@ -120,8 +127,11 @@ func (s *RoomStep) Type() StepType      { return StepTypeRoom }
 func (s *RoomStep) Description() string { return s.description }
 func (s *RoomStep) Config() *StepConfig { return s.config }
 
-func (s *RoomStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error] {
-	return func(yield func(*StepOutput, error) bool) {
+func (s *RoomStep) Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput] {
+	reader, writer := stream.Pipe[*StepOutput](1)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 
 		inputMessage := input.GetInputAsString()
@@ -142,8 +152,10 @@ func (s *RoomStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*Ste
 			Metrics:   &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }
 
 func (s *RoomStep) WithDescription(desc string) *RoomStep {
@@ -182,8 +194,11 @@ func (s *FunctionStep) Type() StepType      { return StepTypeFunction }
 func (s *FunctionStep) Description() string { return s.description }
 func (s *FunctionStep) Config() *StepConfig { return s.config }
 
-func (s *FunctionStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error] {
-	return func(yield func(*StepOutput, error) bool) {
+func (s *FunctionStep) Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput] {
+	reader, writer := stream.Pipe[*StepOutput](1)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 
 		output, err := s.executor(ctx, input)
@@ -197,7 +212,7 @@ func (s *FunctionStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[
 				EndTime:   time.Now(),
 			}
 			errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
-			yield(errorOutput, err)
+			writer.Send(errorOutput, err)
 			return
 		}
 
@@ -213,8 +228,10 @@ func (s *FunctionStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[
 			}
 			output.Metrics.ExecutionTime = output.Duration
 		}
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }
 
 func (s *FunctionStep) WithDescription(desc string) *FunctionStep {
@@ -289,8 +306,11 @@ func (s *ConditionStep) Type() StepType      { return StepTypeCondition }
 func (s *ConditionStep) Description() string { return s.description }
 func (s *ConditionStep) Config() *StepConfig { return s.config }
 
-func (s *ConditionStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error] {
-	return func(yield func(*StepOutput, error) bool) {
+func (s *ConditionStep) Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput] {
+	reader, writer := stream.Pipe[*StepOutput](1)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 
 		conditionResult := s.condition(input)
@@ -306,8 +326,13 @@ func (s *ConditionStep) Execute(ctx context.Context, input *StepInput) iter.Seq2
 		}
 
 		var branchOutput *StepOutput
-		for output, err := range branch.Execute(ctx, input) {
+		branchReader := branch.Execute(ctx, input)
+		for {
+			output, err := branchReader.Recv()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
 				errorOutput := &StepOutput{
 					StepID:    s.id,
 					StepName:  s.name,
@@ -318,7 +343,7 @@ func (s *ConditionStep) Execute(ctx context.Context, input *StepInput) iter.Seq2
 					Metadata:  map[string]interface{}{"condition": conditionResult, "branch": branchName},
 				}
 				errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
-				yield(errorOutput, err)
+				writer.Send(errorOutput, err)
 				return
 			}
 			branchOutput = output
@@ -336,8 +361,10 @@ func (s *ConditionStep) Execute(ctx context.Context, input *StepInput) iter.Seq2
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }
 
 // ===== LoopStep =====
@@ -374,8 +401,11 @@ func (s *LoopStep) Type() StepType      { return StepTypeLoop }
 func (s *LoopStep) Description() string { return s.description }
 func (s *LoopStep) Config() *StepConfig { return s.config }
 
-func (s *LoopStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error] {
-	return func(yield func(*StepOutput, error) bool) {
+func (s *LoopStep) Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput] {
+	reader, writer := stream.Pipe[*StepOutput](1)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 
 		var iterations []*StepOutput
@@ -394,8 +424,13 @@ func (s *LoopStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*Ste
 			}
 
 			var iterOutput *StepOutput
-			for output, err := range s.body.Execute(ctx, loopInput) {
+			bodyReader := s.body.Execute(ctx, loopInput)
+			for {
+				output, err := bodyReader.Recv()
 				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
 					errorOutput := &StepOutput{
 						StepID:      s.id,
 						StepName:    s.name,
@@ -407,7 +442,7 @@ func (s *LoopStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*Ste
 						Metadata:    map[string]interface{}{"iterations": i, "max": s.maxIterations},
 					}
 					errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
-					yield(errorOutput, err)
+					writer.Send(errorOutput, err)
 					return
 				}
 				iterOutput = output
@@ -421,7 +456,7 @@ func (s *LoopStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*Ste
 			}
 
 			if ctx.Err() != nil {
-				yield(nil, ctx.Err())
+				writer.Send(nil, ctx.Err())
 				return
 			}
 		}
@@ -438,8 +473,10 @@ func (s *LoopStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*Ste
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }
 
 func (s *LoopStep) WithStopCondition(condition func(*StepOutput) bool) *LoopStep {
@@ -478,21 +515,29 @@ func (s *ParallelStep) Type() StepType      { return StepTypeParallel }
 func (s *ParallelStep) Description() string { return s.description }
 func (s *ParallelStep) Config() *StepConfig { return s.config }
 
-func (s *ParallelStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error] {
-	return func(yield func(*StepOutput, error) bool) {
+func (s *ParallelStep) Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput] {
+	reader, writer := stream.Pipe[*StepOutput](1)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 
 		var wg sync.WaitGroup
 		results := make([]*StepOutput, len(s.steps))
-		errors := make([]error, len(s.steps))
+		errs := make([]error, len(s.steps))
 
 		for i, step := range s.steps {
 			wg.Add(1)
 			go func(index int, st Step) {
 				defer wg.Done()
-				for output, err := range st.Execute(ctx, input) {
+				stepReader := st.Execute(ctx, input)
+				for {
+					output, err := stepReader.Recv()
 					if err != nil {
-						errors[index] = err
+						if errors.Is(err, io.EOF) {
+							break
+						}
+						errs[index] = err
 						return
 					}
 					results[index] = output
@@ -503,7 +548,7 @@ func (s *ParallelStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[
 		wg.Wait()
 
 		var firstError error
-		for _, err := range errors {
+		for _, err := range errs {
 			if err != nil {
 				firstError = err
 				break
@@ -522,7 +567,7 @@ func (s *ParallelStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[
 				Metadata:    map[string]interface{}{"parallel_steps": len(s.steps)},
 			}
 			errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
-			yield(errorOutput, firstError)
+			writer.Send(errorOutput, firstError)
 			return
 		}
 
@@ -545,8 +590,10 @@ func (s *ParallelStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }
 
 // ===== RouterStep =====
@@ -583,8 +630,11 @@ func (s *RouterStep) Type() StepType      { return StepTypeRouter }
 func (s *RouterStep) Description() string { return s.description }
 func (s *RouterStep) Config() *StepConfig { return s.config }
 
-func (s *RouterStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error] {
-	return func(yield func(*StepOutput, error) bool) {
+func (s *RouterStep) Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput] {
+	reader, writer := stream.Pipe[*StepOutput](1)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 
 		routeName := s.router(input)
@@ -602,7 +652,7 @@ func (s *RouterStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*S
 					Metadata:  map[string]interface{}{"route": routeName},
 				}
 				errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
-				yield(errorOutput, err)
+				writer.Send(errorOutput, err)
 				return
 			}
 			step = s.defaultStep
@@ -610,8 +660,13 @@ func (s *RouterStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*S
 		}
 
 		var routeOutput *StepOutput
-		for output, err := range step.Execute(ctx, input) {
+		stepReader := step.Execute(ctx, input)
+		for {
+			output, err := stepReader.Recv()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
 				errorOutput := &StepOutput{
 					StepID:    s.id,
 					StepName:  s.name,
@@ -622,7 +677,7 @@ func (s *RouterStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*S
 					Metadata:  map[string]interface{}{"route": routeName},
 				}
 				errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
-				yield(errorOutput, err)
+				writer.Send(errorOutput, err)
 				return
 			}
 			routeOutput = output
@@ -640,8 +695,10 @@ func (s *RouterStep) Execute(ctx context.Context, input *StepInput) iter.Seq2[*S
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }
 
 func (s *RouterStep) WithDefault(step Step) *RouterStep {
@@ -680,8 +737,11 @@ func (s *StepsGroup) Type() StepType      { return StepTypeSteps }
 func (s *StepsGroup) Description() string { return s.description }
 func (s *StepsGroup) Config() *StepConfig { return s.config }
 
-func (s *StepsGroup) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error] {
-	return func(yield func(*StepOutput, error) bool) {
+func (s *StepsGroup) Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput] {
+	reader, writer := stream.Pipe[*StepOutput](1)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 
 		var outputs []*StepOutput
@@ -700,8 +760,13 @@ func (s *StepsGroup) Execute(ctx context.Context, input *StepInput) iter.Seq2[*S
 			}
 
 			var stepOutput *StepOutput
-			for output, err := range step.Execute(ctx, stepInput) {
+			stepReader := step.Execute(ctx, stepInput)
+			for {
+				output, err := stepReader.Recv()
 				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
 					errorOutput := &StepOutput{
 						StepID:      s.id,
 						StepName:    s.name,
@@ -713,7 +778,7 @@ func (s *StepsGroup) Execute(ctx context.Context, input *StepInput) iter.Seq2[*S
 						Metadata:    map[string]interface{}{"completed": len(outputs), "total": len(s.steps)},
 					}
 					errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
-					yield(errorOutput, err)
+					writer.Send(errorOutput, err)
 					return
 				}
 				stepOutput = output
@@ -723,7 +788,7 @@ func (s *StepsGroup) Execute(ctx context.Context, input *StepInput) iter.Seq2[*S
 			lastOutput = stepOutput
 
 			if ctx.Err() != nil {
-				yield(nil, ctx.Err())
+				writer.Send(nil, ctx.Err())
 				return
 			}
 		}
@@ -740,6 +805,8 @@ func (s *StepsGroup) Execute(ctx context.Context, input *StepInput) iter.Seq2[*S
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }

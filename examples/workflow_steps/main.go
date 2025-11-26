@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/astercloud/aster/pkg/workflow"
@@ -90,8 +92,13 @@ func main() {
 	// 测试 ConditionStep
 	fmt.Println("Testing ConditionStep...")
 	input := &workflow.StepInput{Input: "test"}
-	for output, err := range condStep.Execute(ctx, input) {
+	condReader := condStep.Execute(ctx, input)
+	for {
+		output, err := condReader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fmt.Printf("❌ Error: %v\n", err)
 		} else {
 			fmt.Printf("✅ Result: %v\n\n", output.Content)
@@ -100,8 +107,13 @@ func main() {
 
 	// 测试 LoopStep
 	fmt.Println("Testing LoopStep...")
-	for output, err := range loopStep.Execute(ctx, input) {
+	loopReader := loopStep.Execute(ctx, input)
+	for {
+		output, err := loopReader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fmt.Printf("❌ Error: %v\n", err)
 		} else {
 			fmt.Printf("✅ Completed %d iterations\n\n", len(output.NestedSteps))
@@ -111,8 +123,13 @@ func main() {
 	// 测试 ParallelStep
 	fmt.Println("Testing ParallelStep...")
 	start := time.Now()
-	for output, err := range parallelStep.Execute(ctx, input) {
+	parallelReader := parallelStep.Execute(ctx, input)
+	for {
+		output, err := parallelReader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fmt.Printf("❌ Error: %v\n", err)
 		} else {
 			duration := time.Since(start)
@@ -122,8 +139,13 @@ func main() {
 
 	// 测试 RouterStep
 	fmt.Println("Testing RouterStep...")
-	for output, err := range routerStep.Execute(ctx, input) {
+	routerReader := routerStep.Execute(ctx, input)
+	for {
+		output, err := routerReader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fmt.Printf("❌ Error: %v\n", err)
 		} else {
 			fmt.Printf("✅ Result: %v\n\n", output.Content)

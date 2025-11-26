@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -340,8 +342,13 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 			"input":    input,
 		})
 
-		for event, err := range ag.Stream(wsConn.ctx, input) {
+		reader := ag.Stream(wsConn.ctx, input)
+		for {
+			event, err := reader.Recv()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
 				logging.Error(wsConn.ctx, "stream.error", map[string]interface{}{
 					"agent_id": ag.ID(),
 					"error":    err.Error(),

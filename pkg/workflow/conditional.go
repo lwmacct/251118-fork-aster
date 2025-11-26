@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"iter"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/astercloud/aster/pkg/session"
+	"github.com/astercloud/aster/pkg/stream"
 	"github.com/astercloud/aster/pkg/types"
 )
 
@@ -77,23 +77,27 @@ func (c *ConditionalAgent) Name() string {
 }
 
 // Execute 执行条件分支
-func (c *ConditionalAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (c *ConditionalAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
+
 		// 评估条件
 		selectedBranch, err := c.evaluateConditions(ctx, message)
 		if err != nil {
-			yield(nil, fmt.Errorf("failed to evaluate conditions: %w", err))
+			writer.Send(nil, fmt.Errorf("failed to evaluate conditions: %w", err))
 			return
 		}
 
 		if selectedBranch == nil {
 			// 使用默认分支
 			if c.defaultBranch == nil {
-				yield(nil, fmt.Errorf("no condition matched and no default branch provided"))
+				writer.Send(nil, fmt.Errorf("no condition matched and no default branch provided"))
 				return
 			}
 
-			yield(&session.Event{
+			writer.Send(&session.Event{
 				ID:        generateEventID(),
 				Timestamp: time.Now(),
 				AgentID:   c.name,
@@ -109,12 +113,12 @@ func (c *ConditionalAgent) Execute(ctx context.Context, message string) iter.Seq
 			}, nil)
 
 			// 执行默认Agent
-			c.executeBranchAgent(ctx, yield, c.defaultBranch, message, "default")
+			c.executeBranchAgent(ctx, writer, c.defaultBranch, message, "default")
 			return
 		}
 
 		// 发送分支选择事件
-		yield(&session.Event{
+		writer.Send(&session.Event{
 			ID:        generateEventID(),
 			Timestamp: time.Now(),
 			AgentID:   c.name,
@@ -132,8 +136,10 @@ func (c *ConditionalAgent) Execute(ctx context.Context, message string) iter.Seq
 		}, nil)
 
 		// 执行选中的分支Agent
-		c.executeBranchAgent(ctx, yield, selectedBranch.Agent, message, selectedBranch.Name)
-	}
+		c.executeBranchAgent(ctx, writer, selectedBranch.Agent, message, selectedBranch.Name)
+	}()
+
+	return reader
 }
 
 // evaluateConditions 评估条件
@@ -162,7 +168,7 @@ func (c *ConditionalAgent) evaluateConditions(ctx context.Context, message strin
 }
 
 // executeBranchAgent 执行分支Agent
-func (c *ConditionalAgent) executeBranchAgent(ctx context.Context, yield func(*session.Event, error) bool, agentRef *AgentRef, message string, branchName string) {
+func (c *ConditionalAgent) executeBranchAgent(ctx context.Context, writer *stream.Writer[*session.Event], agentRef *AgentRef, message string, branchName string) {
 	// TODO: 实现Agent创建和执行
 	// 现在模拟执行
 	for i := 0; i < 3; i++ {
@@ -182,7 +188,7 @@ func (c *ConditionalAgent) executeBranchAgent(ctx context.Context, yield func(*s
 			},
 		}
 
-		if !yield(event, nil) {
+		if writer.Send(event, nil) {
 			return
 		}
 
@@ -259,8 +265,12 @@ func (p *ParallelConditionalAgent) Name() string {
 }
 
 // Execute 执行并行条件评估
-func (p *ParallelConditionalAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (p *ParallelConditionalAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
+
 		// 更新变量
 		if p.evaluator.variables == nil {
 			p.evaluator.variables = make(map[string]interface{})
@@ -269,15 +279,15 @@ func (p *ParallelConditionalAgent) Execute(ctx context.Context, message string) 
 		p.evaluator.variables["message"] = message
 
 		// 并行评估条件
-		results := p.evaluateConditionsParallel(ctx, message, yield)
+		results := p.evaluateConditionsParallel(ctx, message, writer)
 		if len(results) == 0 {
 			// 没有匹配的条件，使用默认分支
 			if p.defaultAgent == nil {
-				yield(nil, fmt.Errorf("no condition matched and no default branch provided"))
+				writer.Send(nil, fmt.Errorf("no condition matched and no default branch provided"))
 				return
 			}
 
-			yield(&session.Event{
+			writer.Send(&session.Event{
 				ID:        generateEventID(),
 				Timestamp: time.Now(),
 				AgentID:   p.name,
@@ -292,7 +302,7 @@ func (p *ParallelConditionalAgent) Execute(ctx context.Context, message string) 
 				},
 			}, nil)
 
-			p.executeBranchAgent(ctx, yield, p.defaultAgent, message, "default")
+			p.executeBranchAgent(ctx, writer, p.defaultAgent, message, "default")
 			return
 		}
 
@@ -301,23 +311,25 @@ func (p *ParallelConditionalAgent) Execute(ctx context.Context, message string) 
 		case StrategyFirst:
 			// 使用第一个结果
 			result := results[0]
-			p.handleBranchResult(ctx, yield, result, message)
+			p.handleBranchResult(ctx, writer, result, message)
 		case StrategyAll:
 			// 执行所有匹配的分支
 			for _, result := range results {
-				p.handleBranchResult(ctx, yield, result, message)
+				p.handleBranchResult(ctx, writer, result, message)
 			}
 		case StrategyMajority:
 			// TODO: 实现多数策略
-			p.handleBranchResult(ctx, yield, results[0], message)
+			p.handleBranchResult(ctx, writer, results[0], message)
 		default:
-			p.handleBranchResult(ctx, yield, results[0], message)
+			p.handleBranchResult(ctx, writer, results[0], message)
 		}
-	}
+	}()
+
+	return reader
 }
 
 // evaluateConditionsParallel 并行评估条件
-func (p *ParallelConditionalAgent) evaluateConditionsParallel(ctx context.Context, message string, yield func(*session.Event, error) bool) []BranchEvaluationResult {
+func (p *ParallelConditionalAgent) evaluateConditionsParallel(ctx context.Context, message string, writer *stream.Writer[*session.Event]) []BranchEvaluationResult {
 	conditionCtx, cancel := context.WithTimeout(ctx, p.timeout)
 	defer cancel()
 
@@ -352,7 +364,7 @@ func (p *ParallelConditionalAgent) evaluateConditionsParallel(ctx context.Contex
 			evaluationResults = append(evaluationResults, result)
 
 			// 发送条件评估事件
-			yield(&session.Event{
+			writer.Send(&session.Event{
 				ID:        generateEventID(),
 				Timestamp: time.Now(),
 				AgentID:   p.name,
@@ -405,7 +417,7 @@ type BranchEvaluationResult struct {
 }
 
 // handleBranchResult 处理分支结果
-func (p *ParallelConditionalAgent) handleBranchResult(ctx context.Context, yield func(*session.Event, error) bool, result interface{}, message string) {
+func (p *ParallelConditionalAgent) handleBranchResult(ctx context.Context, writer *stream.Writer[*session.Event], result interface{}, message string) {
 	var agentRef *AgentRef
 	var branchName string
 
@@ -417,11 +429,11 @@ func (p *ParallelConditionalAgent) handleBranchResult(ctx context.Context, yield
 		return
 	}
 
-	p.executeBranchAgent(ctx, yield, agentRef, message, branchName)
+	p.executeBranchAgent(ctx, writer, agentRef, message, branchName)
 }
 
 // executeBranchAgent 执行分支Agent
-func (p *ParallelConditionalAgent) executeBranchAgent(ctx context.Context, yield func(*session.Event, error) bool, agentRef *AgentRef, message string, branchName string) {
+func (p *ParallelConditionalAgent) executeBranchAgent(ctx context.Context, writer *stream.Writer[*session.Event], agentRef *AgentRef, message string, branchName string) {
 	// TODO: 实现Agent创建和执行
 	// 现在模拟执行
 	for i := 0; i < 3; i++ {
@@ -442,7 +454,7 @@ func (p *ParallelConditionalAgent) executeBranchAgent(ctx context.Context, yield
 			},
 		}
 
-		if !yield(event, nil) {
+		if writer.Send(event, nil) {
 			return
 		}
 
@@ -501,19 +513,23 @@ func (s *SwitchAgent) Name() string {
 }
 
 // Execute 执行Switch分支
-func (s *SwitchAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (s *SwitchAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
+
 		// 解析switch变量值
 		switchValue, err := s.extractSwitchValue(message)
 		if err != nil {
-			yield(nil, fmt.Errorf("failed to extract switch value: %w", err))
+			writer.Send(nil, fmt.Errorf("failed to extract switch value: %w", err))
 			return
 		}
 
 		// 查找匹配的case
 		for _, caseDef := range s.cases {
 			if s.matchCaseValue(switchValue, caseDef.Value) {
-				yield(&session.Event{
+				writer.Send(&session.Event{
 					ID:        generateEventID(),
 					Timestamp: time.Now(),
 					AgentID:   s.name,
@@ -532,7 +548,7 @@ func (s *SwitchAgent) Execute(ctx context.Context, message string) iter.Seq2[*se
 				}, nil)
 
 				// 执行匹配的case
-				s.executeSwitchCase(ctx, yield, caseDef, message)
+				s.executeSwitchCase(ctx, writer, caseDef, message)
 
 				// 检查是否继续fallthrough
 				if !caseDef.Fallthrough {
@@ -543,7 +559,7 @@ func (s *SwitchAgent) Execute(ctx context.Context, message string) iter.Seq2[*se
 
 		// 使用default分支
 		if s.defaultCase != nil {
-			yield(&session.Event{
+			writer.Send(&session.Event{
 				ID:        generateEventID(),
 				Timestamp: time.Now(),
 				AgentID:   s.name,
@@ -566,11 +582,13 @@ func (s *SwitchAgent) Execute(ctx context.Context, message string) iter.Seq2[*se
 				Value: "*",
 				Agent: s.defaultCase,
 			}
-			s.executeSwitchCase(ctx, yield, defaultCase, message)
+			s.executeSwitchCase(ctx, writer, defaultCase, message)
 		} else {
-			yield(nil, fmt.Errorf("no case matched for %s = %s and no default provided", s.variable, switchValue))
+			writer.Send(nil, fmt.Errorf("no case matched for %s = %s and no default provided", s.variable, switchValue))
 		}
-	}
+	}()
+
+	return reader
 }
 
 // extractSwitchValue 提取switch变量值
@@ -619,7 +637,7 @@ func (s *SwitchAgent) matchCaseValue(switchValue, caseValue string) bool {
 }
 
 // executeSwitchCase 执行Switch case
-func (s *SwitchAgent) executeSwitchCase(ctx context.Context, yield func(*session.Event, error) bool, caseDef SwitchCase, message string) {
+func (s *SwitchAgent) executeSwitchCase(ctx context.Context, writer *stream.Writer[*session.Event], caseDef SwitchCase, message string) {
 	// TODO: 实现Agent创建和执行
 	// 现在模拟执行
 	for i := 0; i < 3; i++ {
@@ -641,7 +659,7 @@ func (s *SwitchAgent) executeSwitchCase(ctx context.Context, yield func(*session
 			},
 		}
 
-		if !yield(event, nil) {
+		if writer.Send(event, nil) {
 			return
 		}
 
@@ -705,16 +723,21 @@ func (m *MultiLevelConditionalAgent) Name() string {
 }
 
 // Execute 执行多级条件
-func (m *MultiLevelConditionalAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (m *MultiLevelConditionalAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
 		// 从第一级开始评估
 		m.currentLevel = 0
-		m.evaluateLevel(ctx, yield, m.levels[0], message)
-	}
+		m.evaluateLevel(ctx, writer, m.levels[0], message)
+	}()
+
+	return reader
 }
 
 // evaluateLevel 评估条件层级
-func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, yield func(*session.Event, error) bool, level ConditionLevel, message string) {
+func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, writer *stream.Writer[*session.Event], level ConditionLevel, message string) {
 	// 更新变量
 	if m.evaluator.variables == nil {
 		m.evaluator.variables = make(map[string]interface{})
@@ -723,7 +746,7 @@ func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, yield fu
 	m.evaluator.variables["level"] = level.Level
 
 	// 发送层级开始事件
-	yield(&session.Event{
+	writer.Send(&session.Event{
 		ID:        generateEventID(),
 		Timestamp: time.Now(),
 		AgentID:   m.name,
@@ -749,7 +772,7 @@ func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, yield fu
 
 		if result {
 			// 条件匹配，执行对应的Agent
-			yield(&session.Event{
+			writer.Send(&session.Event{
 				ID:        generateEventID(),
 				Timestamp: time.Now(),
 				AgentID:   m.name,
@@ -769,7 +792,7 @@ func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, yield fu
 
 			// 执行分支Agent
 			if condition.Agent != nil {
-				m.executeBranchAgent(ctx, yield, condition.Agent, message, fmt.Sprintf("L%d_%s", level.Level, condition.Name))
+				m.executeBranchAgent(ctx, writer, condition.Agent, message, fmt.Sprintf("L%d_%s", level.Level, condition.Name))
 			}
 			return
 		}
@@ -777,7 +800,7 @@ func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, yield fu
 
 	// 如果没有条件匹配，检查是否有else分支
 	if level.Else != nil {
-		yield(&session.Event{
+		writer.Send(&session.Event{
 			ID:        generateEventID(),
 			Timestamp: time.Now(),
 			AgentID:   m.name,
@@ -797,25 +820,25 @@ func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, yield fu
 		// 执行else分支
 		if len(level.Else.Conditions) > 0 {
 			// 如果else分支有自己的条件，递归评估
-			m.evaluateLevel(ctx, yield, *level.Else, message)
+			m.evaluateLevel(ctx, writer, *level.Else, message)
 		} else {
 			// 否则继续下一级
 			if level.Level+1 < len(m.levels) {
 				m.currentLevel = level.Level + 1
-				m.evaluateLevel(ctx, yield, m.levels[level.Level+1], message)
+				m.evaluateLevel(ctx, writer, m.levels[level.Level+1], message)
 			}
 		}
 	} else {
 		// 没有else分支，继续下一级
 		if level.Level+1 < len(m.levels) {
 			m.currentLevel = level.Level + 1
-			m.evaluateLevel(ctx, yield, m.levels[level.Level+1], message)
+			m.evaluateLevel(ctx, writer, m.levels[level.Level+1], message)
 		}
 	}
 }
 
 // executeBranchAgent 执行分支Agent
-func (m *MultiLevelConditionalAgent) executeBranchAgent(ctx context.Context, yield func(*session.Event, error) bool, agentRef *AgentRef, message string, branchName string) {
+func (m *MultiLevelConditionalAgent) executeBranchAgent(ctx context.Context, writer *stream.Writer[*session.Event], agentRef *AgentRef, message string, branchName string) {
 	// TODO: 实现Agent创建和执行
 	// 现在模拟执行
 	for i := 0; i < 3; i++ {
@@ -837,7 +860,7 @@ func (m *MultiLevelConditionalAgent) executeBranchAgent(ctx context.Context, yie
 			},
 		}
 
-		if !yield(event, nil) {
+		if writer.Send(event, nil) {
 			return
 		}
 

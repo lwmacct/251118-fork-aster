@@ -2,11 +2,13 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"iter"
+	"io"
 	"sync"
 
 	"github.com/astercloud/aster/pkg/session"
+	"github.com/astercloud/aster/pkg/stream"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -27,7 +29,7 @@ type ParallelAgent struct {
 // 简化版本，实际应该从主 Agent 包导入
 type Agent interface {
 	Name() string
-	Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error]
+	Execute(ctx context.Context, message string) *stream.Reader[*session.Event]
 }
 
 // ParallelConfig ParallelAgent 配置
@@ -64,8 +66,12 @@ func (a *ParallelAgent) Name() string {
 }
 
 // Execute 并行执行所有子 Agent
-func (a *ParallelAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (a *ParallelAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](len(a.subAgents) * 10)
+
+	go func() {
+		defer writer.Close()
+
 		var (
 			eg, egCtx = errgroup.WithContext(ctx)
 			resultsCh = make(chan result, len(a.subAgents)*10) // 缓冲通道
@@ -93,11 +99,13 @@ func (a *ParallelAgent) Execute(ctx context.Context, message string) iter.Seq2[*
 		defer close(doneCh)
 
 		for res := range resultsCh {
-			if !yield(res.event, res.err) {
+			if writer.Send(res.event, res.err) {
 				return // 客户端取消
 			}
 		}
-	}
+	}()
+
+	return reader
 }
 
 // runSubAgent 运行单个子 Agent
@@ -110,7 +118,21 @@ func (a *ParallelAgent) runSubAgent(
 	results chan<- result,
 	done <-chan struct{},
 ) error {
-	for event, err := range agent.Execute(ctx, message) {
+	agentReader := agent.Execute(ctx, message)
+	for {
+		event, err := agentReader.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			select {
+			case <-done:
+				return nil
+			case results <- result{err: err}:
+			}
+			return err
+		}
+
 		select {
 		case <-done:
 			return nil // 客户端取消
@@ -122,11 +144,8 @@ func (a *ParallelAgent) runSubAgent(
 			return ctx.Err()
 		case results <- result{
 			event: a.enrichEvent(event, branch, index),
-			err:   err,
+			err:   nil,
 		}:
-			if err != nil {
-				return err
-			}
 		}
 	}
 	return nil

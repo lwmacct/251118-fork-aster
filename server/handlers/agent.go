@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"errors"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -754,8 +756,13 @@ func (h *AgentHandler) StreamChat(c *gin.Context) {
 	}
 
 	// Use Stream iterator
-	for event, err := range ag.Stream(ctx, req.Input) {
+	reader := ag.Stream(ctx, req.Input)
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			logging.Error(ctx, "stream.error", map[string]interface{}{
 				"agent_id": ag.ID(),
 				"error":    err.Error(),

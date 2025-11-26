@@ -46,18 +46,21 @@ package main
 
 import (
     "context"
+    "errors"
     "fmt"
+    "io"
+
     "github.com/astercloud/aster/pkg/workflow"
 )
 
 func main() {
     ctx := context.Background()
-    
+
     // 创建 Workflow
     wf := workflow.New("DataPipeline").
         WithStream().   // 启用流式
         WithDebug()     // 启用调试
-    
+
     // 添加步骤
     wf.AddStep(workflow.NewFunctionStep("collect",
         func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
@@ -66,7 +69,7 @@ func main() {
             }, nil
         },
     ))
-    
+
     wf.AddStep(workflow.NewFunctionStep("process",
         func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
             prevData := input.PreviousStepContent  // 访问前一步输出
@@ -75,11 +78,16 @@ func main() {
             }, nil
         },
     ))
-    
-    // 执行
+
+    // 执行 - 使用 stream.Reader 接收事件
     input := &workflow.WorkflowInput{Input: "start"}
-    for event, err := range wf.Execute(ctx, input) {
+    reader := wf.Execute(ctx, input)
+    for {
+        event, err := reader.Recv()
         if err != nil {
+            if errors.Is(err, io.EOF) {
+                break  // 流结束
+            }
             panic(err)
         }
         if event.Type == workflow.EventWorkflowCompleted {
@@ -96,7 +104,9 @@ package main
 
 import (
     "context"
+    "errors"
     "fmt"
+    "io"
 
     "github.com/astercloud/aster/pkg/agent/workflow"
 )
@@ -122,9 +132,14 @@ func main() {
 
     // 并发执行，收集所有结果
     results := []string{}
-    for event, err := range parallel.Execute(context.Background(), "求解优化问题") {
+    reader := parallel.Execute(context.Background(), "求解优化问题")
+    for {
+        event, err := reader.Recv()
         if err != nil {
-            fmt.Printf("Agent %s 错误: %v\n", event.AgentID, err)
+            if errors.Is(err, io.EOF) {
+                break
+            }
+            fmt.Printf("错误: %v\n", err)
             continue
         }
 
@@ -145,7 +160,9 @@ package main
 
 import (
     "context"
+    "errors"
     "fmt"
+    "io"
 
     "github.com/astercloud/aster/pkg/agent/workflow"
     "github.com/astercloud/aster/pkg/session"
@@ -175,8 +192,13 @@ func main() {
 
     // 执行循环优化
     iteration := 0
-    for event, err := range loop.Execute(context.Background(), "优化代码质量") {
+    reader := loop.Execute(context.Background(), "优化代码质量")
+    for {
+        event, err := reader.Recv()
         if err != nil {
+            if errors.Is(err, io.EOF) {
+                break
+            }
             fmt.Printf("错误: %v\n", err)
             break
         }
@@ -208,6 +230,10 @@ package main
 
 import (
     "context"
+    "errors"
+    "fmt"
+    "io"
+
     "github.com/astercloud/aster/pkg/agent/workflow"
 )
 
@@ -243,8 +269,13 @@ func main() {
     }
 
     // 执行嵌套工作流
-    for event, err := range nestedWorkflow.Execute(context.Background(), "综合数据分析") {
+    reader := nestedWorkflow.Execute(context.Background(), "综合数据分析")
+    for {
+        event, err := reader.Recv()
         if err != nil {
+            if errors.Is(err, io.EOF) {
+                break
+            }
             break
         }
 
@@ -332,8 +363,12 @@ func (a *CustomAgent) Name() string {
 }
 
 // 实现 Execute() 方法
-func (a *CustomAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-    return func(yield func(*session.Event, error) bool) {
+func (a *CustomAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+    reader, writer := stream.Pipe[*session.Event](10)
+
+    go func() {
+        defer writer.Close()
+
         // 模拟处理
         time.Sleep(100 * time.Millisecond)
 
@@ -353,15 +388,17 @@ func (a *CustomAgent) Execute(ctx context.Context, message string) iter.Seq2[*se
         }
 
         // 传递事件
-        if !yield(event, nil) {
+        if writer.Send(event, nil) {
             return // 客户端取消
         }
 
         // 检查上下文取消
         if ctx.Err() != nil {
-            yield(nil, ctx.Err())
+            writer.Send(nil, ctx.Err())
         }
-    }
+    }()
+
+    return reader
 }
 ```
 
@@ -400,7 +437,16 @@ StopCondition: func(event *session.Event) bool {
 工作流 Agent 会自动添加丰富的元数据：
 
 ```go
-for event, err := range sequential.Execute(ctx, "任务") {
+reader := sequential.Execute(ctx, "任务")
+for {
+    event, err := reader.Recv()
+    if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
+        continue
+    }
+
     // SequentialAgent 元数据
     step := event.Metadata["sequential_step"].(int)      // 当前步骤 (1-based)
     total := event.Metadata["total_steps"].(int)         // 总步骤数
@@ -484,14 +530,30 @@ go run main.go
 ### 2. 性能优化
 
 ```go
-// ✅ 推荐：使用 iter.Seq2 流式处理
-for event, err := range workflow.Execute(ctx, msg) {
+// ✅ 推荐：使用 stream.Reader 流式处理
+reader := workflow.Execute(ctx, msg)
+for {
+    event, err := reader.Recv()
+    if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
+        continue
+    }
     // 实时处理事件，内存占用 O(1)
 }
 
 // ❌ 避免：收集所有结果再处理
 var results []Event
-for event, _ := range workflow.Execute(ctx, msg) {
+reader := workflow.Execute(ctx, msg)
+for {
+    event, err := reader.Recv()
+    if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
+        continue
+    }
     results = append(results, event)  // 内存占用 O(n)
 }
 ```
@@ -499,10 +561,15 @@ for event, _ := range workflow.Execute(ctx, msg) {
 ### 3. 错误处理
 
 ```go
-for event, err := range sequential.Execute(ctx, "任务") {
+reader := sequential.Execute(ctx, "任务")
+for {
+    event, err := reader.Recv()
     if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
         // 记录错误
-        log.Printf("Agent %s 错误: %v", event.AgentID, err)
+        log.Printf("错误: %v", err)
 
         // 根据业务决定是否继续
         if isCriticalError(err) {
@@ -524,7 +591,16 @@ ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 defer cancel()
 
 // 执行工作流
-for event, err := range workflow.Execute(ctx, "任务") {
+reader := workflow.Execute(ctx, "任务")
+for {
+    event, err := reader.Recv()
+    if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
+        continue
+    }
+
     if ctx.Err() != nil {
         fmt.Println("工作流被取消或超时")
         break
@@ -539,7 +615,7 @@ for event, err := range workflow.Execute(ctx, "任务") {
 - [工作流 Agent 源码](https://github.com/astercloud/aster/tree/main/pkg/agent/workflow)
 - [完整示例代码](https://github.com/astercloud/aster/tree/main/examples/workflow-agents)
 - [Google ADK-Go 参考](https://github.com/googleapis/adk-go)
-- [Go 1.23 iter.Seq2 文档](https://pkg.go.dev/iter)
+- [stream.Reader 文档](https://pkg.go.dev/github.com/astercloud/aster/pkg/stream)
 
 ## ❓ 常见问题
 
@@ -565,7 +641,15 @@ StopCondition: func(event *session.Event) bool {
 
 A: 使用 `event.Branch` 字段追踪事件来源：
 ```go
-for event, _ := range nestedWorkflow.Execute(ctx, msg) {
+reader := nestedWorkflow.Execute(ctx, msg)
+for {
+    event, err := reader.Recv()
+    if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
+        continue
+    }
     // Branch 示例: "Pipeline.ParallelCollector.Source1"
     fmt.Printf("[%s] %s\n", event.Branch, event.Content.Content)
 }

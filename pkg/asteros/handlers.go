@@ -2,7 +2,9 @@ package asteros
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 
 	"github.com/gin-gonic/gin"
 )
@@ -262,8 +264,13 @@ func (os *AsterOS) handleWorkflowExecute(c *gin.Context) {
 	ctx := context.Background()
 	events := make([]string, 0)
 
-	for event, err := range wf.Execute(ctx, req.Message) {
+	reader := wf.Execute(ctx, req.Message)
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}

@@ -169,10 +169,10 @@ if err != nil {
 
 ### agent.Stream
 
-流式对话，返回迭代器。适合需要逐步处理响应的场景。
+流式对话，返回 Reader。适合需要逐步处理响应的场景。
 
 ```go
-func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter.Seq2[*session.Event, error]
+func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) *stream.Reader[*session.Event]
 ```
 
 **参数**：
@@ -181,13 +181,18 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 - `opts`: 可选配置
 
 **返回**：
-- `iter.Seq2[*session.Event, error]`: 事件迭代器
+- `*stream.Reader[*session.Event]`: 事件 Reader
 
 **示例**：
 
 ```go
-for event, err := range ag.Stream(ctx, "介绍一下 Go 语言") {
+reader := ag.Stream(ctx, "介绍一下 Go 语言")
+for {
+    event, err := reader.Recv()
     if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
         log.Printf("错误: %v", err)
         break
     }

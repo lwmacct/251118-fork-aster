@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/astercloud/aster/pkg/guardrails"
@@ -140,8 +142,13 @@ func demoComplexWorkflow(ctx context.Context) {
 
 	// 执行
 	input := &workflow.WorkflowInput{Input: "start"}
-	for event, err := range wf.Execute(ctx, input) {
+	reader := wf.Execute(ctx, input)
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			log.Printf("  ❌ 错误: %v", err)
 			continue
 		}

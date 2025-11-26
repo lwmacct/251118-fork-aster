@@ -2,10 +2,12 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"iter"
+	"io"
 
 	"github.com/astercloud/aster/pkg/session"
+	"github.com/astercloud/aster/pkg/stream"
 )
 
 // LoopAgent 循环执行子 Agent 直到满足终止条件
@@ -78,8 +80,12 @@ func (a *LoopAgent) Name() string {
 }
 
 // Execute 循环执行子 Agent
-func (a *LoopAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (a *LoopAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
+
 		iteration := uint(0)
 
 		for {
@@ -96,18 +102,24 @@ func (a *LoopAgent) Execute(ctx context.Context, message string) iter.Seq2[*sess
 			for i, subAgent := range a.subAgents {
 				branch := fmt.Sprintf("%s.%s.iter%d", a.name, subAgent.Name(), iteration)
 
-				for event, err := range subAgent.Execute(ctx, message) {
+				subReader := subAgent.Execute(ctx, message)
+				for {
+					event, err := subReader.Recv()
+					if err != nil {
+						if errors.Is(err, io.EOF) {
+							break
+						}
+						// 传递错误
+						writer.Send(nil, err)
+						return
+					}
+
 					// 丰富事件信息
 					enrichedEvent := a.enrichEvent(event, branch, iteration, i)
 
 					// 传递事件
-					if !yield(enrichedEvent, err) {
+					if writer.Send(enrichedEvent, nil) {
 						return // 客户端取消
-					}
-
-					// 检查错误
-					if err != nil {
-						return
 					}
 
 					// 检查停止条件
@@ -123,7 +135,7 @@ func (a *LoopAgent) Execute(ctx context.Context, message string) iter.Seq2[*sess
 
 				// 检查上下文取消
 				if ctx.Err() != nil {
-					yield(nil, ctx.Err())
+					writer.Send(nil, ctx.Err())
 					return
 				}
 			}
@@ -131,7 +143,9 @@ func (a *LoopAgent) Execute(ctx context.Context, message string) iter.Seq2[*sess
 			// 如果没有设置最大迭代次数且没有触发停止条件，继续循环
 			// 否则在上面的检查中会退出
 		}
-	}
+	}()
+
+	return reader
 }
 
 // enrichEvent 丰富事件信息

@@ -2,10 +2,12 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"iter"
+	"io"
 	"time"
 
+	"github.com/astercloud/aster/pkg/stream"
 	"github.com/google/uuid"
 )
 
@@ -44,8 +46,11 @@ func (r *Router) Description() string { return r.description }
 func (r *Router) Config() *StepConfig { return r.config }
 
 // Execute 执行 Router - 选择步骤并顺序链接执行
-func (r *Router) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepOutput, error] {
-	return func(yield func(*StepOutput, error) bool) {
+func (r *Router) Execute(ctx context.Context, input *StepInput) *stream.Reader[*StepOutput] {
+	reader, writer := stream.Pipe[*StepOutput](1)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 
 		// 调用选择器函数
@@ -67,7 +72,7 @@ func (r *Router) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepO
 				Metrics: &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 			}
 			output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-			yield(output, nil)
+			writer.Send(output, nil)
 			return
 		}
 
@@ -99,8 +104,13 @@ func (r *Router) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepO
 			var stepOutput *StepOutput
 			var stepError error
 
-			for output, err := range step.Execute(ctx, currentInput) {
+			stepReader := step.Execute(ctx, currentInput)
+			for {
+				output, err := stepReader.Recv()
 				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
 					stepError = err
 					break
 				}
@@ -125,7 +135,7 @@ func (r *Router) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepO
 					},
 				}
 				errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
-				yield(errorOutput, stepError)
+				writer.Send(errorOutput, stepError)
 				return
 			}
 
@@ -137,7 +147,7 @@ func (r *Router) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepO
 
 			// 检查上下文取消
 			if ctx.Err() != nil {
-				yield(nil, ctx.Err())
+				writer.Send(nil, ctx.Err())
 				return
 			}
 		}
@@ -164,8 +174,10 @@ func (r *Router) Execute(ctx context.Context, input *StepInput) iter.Seq2[*StepO
 			Metrics: &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }
 
 // WithDescription 设置描述
@@ -181,8 +193,11 @@ func (r *Router) WithTimeout(timeout time.Duration) *Router {
 }
 
 // ExecuteStream 流式执行 Router - 支持实时事件流
-func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEvents bool) iter.Seq2[interface{}, error] {
-	return func(yield func(interface{}, error) bool) {
+func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEvents bool) *stream.Reader[interface{}] {
+	reader, writer := stream.Pipe[interface{}](10)
+
+	go func() {
+		defer writer.Close()
 		startTime := time.Now()
 		routerID := r.id
 
@@ -198,7 +213,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 				ExecutedSteps: 0,
 				Timestamp:     startTime,
 			}
-			if !yield(startEvent, nil) {
+			if writer.Send(startEvent, nil) {
 				return
 			}
 		}
@@ -213,7 +228,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 					ExecutedSteps: 0,
 					Timestamp:     time.Now(),
 				}
-				yield(completeEvent, nil)
+				writer.Send(completeEvent, nil)
 			}
 
 			output := &StepOutput{
@@ -230,7 +245,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 				Metrics: &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 			}
 			output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-			yield(output, nil)
+			writer.Send(output, nil)
 			return
 		}
 
@@ -262,8 +277,13 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 			var stepOutput *StepOutput
 			var stepError error
 
-			for output, err := range step.Execute(ctx, currentInput) {
+			stepReader := step.Execute(ctx, currentInput)
+			for {
+				output, err := stepReader.Recv()
 				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
 					stepError = err
 					break
 				}
@@ -277,7 +297,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 						"step_index":  i,
 						"output":      output,
 					}
-					if !yield(stepProgressEvent, nil) {
+					if writer.Send(stepProgressEvent, nil) {
 						return
 					}
 				}
@@ -295,7 +315,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 						ExecutedSteps: i,
 						Timestamp:     time.Now(),
 					}
-					yield(failEvent, nil)
+					writer.Send(failEvent, nil)
 				}
 
 				errorOutput := &StepOutput{
@@ -314,7 +334,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 					},
 				}
 				errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
-				yield(errorOutput, stepError)
+				writer.Send(errorOutput, stepError)
 				return
 			}
 
@@ -326,7 +346,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 
 			// 检查上下文取消
 			if ctx.Err() != nil {
-				yield(nil, ctx.Err())
+				writer.Send(nil, ctx.Err())
 				return
 			}
 		}
@@ -340,7 +360,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 				ExecutedSteps: len(allResults),
 				Timestamp:     time.Now(),
 			}
-			yield(completeEvent, nil)
+			writer.Send(completeEvent, nil)
 		}
 
 		// 构建最终输出
@@ -365,8 +385,10 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 			Metrics: &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
-		yield(output, nil)
-	}
+		writer.Send(output, nil)
+	}()
+
+	return reader
 }
 
 // ===== 简化的 Router 构造函数 =====

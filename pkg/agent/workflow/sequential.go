@@ -2,10 +2,12 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"iter"
+	"io"
 
 	"github.com/astercloud/aster/pkg/session"
+	"github.com/astercloud/aster/pkg/stream"
 )
 
 // SequentialAgent 顺序执行子 Agent
@@ -63,34 +65,46 @@ func NewSequentialAgent(cfg SequentialConfig) (*SequentialAgent, error) {
 }
 
 // Execute 顺序执行所有子 Agent（仅一次）
-func (a *SequentialAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (a *SequentialAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
+
 		// 顺序执行所有子 Agent
 		for i, subAgent := range a.subAgents {
 			branch := fmt.Sprintf("%s.%s", a.name, subAgent.Name())
 
-			for event, err := range subAgent.Execute(ctx, message) {
+			subReader := subAgent.Execute(ctx, message)
+			for {
+				event, err := subReader.Recv()
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
+					// 传递错误
+					writer.Send(nil, err)
+					return // 遇到错误停止
+				}
+
 				// 丰富事件信息
 				enrichedEvent := a.enrichSequentialEvent(event, branch, i)
 
 				// 传递事件
-				if !yield(enrichedEvent, err) {
+				if writer.Send(enrichedEvent, nil) {
 					return // 客户端取消
-				}
-
-				// 检查错误
-				if err != nil {
-					return // 遇到错误停止
 				}
 			}
 
 			// 检查上下文取消
 			if ctx.Err() != nil {
-				yield(nil, ctx.Err())
+				writer.Send(nil, ctx.Err())
 				return
 			}
 		}
-	}
+	}()
+
+	return reader
 }
 
 // enrichSequentialEvent 丰富顺序执行事件信息

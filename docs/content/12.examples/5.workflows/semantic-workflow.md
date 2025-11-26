@@ -118,8 +118,12 @@ func (a *SemanticQAWorkflowAgent) Name() string {
 func (a *SemanticQAWorkflowAgent) Execute(
     ctx context.Context,
     message string,
-) iter.Seq2[*session.Event, error] {
-    return func(yield func(*session.Event, error) bool) {
+) *stream.Reader[*session.Event] {
+    reader, writer := stream.Pipe[*session.Event](10)
+
+    go func() {
+        defer writer.Close()
+
         // 1) 语义检索
         meta := map[string]interface{}{
             "user_id":     "alice",
@@ -127,14 +131,14 @@ func (a *SemanticQAWorkflowAgent) Execute(
         }
         hits, err := a.semMem.Search(ctx, message, meta, 3)
         if err != nil {
-            _ = yield(nil, fmt.Errorf("semantic search: %w", err))
+            writer.Send(nil, fmt.Errorf("semantic search: %w", err))
             return
         }
 
         contextText := buildContext(hits) // 将命中文本拼接成上下文
 
         // 向外发出「上下文事件」
-        if !yield(&session.Event{
+        if writer.Send(&session.Event{
             ID:        "...-context",
             Timestamp: time.Now(),
             AgentID:   a.name,
@@ -155,7 +159,7 @@ func (a *SemanticQAWorkflowAgent) Execute(
             },
         }, a.deps)
         if err != nil {
-            _ = yield(nil, fmt.Errorf("create agent: %w", err))
+            writer.Send(nil, fmt.Errorf("create agent: %w", err))
             return
         }
         defer ag.Close()
@@ -167,7 +171,7 @@ func (a *SemanticQAWorkflowAgent) Execute(
         res, err := ag.Chat(ctx, prompt)
 
         // 向外发出「回答事件」
-        _ = yield(&session.Event{
+        writer.Send(&session.Event{
             ID:        "...-answer",
             Timestamp: time.Now(),
             AgentID:   a.name,
@@ -177,7 +181,9 @@ func (a *SemanticQAWorkflowAgent) Execute(
                 Content: res.Text,
             },
         }, err)
-    }
+    }()
+
+    return reader
 }
 ```
 
@@ -199,8 +205,13 @@ if err != nil {
 }
 
 question := "What is the capital of France?"
-for ev, err := range seq.Execute(ctx, question) {
+reader := seq.Execute(ctx, question)
+for {
+    ev, err := reader.Recv()
     if err != nil {
+        if errors.Is(err, io.EOF) {
+            break
+        }
         log.Fatalf("workflow error: %v", err)
     }
     if ev == nil {

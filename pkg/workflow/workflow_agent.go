@@ -3,7 +3,9 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -86,8 +88,13 @@ func (wa *WorkflowAgent) executeWorkflow(ctx context.Context, input *WorkflowInp
 	var finalOutput interface{}
 	var finalError error
 
-	for event, err := range wa.workflow.Execute(ctx, input) {
+	reader := wa.workflow.Execute(ctx, input)
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			finalError = err
 			continue
 		}
@@ -113,8 +120,13 @@ func (wa *WorkflowAgent) executeStreamingWorkflow(ctx context.Context, input *Wo
 	go func() {
 		defer close(resultChan)
 
-		for event, err := range wa.workflow.Execute(ctx, input) {
+		reader := wa.workflow.Execute(ctx, input)
+		for {
+			event, err := reader.Recv()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
 				resultChan <- map[string]interface{}{"error": err.Error()}
 				continue
 			}
@@ -214,8 +226,13 @@ func (wa *WorkflowAgent) RunStream(ctx context.Context, input string) <-chan Age
 		}
 
 		workflowInput := &WorkflowInput{Input: input}
-		for event, err := range wa.workflow.Execute(ctx, workflowInput) {
+		reader := wa.workflow.Execute(ctx, workflowInput)
+		for {
+			event, err := reader.Recv()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
 				eventChan <- AgentStreamEvent{
 					Type:      AgentEventError,
 					Timestamp: time.Now(),

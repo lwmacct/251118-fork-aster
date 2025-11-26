@@ -3,7 +3,9 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 	"time"
@@ -645,8 +647,13 @@ func (e *Engine) executeTaskNode(execution *WorkflowExecution, node *NodeDef, re
 	}
 
 	// 执行Agent
-	for event, err := range agent.Execute(ctx, inputMessage) {
+	reader := agent.Execute(ctx, inputMessage)
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return fmt.Errorf("agent execution failed: %w", err)
 		}
 

@@ -3,8 +3,9 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"iter"
+	"io"
 	"log"
 	"strings"
 
@@ -12,17 +13,21 @@ import (
 	"github.com/astercloud/aster/pkg/provider"
 	"github.com/astercloud/aster/pkg/session"
 	"github.com/astercloud/aster/pkg/skills"
+	"github.com/astercloud/aster/pkg/stream"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/types"
 	"github.com/google/uuid"
 )
 
 // StreamingAgent 扩展接口 - 支持流式执行
-// 参考 Google ADK-Go 的 Agent.Run() iter.Seq2 设计
+// 参考 Google ADK-Go 的 Agent.Run() 设计，使用 stream.Reader
 //
 // 使用示例:
 //
-//	for event, err := range agent.Stream(ctx, "Hello") {
+//	reader := agent.Stream(ctx, "Hello")
+//	for {
+//	    event, err := reader.Recv()
+//	    if err == io.EOF { break }
 //	    if err != nil {
 //	        log.Printf("Error: %v", err)
 //	        break
@@ -30,21 +35,27 @@ import (
 //	    fmt.Printf("Event: %+v\n", event)
 //	}
 type StreamingAgent interface {
-	// Stream 流式执行，返回事件迭代器
+	// Stream 流式执行，返回事件流
 	// 相比 Chat 方法的优势：
 	// 1. 内存高效 - 按需生成事件，无需完整加载到内存
-	// 2. 背压控制 - 客户端可通过 yield 返回 false 中断执行
+	// 2. 背压控制 - 客户端可控制消费速度
 	// 3. 实时响应 - 可以立即处理每个事件，而不是等待所有事件
-	Stream(ctx context.Context, message string, opts ...Option) iter.Seq2[*session.Event, error]
+	// 4. 多消费者 - 支持 Copy 复制流给多个消费者
+	Stream(ctx context.Context, message string, opts ...Option) *stream.Reader[*session.Event]
 }
 
 // Stream 实现流式执行接口
-// 返回 Go 1.23 的 iter.Seq2 迭代器，支持：
+// 返回 stream.Reader，支持：
 // - 流式生成事件
-// - 客户端控制的取消（yield 返回 false）
+// - 客户端控制的取消
 // - 与 LLM 流式 API 无缝集成
-func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+// - 多消费者支持（Copy, Merge, Transform）
+func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
+
 		// 应用选项
 		config := &streamConfig{}
 		for _, opt := range opts {
@@ -55,7 +66,7 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 
 		// 1. 前置验证
 		if err := a.validateMessage(message); err != nil {
-			yield(nil, fmt.Errorf("validate message: %w", err))
+			writer.Send(nil, fmt.Errorf("validate message: %w", err))
 			return
 		}
 
@@ -70,9 +81,9 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 
 		// 3. 检查 Slash Commands
 		if a.commandExecutor != nil {
-			if handled, err := a.handleSlashCommandForStream(ctx, &userMsg, yield); handled {
+			if handled, err := a.handleSlashCommandForStream(ctx, &userMsg, writer); handled {
 				if err != nil {
-					yield(nil, fmt.Errorf("slash command: %w", err))
+					writer.Send(nil, fmt.Errorf("slash command: %w", err))
 				}
 				return
 			}
@@ -102,15 +113,15 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 		for {
 			select {
 			case <-ctx.Done():
-				yield(nil, ctx.Err())
+				writer.Send(nil, ctx.Err())
 				return
 			default:
 			}
 
 			// 执行流式模型推理
-			done, err := a.runModelStepStreaming(ctx, yield)
+			done, err := a.runModelStepStreaming(ctx, writer)
 			if err != nil {
-				yield(nil, fmt.Errorf("model step: %w", err))
+				writer.Send(nil, fmt.Errorf("model step: %w", err))
 				return
 			}
 
@@ -123,7 +134,9 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 			// 如果没有完成，继续下一轮模型推理（通常是因为有工具调用）
 			log.Printf("[Agent Stream] Continuing to next model inference round")
 		}
-	}
+	}()
+
+	return reader
 }
 
 // StreamCollect 辅助函数 - 收集所有事件
@@ -131,17 +144,21 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) iter
 //
 // 使用示例:
 //
-//	events, err := agent.StreamCollect(agent.Stream(ctx, "Hello"))
+//	events, err := StreamCollect(agent.Stream(ctx, "Hello"))
 //	if err != nil {
 //	    return err
 //	}
 //	for _, event := range events {
 //	    fmt.Println(event)
 //	}
-func StreamCollect(stream iter.Seq2[*session.Event, error]) ([]*session.Event, error) {
+func StreamCollect(reader *stream.Reader[*session.Event]) ([]*session.Event, error) {
 	var events []*session.Event
-	for event, err := range stream {
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return events, err
 		}
 		if event != nil {
@@ -152,20 +169,28 @@ func StreamCollect(stream iter.Seq2[*session.Event, error]) ([]*session.Event, e
 }
 
 // StreamFirst 辅助函数 - 获取第一个事件
-func StreamFirst(stream iter.Seq2[*session.Event, error]) (*session.Event, error) {
-	for event, err := range stream {
-		return event, err
+func StreamFirst(reader *stream.Reader[*session.Event]) (*session.Event, error) {
+	event, err := reader.Recv()
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil, fmt.Errorf("no events in stream")
+		}
+		return nil, err
 	}
-	return nil, fmt.Errorf("no events in stream")
+	return event, nil
 }
 
 // StreamLast 辅助函数 - 获取最后一个事件
-func StreamLast(stream iter.Seq2[*session.Event, error]) (*session.Event, error) {
+func StreamLast(reader *stream.Reader[*session.Event]) (*session.Event, error) {
 	var lastEvent *session.Event
 	var lastErr error
 
-	for event, err := range stream {
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			lastErr = err
 			continue
 		}
@@ -184,20 +209,29 @@ func StreamLast(stream iter.Seq2[*session.Event, error]) (*session.Event, error)
 }
 
 // StreamFilter 辅助函数 - 过滤事件
-func StreamFilter(stream iter.Seq2[*session.Event, error], predicate func(*session.Event) bool) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
-		for event, err := range stream {
+func StreamFilter(reader *stream.Reader[*session.Event], predicate func(*session.Event) bool) *stream.Reader[*session.Event] {
+	outReader, outWriter := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer outWriter.Close()
+		for {
+			event, err := reader.Recv()
 			if err != nil {
-				yield(nil, err)
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				outWriter.Send(nil, err)
 				return
 			}
 			if event != nil && predicate(event) {
-				if !yield(event, nil) {
+				if outWriter.Send(event, nil) {
 					return
 				}
 			}
 		}
-	}
+	}()
+
+	return outReader
 }
 
 // streamConfig 流式执行配置
@@ -217,7 +251,7 @@ func (a *Agent) validateMessage(message string) error {
 }
 
 // handleSlashCommandForStream 处理 Slash Command（流式版本）
-func (a *Agent) handleSlashCommandForStream(ctx context.Context, msg *types.Message, yield func(*session.Event, error) bool) (bool, error) {
+func (a *Agent) handleSlashCommandForStream(ctx context.Context, msg *types.Message, writer *stream.Writer[*session.Event]) (bool, error) {
 	// 检查是否为 slash command
 	if !a.commandExecutor.IsSlashCommand(msg.Content) {
 		return false, nil
@@ -241,14 +275,14 @@ func (a *Agent) handleSlashCommandForStream(ctx context.Context, msg *types.Mess
 		},
 	}
 
-	// Yield 事件
-	yield(event, nil)
+	// 发送事件
+	writer.Send(event, nil)
 	return true, nil
 }
 
 // runModelStepStreaming 流式执行模型步骤
-// 返回: (event, done, error)
-func (a *Agent) runModelStepStreaming(ctx context.Context, yield func(*session.Event, error) bool) (bool, error) {
+// 返回: (done, error)
+func (a *Agent) runModelStepStreaming(ctx context.Context, writer *stream.Writer[*session.Event]) (bool, error) {
 	// 1. 准备消息
 	a.mu.RLock()
 	messages := make([]types.Message, len(a.messages))
@@ -395,7 +429,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, yield func(*session.E
 								}
 
 								// 立即发送事件到流
-								if !yield(event, nil) {
+								if writer.Send(event, nil) {
 									log.Printf("[Agent Stream] Client cancelled stream during text streaming")
 									return true, nil
 								}
@@ -504,8 +538,8 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, yield func(*session.E
 	// 7. 发布事件到 EventBus (暂时禁用，因为events包未实现)
 	// TODO: 实现事件发布系统
 
-	// 8. Yield 事件到流
-	if !yield(event, nil) {
+	// 8. 发送事件到流
+	if writer.Send(event, nil) {
 		log.Printf("[Agent Stream] Client cancelled stream during event yield")
 		return true, nil
 	}

@@ -2,13 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"iter"
+	"io"
 	"log"
 	"time"
 
 	"github.com/astercloud/aster/pkg/agent/workflow"
 	"github.com/astercloud/aster/pkg/session"
+	"github.com/astercloud/aster/pkg/stream"
 	"github.com/astercloud/aster/pkg/types"
 )
 
@@ -58,8 +60,13 @@ func sequentialExample(ctx context.Context) {
 
 	// 执行
 	fmt.Println("开始顺序执行:")
-	for event, err := range sequential.Execute(ctx, "处理用户数据") {
+	reader := sequential.Execute(ctx, "处理用户数据")
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			log.Printf("错误: %v", err)
 			break
 		}
@@ -88,8 +95,13 @@ func parallelExample(ctx context.Context) {
 	// 执行
 	fmt.Println("开始并行执行:")
 	resultCount := 0
-	for event, err := range parallel.Execute(ctx, "求解问题") {
+	reader := parallel.Execute(ctx, "求解问题")
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			log.Printf("错误: %v", err)
 			continue
 		}
@@ -127,8 +139,13 @@ func loopExample(ctx context.Context) {
 	// 执行
 	fmt.Println("开始循环优化:")
 	iteration := 0
-	for event, err := range loop.Execute(ctx, "优化代码质量") {
+	reader := loop.Execute(ctx, "优化代码质量")
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			log.Printf("错误: %v", err)
 			break
 		}
@@ -179,8 +196,13 @@ func nestedExample(ctx context.Context) {
 
 	// 执行
 	fmt.Println("开始嵌套工作流:")
-	for event, err := range sequential.Execute(ctx, "综合数据分析") {
+	reader := sequential.Execute(ctx, "综合数据分析")
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			log.Printf("错误: %v", err)
 			break
 		}
@@ -208,8 +230,12 @@ func (a *MockAgent) Name() string {
 	return a.name
 }
 
-func (a *MockAgent) Execute(ctx context.Context, message string) iter.Seq2[*session.Event, error] {
-	return func(yield func(*session.Event, error) bool) {
+func (a *MockAgent) Execute(ctx context.Context, message string) *stream.Reader[*session.Event] {
+	reader, writer := stream.Pipe[*session.Event](10)
+
+	go func() {
+		defer writer.Close()
+
 		// 模拟处理时间
 		time.Sleep(100 * time.Millisecond)
 
@@ -229,8 +255,10 @@ func (a *MockAgent) Execute(ctx context.Context, message string) iter.Seq2[*sess
 			},
 		}
 
-		yield(event, nil)
-	}
+		writer.Send(event, nil)
+	}()
+
+	return reader
 }
 
 // ============================================================

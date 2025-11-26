@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/astercloud/aster/pkg/workflow"
@@ -56,8 +58,13 @@ func testBasicWorkflow(ctx context.Context) {
 	}
 
 	input := &workflow.WorkflowInput{Input: "测试输入"}
-	for event, err := range wf.Execute(ctx, input) {
+	reader := wf.Execute(ctx, input)
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fmt.Printf("  ❌ 错误: %v\n", err)
 			continue
 		}
@@ -124,8 +131,13 @@ func testAllStepTypes(ctx context.Context) {
 
 	input := &workflow.WorkflowInput{Input: "测试所有类型"}
 	stepCount := 0
-	for event, err := range wf.Execute(ctx, input) {
+	reader := wf.Execute(ctx, input)
+	for {
+		event, err := reader.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fmt.Printf("  ❌ 错误: %v\n", err)
 			continue
 		}
@@ -181,8 +193,13 @@ func testRouter(ctx context.Context) {
 	wf1 := workflow.New("SimpleRouterTest").AddStep(simpleRouter)
 	input1 := &workflow.WorkflowInput{Input: "short"}
 
-	for event, err := range wf1.Execute(ctx, input1) {
+	reader1 := wf1.Execute(ctx, input1)
+	for {
+		event, err := reader1.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fmt.Printf("    ❌ 错误: %v\n", err)
 			continue
 		}
@@ -208,8 +225,13 @@ func testRouter(ctx context.Context) {
 	wf2 := workflow.New("ChainRouterTest").AddStep(chainRouter)
 	input2 := &workflow.WorkflowInput{Input: "test"}
 
-	for event, err := range wf2.Execute(ctx, input2) {
+	reader2 := wf2.Execute(ctx, input2)
+	for {
+		event, err := reader2.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fmt.Printf("    ❌ 错误: %v\n", err)
 			continue
 		}
