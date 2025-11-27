@@ -268,18 +268,93 @@ func (p *OpenAICompatibleProvider) convertMessages(messages []types.Message) []m
 			continue
 		}
 
+		// 检查 ContentBlocks 中是否包含特殊块类型
+		var toolUseBlocks []*types.ToolUseBlock
+		var toolResultBlocks []*types.ToolResultBlock
+		var otherBlocks []types.ContentBlock
+
+		for _, block := range msg.ContentBlocks {
+			switch b := block.(type) {
+			case *types.ToolUseBlock:
+				toolUseBlocks = append(toolUseBlocks, b)
+			case *types.ToolResultBlock:
+				toolResultBlocks = append(toolResultBlocks, b)
+			default:
+				otherBlocks = append(otherBlocks, block)
+			}
+		}
+
+		// 处理包含 ToolResultBlock 的消息
+		// OpenAI API 要求每个工具结果作为独立的 role: "tool" 消息
+		if len(toolResultBlocks) > 0 {
+			for _, tr := range toolResultBlocks {
+				toolMsg := map[string]interface{}{
+					"role":         "tool",
+					"tool_call_id": tr.ToolUseID,
+					"content":      tr.Content,
+				}
+				result = append(result, toolMsg)
+			}
+			continue // 跳过常规消息处理
+		}
+
 		msgMap := map[string]interface{}{
 			"role": string(msg.Role),
 		}
 
-		// 处理内容
-		if len(msg.ContentBlocks) > 0 {
-			// 复杂格式：ContentBlocks
-			content := p.convertContentBlocks(msg.ContentBlocks)
+		// 处理内容（排除 ToolUseBlock，它们会被单独处理）
+		if len(otherBlocks) > 0 {
+			content := p.convertContentBlocks(otherBlocks)
 			msgMap["content"] = content
-		} else {
-			// 简单格式：纯文本
+		} else if msg.Content != "" {
 			msgMap["content"] = msg.Content
+		}
+
+		// 处理 assistant 消息的工具调用
+		// 优先从 ToolCalls 字段获取，如果没有则从 ContentBlocks 中的 ToolUseBlock 提取
+		if msg.Role == types.RoleAssistant {
+			var toolCalls []map[string]interface{}
+
+			// 从 msg.ToolCalls 获取
+			for _, tc := range msg.ToolCalls {
+				argsJSON, _ := json.Marshal(tc.Arguments)
+				toolCalls = append(toolCalls, map[string]interface{}{
+					"id":   tc.ID,
+					"type": "function",
+					"function": map[string]interface{}{
+						"name":      tc.Name,
+						"arguments": string(argsJSON),
+					},
+				})
+			}
+
+			// 从 ContentBlocks 中的 ToolUseBlock 提取
+			for _, tu := range toolUseBlocks {
+				argsJSON, _ := json.Marshal(tu.Input)
+				toolCalls = append(toolCalls, map[string]interface{}{
+					"id":   tu.ID,
+					"type": "function",
+					"function": map[string]interface{}{
+						"name":      tu.Name,
+						"arguments": string(argsJSON),
+					},
+				})
+			}
+
+			if len(toolCalls) > 0 {
+				msgMap["tool_calls"] = toolCalls
+
+				// 注意：OpenRouter 转发到 Anthropic 时，要求非最后一条 assistant 消息必须有 content
+				// 因此这里不删除 content 字段，即使为空也保留空字符串
+				if msgMap["content"] == nil {
+					msgMap["content"] = ""
+				}
+			}
+		}
+
+		// 处理 tool 消息的工具调用 ID
+		if msg.Role == types.RoleTool && msg.ToolCallID != "" {
+			msgMap["tool_call_id"] = msg.ToolCallID
 		}
 
 		result = append(result, msgMap)
