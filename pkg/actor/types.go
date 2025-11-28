@@ -85,7 +85,8 @@ type Context struct {
 	system       *System
 	ctx          context.Context
 	message      Message
-	responseChan chan Message // 用于 Request/Response 模式
+	responseChan chan Message    // 用于 Request/Response 模式
+	requestCtx   context.Context // 请求的 context，用于检查是否已取消
 }
 
 // Reply 回复消息给发送者
@@ -94,8 +95,20 @@ type Context struct {
 func (c *Context) Reply(msg Message) {
 	// 优先使用 Request/Response 模式
 	if c.responseChan != nil {
+		// 检查请求是否已取消
+		if c.requestCtx != nil {
+			select {
+			case <-c.requestCtx.Done():
+				// 请求已取消，不发送响应
+				return
+			default:
+			}
+		}
+
 		select {
 		case c.responseChan <- msg:
+		case <-c.requestCtx.Done():
+			// 请求已取消，不发送响应
 		default:
 			// channel 已满或已关闭
 		}

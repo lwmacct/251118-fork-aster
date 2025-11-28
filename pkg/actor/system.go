@@ -71,12 +71,12 @@ func defaultPanicHandler(actor *PID, msg Message, err interface{}) {
 
 // SystemStats 系统统计
 type SystemStats struct {
-	TotalActors     int64
-	TotalMessages   int64
-	DeadLetters     int64
-	ProcessedMsgs   int64
-	AverageLatency  time.Duration
-	StartTime       time.Time
+	TotalActors    int64
+	TotalMessages  int64
+	DeadLetters    int64
+	ProcessedMsgs  int64
+	AverageLatency time.Duration
+	StartTime      time.Time
 }
 
 // actorCell Actor 单元，包含 Actor 及其运行时状态
@@ -118,7 +118,8 @@ type envelope struct {
 	sender   *PID
 	message  Message
 	sentAt   time.Time
-	response chan Message // 用于 Request/Response
+	response chan Message    // 用于 Request/Response
+	ctx      context.Context // 用于取消请求
 }
 
 // NewSystem 创建新的 Actor 系统
@@ -286,6 +287,10 @@ func (s *System) Request(target *PID, msg Message, timeout time.Duration) (Messa
 		return nil, fmt.Errorf("actor system is not running")
 	}
 
+	// 使用 context 来取消请求
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	responseChan := make(chan Message, 1)
 	env := envelope{
 		target:   target,
@@ -293,19 +298,20 @@ func (s *System) Request(target *PID, msg Message, timeout time.Duration) (Messa
 		message:  msg,
 		sentAt:   time.Now(),
 		response: responseChan,
+		ctx:      ctx,
 	}
 
 	select {
 	case s.mailbox <- env:
 		atomic.AddInt64(&s.stats.TotalMessages, 1)
-	case <-time.After(timeout):
+	case <-ctx.Done():
 		return nil, &ResponseTimeout{Target: target, Timeout: timeout}
 	}
 
 	select {
 	case resp := <-responseChan:
 		return resp, nil
-	case <-time.After(timeout):
+	case <-ctx.Done():
 		return nil, &ResponseTimeout{Target: target, Timeout: timeout}
 	}
 }
@@ -491,9 +497,10 @@ func (s *System) processMessage(cell *actorCell, env envelope) {
 		message:  env.message,
 	}
 
-	// 如果是 Request 模式，设置响应通道
+	// 如果是 Request 模式，设置响应通道和请求 context
 	if env.response != nil {
 		ctx.responseChan = env.response
+		ctx.requestCtx = env.ctx
 	}
 
 	// 处理系统消息
@@ -533,8 +540,19 @@ func (s *System) handleFailure(cell *actorCell, msg Message, err interface{}) {
 		supervisor = DefaultSupervisorStrategy()
 	}
 
-	directive := supervisor.HandleFailure(s, cell.pid, msg, err)
-	s.applyDirective(cell, directive)
+	result := supervisor.HandleFailure(s, cell.pid, msg, err)
+
+	// 处理返回结果
+	switch r := result.(type) {
+	case DirectiveWithDelay:
+		// 延迟重启
+		time.AfterFunc(r.Delay, func() {
+			s.applyDirective(cell, r.Directive)
+		})
+	case Directive:
+		// 立即执行
+		s.applyDirective(cell, r)
+	}
 }
 
 // applyDirective 应用监督指令
@@ -572,6 +590,52 @@ func (s *System) applyDirective(cell *actorCell, directive Directive) {
 			s.Send(cell.parent, &Terminated{Who: cell.pid})
 		}
 		s.Stop(cell.pid)
+	}
+}
+
+// restartAllSiblings 重启所有兄弟 Actor（用于 AllForOne 策略）
+func (s *System) restartAllSiblings(child *PID) {
+	s.actorsMu.RLock()
+	cell, exists := s.actors[child.ID]
+	if !exists || cell.parent == nil {
+		s.actorsMu.RUnlock()
+		return
+	}
+
+	parentCell, parentExists := s.actors[cell.parent.ID]
+	if !parentExists {
+		s.actorsMu.RUnlock()
+		return
+	}
+
+	// 收集所有兄弟 Actor
+	siblings := make([]*actorCell, 0, len(parentCell.children))
+	for _, childPID := range parentCell.children {
+		if childCell, ok := s.actors[childPID.ID]; ok {
+			siblings = append(siblings, childCell)
+		}
+	}
+	s.actorsMu.RUnlock()
+
+	// 重启所有兄弟 Actor
+	for _, sibling := range siblings {
+		sibling.restarts++
+		sibling.stateMu.Lock()
+		sibling.state = actorStateRestarting
+		sibling.stateMu.Unlock()
+
+		// 发送 Restarting 消息
+		ctx := &Context{Self: sibling.pid, system: s, ctx: sibling.ctx}
+		sibling.actor.Receive(ctx, &Restarting{})
+
+		// 重新发送 Started 消息
+		s.Send(sibling.pid, &Started{})
+
+		sibling.stateMu.Lock()
+		sibling.state = actorStateRunning
+		sibling.stateMu.Unlock()
+
+		log.Printf("[ActorSystem] Actor %s restarted by AllForOne strategy (total restarts: %d)", sibling.pid.ID, sibling.restarts)
 	}
 }
 
