@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"sync"
 	"time"
 )
 
@@ -16,7 +17,15 @@ const (
 	DirectiveStop
 	// DirectiveEscalate 上报给父 Actor 处理
 	DirectiveEscalate
+	// DirectiveRestartAfter 延迟重启 Actor
+	DirectiveRestartAfter
 )
+
+// DirectiveWithDelay 带延迟的指令
+type DirectiveWithDelay struct {
+	Directive Directive
+	Delay     time.Duration
+}
 
 // String 返回指令名称
 func (d Directive) String() string {
@@ -29,6 +38,8 @@ func (d Directive) String() string {
 		return "Stop"
 	case DirectiveEscalate:
 		return "Escalate"
+	case DirectiveRestartAfter:
+		return "RestartAfter"
 	default:
 		return "Unknown"
 	}
@@ -37,8 +48,8 @@ func (d Directive) String() string {
 // SupervisorStrategy 监督策略接口
 type SupervisorStrategy interface {
 	// HandleFailure 处理 Actor 失败
-	// 返回应该采取的指令
-	HandleFailure(system *System, child *PID, msg Message, err interface{}) Directive
+	// 返回应该采取的指令，可以是 Directive 或 DirectiveWithDelay
+	HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{}
 }
 
 // ============== 内置监督策略 ==============
@@ -46,11 +57,12 @@ type SupervisorStrategy interface {
 // OneForOneStrategy 一对一策略
 // 只重启失败的 Actor，不影响其他子 Actor
 type OneForOneStrategy struct {
-	MaxRestarts   int           // 最大重启次数
+	MaxRestarts    int           // 最大重启次数
 	WithinDuration time.Duration // 时间窗口
-	Decider       Decider       // 决策函数
+	Decider        Decider       // 决策函数
 
 	// 内部状态
+	mu            sync.Mutex
 	restartWindow []time.Time
 }
 
@@ -71,10 +83,13 @@ func NewOneForOneStrategy(maxRestarts int, within time.Duration, decider Decider
 }
 
 // HandleFailure 实现 SupervisorStrategy
-func (s *OneForOneStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) Directive {
+func (s *OneForOneStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{} {
 	directive := s.Decider(err)
 
 	if directive == DirectiveRestart {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+
 		// 检查重启次数限制
 		now := time.Now()
 		cutoff := now.Add(-s.WithinDuration)
@@ -107,6 +122,7 @@ type AllForOneStrategy struct {
 	WithinDuration time.Duration
 	Decider        Decider
 
+	mu            sync.Mutex
 	restartWindow []time.Time
 }
 
@@ -124,10 +140,13 @@ func NewAllForOneStrategy(maxRestarts int, within time.Duration, decider Decider
 }
 
 // HandleFailure 实现 SupervisorStrategy
-func (s *AllForOneStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) Directive {
+func (s *AllForOneStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{} {
 	directive := s.Decider(err)
 
 	if directive == DirectiveRestart {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+
 		now := time.Now()
 		cutoff := now.Add(-s.WithinDuration)
 
@@ -145,8 +164,8 @@ func (s *AllForOneStrategy) HandleFailure(system *System, child *PID, msg Messag
 
 		s.restartWindow = append(s.restartWindow, now)
 
-		// 这里不直接重启所有子 Actor，而是返回指令
-		// 实际的全部重启逻辑需要在 System 层面处理
+		// 重启所有兄弟 Actor
+		system.restartAllSiblings(child)
 	}
 
 	return directive
@@ -160,6 +179,7 @@ type ExponentialBackoffStrategy struct {
 	MaxRestarts  int
 	Decider      Decider
 
+	mu           sync.Mutex
 	currentDelay time.Duration
 	restartCount int
 }
@@ -179,16 +199,19 @@ func NewExponentialBackoffStrategy(initialDelay, maxDelay time.Duration, maxRest
 }
 
 // HandleFailure 实现 SupervisorStrategy
-func (s *ExponentialBackoffStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) Directive {
+func (s *ExponentialBackoffStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{} {
 	directive := s.Decider(err)
 
 	if directive == DirectiveRestart {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+
 		if s.restartCount >= s.MaxRestarts {
 			return DirectiveStop
 		}
 
-		// 等待退避时间
-		time.Sleep(s.currentDelay)
+		// 获取当前延迟
+		delay := s.currentDelay
 
 		// 增加下次延迟
 		s.currentDelay *= 2
@@ -197,6 +220,12 @@ func (s *ExponentialBackoffStrategy) HandleFailure(system *System, child *PID, m
 		}
 
 		s.restartCount++
+
+		// 返回带延迟的重启指令
+		return DirectiveWithDelay{
+			Directive: DirectiveRestart,
+			Delay:     delay,
+		}
 	}
 
 	return directive
@@ -204,6 +233,8 @@ func (s *ExponentialBackoffStrategy) HandleFailure(system *System, child *PID, m
 
 // Reset 重置退避状态
 func (s *ExponentialBackoffStrategy) Reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.currentDelay = s.InitialDelay
 	s.restartCount = 0
 }
@@ -278,7 +309,7 @@ func (s *CompositeStrategy) RegisterStrategy(errType string, strategy Supervisor
 }
 
 // HandleFailure 实现 SupervisorStrategy
-func (s *CompositeStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) Directive {
+func (s *CompositeStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{} {
 	// 尝试匹配错误类型
 	if e, ok := err.(error); ok {
 		errType := e.Error()

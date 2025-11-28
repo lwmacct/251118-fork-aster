@@ -41,7 +41,7 @@ func (m *StreamMsg) Kind() string { return "agent.stream" }
 
 // StreamEventMsg 流式事件消息
 type StreamEventMsg struct {
-	Type    string      // "text", "tool_start", "tool_end", "done", "error"
+	Type    string // "text", "tool_start", "tool_end", "done", "error"
 	Content interface{}
 	Error   error
 }
@@ -143,6 +143,10 @@ type AgentActor struct {
 
 	// 性能统计
 	stats *AgentActorStats
+
+	// 生命周期管理
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // AgentActorStats Actor 统计信息
@@ -156,10 +160,13 @@ type AgentActorStats struct {
 
 // NewAgentActor 创建 Agent Actor 适配器
 func NewAgentActor(agent *Agent) *AgentActor {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &AgentActor{
 		agent:     agent,
 		isRunning: true,
 		stats:     &AgentActorStats{},
+		ctx:       ctx,
+		cancel:    cancel,
 	}
 }
 
@@ -232,16 +239,37 @@ func (a *AgentActor) Receive(ctx *actor.Context, msg actor.Message) {
 	}
 }
 
-// handleSend 处理发送消息（异步）
-func (a *AgentActor) handleSend(ctx *actor.Context, msg *SendMsg) {
-	msgCtx := msg.Ctx
+// withCancellation 包装 context，使其可以被 Actor 停止信号取消
+func (a *AgentActor) withCancellation(msgCtx context.Context) (context.Context, context.CancelFunc) {
 	if msgCtx == nil {
 		msgCtx = context.Background()
 	}
 
+	// 创建可取消的 context
+	execCtx, cancel := context.WithCancel(msgCtx)
+
+	// 监听 Actor 停止信号
 	go func() {
-		err := a.agent.Send(msgCtx, msg.Text)
-		if err != nil {
+		select {
+		case <-a.ctx.Done():
+			cancel()
+		case <-execCtx.Done():
+			// execCtx 已经被取消，不需要再次取消
+		}
+	}()
+
+	return execCtx, cancel
+}
+
+// handleSend 处理发送消息（异步）
+func (a *AgentActor) handleSend(ctx *actor.Context, msg *SendMsg) {
+	execCtx, cancel := a.withCancellation(msg.Ctx)
+	defer cancel()
+
+	go func() {
+		err := a.agent.Send(execCtx, msg.Text)
+
+		if err != nil && err != context.Canceled {
 			a.recordError(err)
 			if ctx.Sender != nil {
 				ctx.Reply(&ErrorMsg{Error: err, Context: "send"})
@@ -252,20 +280,18 @@ func (a *AgentActor) handleSend(ctx *actor.Context, msg *SendMsg) {
 
 // handleChat 处理同步对话
 func (a *AgentActor) handleChat(ctx *actor.Context, msg *ChatMsg) {
-	msgCtx := msg.Ctx
-	if msgCtx == nil {
-		msgCtx = context.Background()
-	}
+	execCtx, cancel := a.withCancellation(msg.Ctx)
+	defer cancel()
 
 	go func() {
-		result, err := a.agent.Chat(msgCtx, msg.Text)
+		result, err := a.agent.Chat(execCtx, msg.Text)
 
 		response := &ChatResultMsg{
 			Result: result,
 			Error:  err,
 		}
 
-		if err != nil {
+		if err != nil && err != context.Canceled {
 			a.recordError(err)
 		}
 
@@ -287,13 +313,11 @@ func (a *AgentActor) handleChat(ctx *actor.Context, msg *ChatMsg) {
 
 // handleStream 处理流式对话
 func (a *AgentActor) handleStream(ctx *actor.Context, msg *StreamMsg) {
-	msgCtx := msg.Ctx
-	if msgCtx == nil {
-		msgCtx = context.Background()
-	}
+	execCtx, cancel := a.withCancellation(msg.Ctx)
+	defer cancel()
 
 	go func() {
-		reader := a.agent.Stream(msgCtx, msg.Text)
+		reader := a.agent.Stream(execCtx, msg.Text)
 
 		for {
 			event, err := reader.Recv()
@@ -321,13 +345,11 @@ func (a *AgentActor) handleStream(ctx *actor.Context, msg *StreamMsg) {
 
 // handleToolCall 处理工具调用
 func (a *AgentActor) handleToolCall(ctx *actor.Context, msg *ToolCallMsg) {
-	msgCtx := msg.Ctx
-	if msgCtx == nil {
-		msgCtx = context.Background()
-	}
+	execCtx, cancel := a.withCancellation(msg.Ctx)
+	defer cancel()
 
 	go func() {
-		result := a.agent.executeSingleTool(msgCtx, msg.ToolUse)
+		result := a.agent.executeSingleTool(execCtx, msg.ToolUse)
 
 		var response *ToolResultMsg
 
@@ -352,13 +374,11 @@ func (a *AgentActor) handleToolCall(ctx *actor.Context, msg *ToolCallMsg) {
 
 // handleDirectToolCall 处理直接工具调用
 func (a *AgentActor) handleDirectToolCall(ctx *actor.Context, msg *DirectToolCallMsg) {
-	msgCtx := msg.Ctx
-	if msgCtx == nil {
-		msgCtx = context.Background()
-	}
+	execCtx, cancel := a.withCancellation(msg.Ctx)
+	defer cancel()
 
 	go func() {
-		result, err := a.agent.ExecuteToolDirect(msgCtx, msg.ToolName, msg.Input)
+		result, err := a.agent.ExecuteToolDirect(execCtx, msg.ToolName, msg.Input)
 
 		response := &DirectToolResultMsg{
 			ToolName: msg.ToolName,
@@ -366,7 +386,7 @@ func (a *AgentActor) handleDirectToolCall(ctx *actor.Context, msg *DirectToolCal
 			Error:    err,
 		}
 
-		if err != nil {
+		if err != nil && err != context.Canceled {
 			a.recordError(err)
 		}
 
@@ -385,13 +405,11 @@ func (a *AgentActor) handleDirectToolCall(ctx *actor.Context, msg *DirectToolCal
 
 // handleBatchToolCall 处理批量工具调用
 func (a *AgentActor) handleBatchToolCall(ctx *actor.Context, msg *BatchToolCallMsg) {
-	msgCtx := msg.Ctx
-	if msgCtx == nil {
-		msgCtx = context.Background()
-	}
+	execCtx, cancel := a.withCancellation(msg.Ctx)
+	defer cancel()
 
 	go func() {
-		results := a.agent.ExecuteToolsDirect(msgCtx, msg.Calls)
+		results := a.agent.ExecuteToolsDirect(execCtx, msg.Calls)
 
 		response := &BatchToolResultMsg{
 			Results: results,
@@ -427,6 +445,9 @@ func (a *AgentActor) handleStop() {
 	a.mu.Lock()
 	a.isRunning = false
 	a.mu.Unlock()
+
+	// 取消所有运行中的 goroutine
+	a.cancel()
 
 	if err := a.agent.Close(); err != nil {
 		log.Printf("[AgentActor] %s close error: %v", a.agent.ID(), err)
