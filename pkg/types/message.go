@@ -41,7 +41,7 @@ func (t *TextBlock) IsContentBlock() {}
 type ToolUseBlock struct {
 	ID    string                 `json:"id"`
 	Name  string                 `json:"name"`
-	Input map[string]interface{} `json:"input"`
+	Input map[string]any `json:"input"`
 }
 
 func (t *ToolUseBlock) IsContentBlock() {}
@@ -135,7 +135,7 @@ type ToolCall struct {
 	Name string `json:"name"`
 
 	// Arguments 工具参数（JSON对象）
-	Arguments map[string]interface{} `json:"arguments,omitempty"`
+	Arguments map[string]any `json:"arguments,omitempty"`
 }
 
 // ToolResult 表示工具执行结果
@@ -174,16 +174,16 @@ type ToolCallSnapshot struct {
 	Progress float64 `json:"progress,omitempty"`
 
 	// Arguments 工具参数
-	Arguments map[string]interface{} `json:"arguments,omitempty"`
+	Arguments map[string]any `json:"arguments,omitempty"`
 
 	// Result 工具执行结果
-	Result interface{} `json:"result,omitempty"`
+	Result any `json:"result,omitempty"`
 
 	// Error 错误信息
 	Error string `json:"error,omitempty"`
 
 	// Intermediate 中间结果
-	Intermediate map[string]interface{} `json:"intermediate,omitempty"`
+	Intermediate map[string]any `json:"intermediate,omitempty"`
 
 	// 时间信息
 	StartedAt time.Time `json:"started_at,omitempty"`

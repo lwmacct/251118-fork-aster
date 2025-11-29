@@ -132,10 +132,7 @@ func (b *StateBackend) Read(ctx context.Context, path string, offset, limit int)
 	// 处理 limit
 	endLine := totalLines
 	if limit > 0 {
-		endLine = offset + limit
-		if endLine > totalLines {
-			endLine = totalLines
-		}
+		endLine = min(offset+limit, totalLines)
 	}
 
 	selectedLines := data.Lines[offset:endLine]
@@ -170,7 +167,7 @@ func (b *StateBackend) Write(ctx context.Context, path, content string) (*WriteR
 		Error:        "", // 空字符串表示成功
 		Path:         path,
 		BytesWritten: int64(len(content)),
-		FilesUpdate: map[string]interface{}{
+		FilesUpdate: map[string]any{
 			path: data,
 		},
 	}, nil

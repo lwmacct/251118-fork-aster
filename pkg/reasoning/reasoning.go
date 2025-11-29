@@ -101,7 +101,7 @@ func (c *Chain) AddStep(step Step) error {
 }
 
 // UpdateStep 更新推理步骤
-func (c *Chain) UpdateStep(stepID string, updates map[string]interface{}) error {
+func (c *Chain) UpdateStep(stepID string, updates map[string]any) error {
 	for i, step := range c.Steps {
 		if step.ID == stepID {
 			if result, ok := updates["result"].(string); ok {

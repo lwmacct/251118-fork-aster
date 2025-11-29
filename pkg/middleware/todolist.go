@@ -32,7 +32,7 @@ type TodoItem struct {
 type TodoListMiddleware struct {
 	*BaseMiddleware
 	todos       []TodoItem
-	storeGetter func() interface{} // 获取当前任务列表
+	storeGetter func() any // 获取当前任务列表
 	storeSetter func([]TodoItem)   // 设置任务列表
 }
 
@@ -40,7 +40,7 @@ type TodoListMiddleware struct {
 type TodoListMiddlewareConfig struct {
 	// StoreGetter 从外部状态获取任务列表
 	// 如果为 nil, 使用内部存储
-	StoreGetter func() interface{}
+	StoreGetter func() any
 
 	// StoreSetter 保存任务列表到外部状态
 	// 如果为 nil, 使用内部存储
@@ -130,26 +130,26 @@ func (t *WriteTodosTool) Description() string {
 	return "Create and manage a structured task list for tracking progress on complex, multi-step tasks"
 }
 
-func (t *WriteTodosTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *WriteTodosTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"todos": map[string]interface{}{
+		"properties": map[string]any{
+			"todos": map[string]any{
 				"type":        "array",
 				"description": "List of tasks to track. Each task should have content, status, and activeForm.",
-				"items": map[string]interface{}{
+				"items": map[string]any{
 					"type": "object",
-					"properties": map[string]interface{}{
-						"content": map[string]interface{}{
+					"properties": map[string]any{
+						"content": map[string]any{
 							"type":        "string",
 							"description": "Task description in imperative form (e.g., 'Run tests', 'Build the project')",
 						},
-						"status": map[string]interface{}{
+						"status": map[string]any{
 							"type":        "string",
 							"enum":        []string{"pending", "in_progress", "completed"},
 							"description": "Task status: pending (not started), in_progress (currently working on), completed (finished)",
 						},
-						"activeForm": map[string]interface{}{
+						"activeForm": map[string]any{
 							"type":        "string",
 							"description": "Present continuous form shown during execution (e.g., 'Running tests', 'Building the project')",
 						},
@@ -162,16 +162,16 @@ func (t *WriteTodosTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *WriteTodosTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *WriteTodosTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 解析 todos 列表
-	todosInterface, ok := input["todos"].([]interface{})
+	todosInterface, ok := input["todos"].([]any)
 	if !ok {
 		return nil, fmt.Errorf("todos must be an array")
 	}
 
 	var todos []TodoItem
 	for i, todoInterface := range todosInterface {
-		todoMap, ok := todoInterface.(map[string]interface{})
+		todoMap, ok := todoInterface.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("todo item %d must be an object", i)
 		}
@@ -212,7 +212,7 @@ func (t *WriteTodosTool) Execute(ctx context.Context, input map[string]interface
 	log.Printf("[WriteTodosTool] Updated task list: %d total (%d pending, %d in progress, %d completed)",
 		len(todos), pending, inProgress, completed)
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":          true,
 		"total":       len(todos),
 		"pending":     pending,

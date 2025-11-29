@@ -37,8 +37,8 @@ func (h *AgentHandler) Create(c *gin.Context) {
 		ModelConfig   *types.ModelConfig                `json:"model_config"`
 		Sandbox       *types.SandboxConfig              `json:"sandbox"`
 		Middlewares   []string                          `json:"middlewares"`
-		MiddlewareCfg map[string]map[string]interface{} `json:"middleware_config"`
-		Metadata      map[string]interface{}            `json:"metadata"`
+		MiddlewareCfg map[string]map[string]any `json:"middleware_config"`
+		Metadata      map[string]any            `json:"metadata"`
 		SkillsPackage *types.SkillsPackageConfig        `json:"skills_package"`
 	}
 
@@ -69,7 +69,7 @@ func (h *AgentHandler) Create(c *gin.Context) {
 	// 创建 Agent 实例
 	ag, err := agent.Create(ctx, config, h.deps)
 	if err != nil {
-		logging.Error(ctx, "agent.create.error", map[string]interface{}{
+		logging.Error(ctx, "agent.create.error", map[string]any{
 			"template_id": req.TemplateID,
 			"error":       err.Error(),
 		})
@@ -91,7 +91,7 @@ func (h *AgentHandler) Create(c *gin.Context) {
 		Status:    "active",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"name": req.Name,
 		},
 	}
@@ -107,7 +107,7 @@ func (h *AgentHandler) Create(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "agent.created", map[string]interface{}{
+	logging.Info(ctx, "agent.created", map[string]any{
 		"agent_id":    ag.ID(),
 		"template_id": req.TemplateID,
 	})
@@ -208,7 +208,7 @@ func (h *AgentHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "agent.deleted", map[string]interface{}{
+	logging.Info(ctx, "agent.deleted", map[string]any{
 		"agent_id": id,
 	})
 
@@ -222,7 +222,7 @@ func (h *AgentHandler) Update(c *gin.Context) {
 
 	var req struct {
 		Name     *string                `json:"name"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -262,7 +262,7 @@ func (h *AgentHandler) Update(c *gin.Context) {
 	// 更新字段
 	if req.Name != nil {
 		if agentRecord.Metadata == nil {
-			agentRecord.Metadata = make(map[string]interface{})
+			agentRecord.Metadata = make(map[string]any)
 		}
 		agentRecord.Metadata["name"] = *req.Name
 	}
@@ -270,7 +270,7 @@ func (h *AgentHandler) Update(c *gin.Context) {
 	if req.Metadata != nil {
 		for k, v := range req.Metadata {
 			if agentRecord.Metadata == nil {
-				agentRecord.Metadata = make(map[string]interface{})
+				agentRecord.Metadata = make(map[string]any)
 			}
 			agentRecord.Metadata[k] = v
 		}
@@ -290,7 +290,7 @@ func (h *AgentHandler) Update(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "agent.updated", map[string]interface{}{
+	logging.Info(ctx, "agent.updated", map[string]any{
 		"agent_id": id,
 	})
 
@@ -323,7 +323,7 @@ func (h *AgentHandler) Run(c *gin.Context) {
 
 	var req struct {
 		Message string                 `json:"message" binding:"required"`
-		Context map[string]interface{} `json:"context"`
+		Context map[string]any `json:"context"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -386,7 +386,7 @@ func (h *AgentHandler) Run(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "agent.run", map[string]interface{}{
+	logging.Info(ctx, "agent.run", map[string]any{
 		"agent_id": id,
 	})
 
@@ -468,7 +468,7 @@ func (h *AgentHandler) Send(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "agent.send", map[string]interface{}{
+	logging.Info(ctx, "agent.send", map[string]any{
 		"agent_id": id,
 	})
 
@@ -559,7 +559,7 @@ func (h *AgentHandler) Resume(c *gin.Context) {
 	}
 	defer func() { _ = ag.Close() }()
 
-	logging.Info(ctx, "agent.resumed", map[string]interface{}{
+	logging.Info(ctx, "agent.resumed", map[string]any{
 		"agent_id": id,
 	})
 
@@ -582,7 +582,7 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 		ModelConfig *types.ModelConfig     `json:"model_config"`
 		Sandbox     *types.SandboxConfig   `json:"sandbox"`
 		Middlewares []string               `json:"middlewares"`
-		Metadata    map[string]interface{} `json:"metadata"`
+		Metadata    map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -640,7 +640,7 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 	// Execute chat
 	result, err := ag.Chat(ctx, req.Input)
 	if err != nil {
-		logging.Error(ctx, "chat.failed", map[string]interface{}{
+		logging.Error(ctx, "chat.failed", map[string]any{
 			"agent_id": ag.ID(),
 			"error":    err.Error(),
 		})
@@ -654,7 +654,7 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "chat.completed", map[string]interface{}{
+	logging.Info(ctx, "chat.completed", map[string]any{
 		"agent_id":    ag.ID(),
 		"text_length": len(result.Text),
 		"status":      result.Status,
@@ -680,7 +680,7 @@ func (h *AgentHandler) StreamChat(c *gin.Context) {
 		ModelConfig *types.ModelConfig     `json:"model_config"`
 		Sandbox     *types.SandboxConfig   `json:"sandbox"`
 		Middlewares []string               `json:"middlewares"`
-		Metadata    map[string]interface{} `json:"metadata"`
+		Metadata    map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -763,7 +763,7 @@ func (h *AgentHandler) StreamChat(c *gin.Context) {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			logging.Error(ctx, "stream.error", map[string]interface{}{
+			logging.Error(ctx, "stream.error", map[string]any{
 				"agent_id": ag.ID(),
 				"error":    err.Error(),
 			})
@@ -794,7 +794,7 @@ func (h *AgentHandler) StreamChat(c *gin.Context) {
 		}
 	}
 
-	logging.Info(ctx, "stream.completed", map[string]interface{}{
+	logging.Info(ctx, "stream.completed", map[string]any{
 		"agent_id": ag.ID(),
 	})
 }

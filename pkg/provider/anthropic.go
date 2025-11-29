@@ -85,7 +85,7 @@ func (ap *AnthropicProvider) Complete(ctx context.Context, messages []types.Mess
 	}
 
 	// 解析完整响应
-	var apiResp map[string]interface{}
+	var apiResp map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
@@ -100,7 +100,7 @@ func (ap *AnthropicProvider) Complete(ctx context.Context, messages []types.Mess
 
 	// 解析Token使用情况
 	var usage *TokenUsage
-	if usageData, ok := apiResp["usage"].(map[string]interface{}); ok {
+	if usageData, ok := apiResp["usage"].(map[string]any); ok {
 		usage = &TokenUsage{
 			InputTokens:  int64(usageData["input_tokens"].(float64)),
 			OutputTokens: int64(usageData["output_tokens"].(float64)),
@@ -125,11 +125,11 @@ func (ap *AnthropicProvider) Stream(ctx context.Context, messages []types.Messag
 	}
 
 	// 记录请求内容（用于调试）
-	if tools, ok := reqBody["tools"].([]map[string]interface{}); ok && len(tools) > 0 {
+	if tools, ok := reqBody["tools"].([]map[string]any); ok && len(tools) > 0 {
 		log.Printf("[AnthropicProvider] Request body includes %d tools", len(tools))
 		for _, tool := range tools {
 			if name, ok := tool["name"].(string); ok {
-				if schema, ok := tool["input_schema"].(map[string]interface{}); ok {
+				if schema, ok := tool["input_schema"].(map[string]any); ok {
 					log.Printf("[AnthropicProvider] Tool %s schema: %+v", name, schema)
 				}
 			}
@@ -171,8 +171,8 @@ func (ap *AnthropicProvider) Stream(ctx context.Context, messages []types.Messag
 }
 
 // buildRequest 构建请求体
-func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *StreamOptions) map[string]interface{} {
-	req := map[string]interface{}{
+func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *StreamOptions) map[string]any {
+	req := map[string]any{
 		"model":    ap.config.Model,
 		"messages": ap.convertMessages(messages),
 		"stream":   true,
@@ -224,9 +224,9 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 
 		if len(opts.Tools) > 0 {
 			// 转换工具格式为 Anthropic API 格式
-			tools := make([]map[string]interface{}, 0, len(opts.Tools))
+			tools := make([]map[string]any, 0, len(opts.Tools))
 			for _, tool := range opts.Tools {
-				toolMap := map[string]interface{}{
+				toolMap := map[string]any{
 					"name":         tool.Name,
 					"description":  tool.Description,
 					"input_schema": tool.InputSchema,
@@ -234,9 +234,9 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 				// 添加工具使用示例（如果有）
 				// 参考 Anthropic 的 Tool Use Examples 功能
 				if len(tool.InputExamples) > 0 {
-					examples := make([]map[string]interface{}, 0, len(tool.InputExamples))
+					examples := make([]map[string]any, 0, len(tool.InputExamples))
 					for _, ex := range tool.InputExamples {
-						exMap := map[string]interface{}{
+						exMap := map[string]any{
 							"description": ex.Description,
 							"input":       ex.Input,
 						}
@@ -258,7 +258,7 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 
 			// 添加 tool_choice 支持（如果指定）
 			if opts.ToolChoice != nil {
-				toolChoice := map[string]interface{}{
+				toolChoice := map[string]any{
 					"type": opts.ToolChoice.Type,
 				}
 				if opts.ToolChoice.Name != "" {
@@ -273,11 +273,11 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 			// 记录每个工具的详细信息
 			for _, tool := range tools {
 				if name, ok := tool["name"].(string); ok {
-					if schema, ok := tool["input_schema"].(map[string]interface{}); ok {
+					if schema, ok := tool["input_schema"].(map[string]any); ok {
 						log.Printf("[AnthropicProvider] Tool %s schema: %v", name, schema)
 					}
 					// 记录工具示例数量
-					if examples, ok := tool["input_examples"].([]map[string]interface{}); ok {
+					if examples, ok := tool["input_examples"].([]map[string]any); ok {
 						log.Printf("[AnthropicProvider] Tool %s has %d examples", name, len(examples))
 					}
 				}
@@ -294,8 +294,8 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 }
 
 // convertMessages 转换消息格式
-func (ap *AnthropicProvider) convertMessages(messages []types.Message) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(messages))
+func (ap *AnthropicProvider) convertMessages(messages []types.Message) []map[string]any {
+	result := make([]map[string]any, 0, len(messages))
 
 	for _, msg := range messages {
 		// 跳过system消息(system在opts中单独传递)
@@ -303,27 +303,27 @@ func (ap *AnthropicProvider) convertMessages(messages []types.Message) []map[str
 			continue
 		}
 
-		var content interface{}
+		var content any
 
 		// 如果有 ContentBlocks，使用复杂格式
 		if len(msg.ContentBlocks) > 0 {
-			blocks := make([]interface{}, 0, len(msg.ContentBlocks))
+			blocks := make([]any, 0, len(msg.ContentBlocks))
 			for _, block := range msg.ContentBlocks {
 				switch b := block.(type) {
 				case *types.TextBlock:
-					blocks = append(blocks, map[string]interface{}{
+					blocks = append(blocks, map[string]any{
 						"type": "text",
 						"text": b.Text,
 					})
 				case *types.ToolUseBlock:
-					blocks = append(blocks, map[string]interface{}{
+					blocks = append(blocks, map[string]any{
 						"type":  "tool_use",
 						"id":    b.ID,
 						"name":  b.Name,
 						"input": b.Input,
 					})
 				case *types.ToolResultBlock:
-					blocks = append(blocks, map[string]interface{}{
+					blocks = append(blocks, map[string]any{
 						"type":        "tool_result",
 						"tool_use_id": b.ToolUseID,
 						"content":     b.Content,
@@ -334,15 +334,15 @@ func (ap *AnthropicProvider) convertMessages(messages []types.Message) []map[str
 			content = blocks
 		} else {
 			// 如果只有简单的 Content 字符串，转换为单个文本块
-			content = []interface{}{
-				map[string]interface{}{
+			content = []any{
+				map[string]any{
 					"type": "text",
 					"text": msg.Content,
 				},
 			}
 		}
 
-		result = append(result, map[string]interface{}{
+		result = append(result, map[string]any{
 			"role":    string(msg.Role),
 			"content": content,
 		})
@@ -373,7 +373,7 @@ func (ap *AnthropicProvider) processStream(body io.ReadCloser, chunkCh chan<- St
 		}
 
 		// 解析JSON
-		var event map[string]interface{}
+		var event map[string]any
 		if err := json.Unmarshal([]byte(data), &event); err != nil {
 			continue
 		}
@@ -386,7 +386,7 @@ func (ap *AnthropicProvider) processStream(body io.ReadCloser, chunkCh chan<- St
 }
 
 // parseStreamEvent 解析流式事件
-func (ap *AnthropicProvider) parseStreamEvent(event map[string]interface{}) *StreamChunk {
+func (ap *AnthropicProvider) parseStreamEvent(event map[string]any) *StreamChunk {
 	eventType, _ := event["type"].(string)
 
 	chunk := &StreamChunk{
@@ -398,7 +398,7 @@ func (ap *AnthropicProvider) parseStreamEvent(event map[string]interface{}) *Str
 		if index, ok := event["index"].(float64); ok {
 			chunk.Index = int(index)
 		}
-		if contentBlock, ok := event["content_block"].(map[string]interface{}); ok {
+		if contentBlock, ok := event["content_block"].(map[string]any); ok {
 			chunk.Delta = contentBlock
 			// 添加详细的调试日志
 			if blockType, ok := contentBlock["type"].(string); ok {
@@ -420,7 +420,7 @@ func (ap *AnthropicProvider) parseStreamEvent(event map[string]interface{}) *Str
 		if index, ok := event["index"].(float64); ok {
 			chunk.Index = int(index)
 		}
-		if delta, ok := event["delta"].(map[string]interface{}); ok {
+		if delta, ok := event["delta"].(map[string]any); ok {
 			chunk.Delta = delta
 		}
 
@@ -430,10 +430,10 @@ func (ap *AnthropicProvider) parseStreamEvent(event map[string]interface{}) *Str
 		}
 
 	case "message_delta":
-		if delta, ok := event["delta"].(map[string]interface{}); ok {
+		if delta, ok := event["delta"].(map[string]any); ok {
 			chunk.Delta = delta
 		}
-		if usage, ok := event["usage"].(map[string]interface{}); ok {
+		if usage, ok := event["usage"].(map[string]any); ok {
 			chunk.Usage = &TokenUsage{
 				InputTokens:  int64(usage["input_tokens"].(float64)),
 				OutputTokens: int64(usage["output_tokens"].(float64)),
@@ -474,18 +474,18 @@ func (ap *AnthropicProvider) GetSystemPrompt() string {
 }
 
 // parseCompleteResponse 解析完整的非流式响应 (Anthropic格式)
-func (ap *AnthropicProvider) parseCompleteResponse(apiResp map[string]interface{}) (types.Message, error) {
+func (ap *AnthropicProvider) parseCompleteResponse(apiResp map[string]any) (types.Message, error) {
 	assistantContent := make([]types.ContentBlock, 0)
 
 	// Anthropic 响应格式: content 是一个数组
-	content, ok := apiResp["content"].([]interface{})
+	content, ok := apiResp["content"].([]any)
 	if !ok || len(content) == 0 {
 		return types.Message{}, fmt.Errorf("no content in response")
 	}
 
 	// 遍历所有 content blocks
 	for _, item := range content {
-		block, ok := item.(map[string]interface{})
+		block, ok := item.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -505,11 +505,11 @@ func (ap *AnthropicProvider) parseCompleteResponse(apiResp map[string]interface{
 			toolName, _ := block["name"].(string)
 
 			// 解析参数
-			var input map[string]interface{}
-			if inputData, ok := block["input"].(map[string]interface{}); ok {
+			var input map[string]any
+			if inputData, ok := block["input"].(map[string]any); ok {
 				input = inputData
 			} else {
-				input = make(map[string]interface{})
+				input = make(map[string]any)
 			}
 
 			assistantContent = append(assistantContent, &types.ToolUseBlock{
@@ -527,7 +527,7 @@ func (ap *AnthropicProvider) parseCompleteResponse(apiResp map[string]interface{
 }
 
 // getKeys 获取map的所有键(用于调试)
-func getKeys(m map[string]interface{}) []string {
+func getKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

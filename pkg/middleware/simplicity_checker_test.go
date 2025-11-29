@@ -63,7 +63,7 @@ func validateHelper(s string) bool {
 
 	req := &ToolCallRequest{
 		ToolName: "Write",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"file_path": "test.go",
 			"content":   code,
 		},
@@ -129,7 +129,7 @@ type Processor interface {
 
 	req := &ToolCallRequest{
 		ToolName: "Write",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"file_path": "interfaces.go",
 			"content":   code,
 		},
@@ -184,7 +184,7 @@ func process(data string) {
 
 	req := &ToolCallRequest{
 		ToolName: "Edit",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"file_path":  "legacy.go",
 			"new_string": code,
 		},
@@ -237,7 +237,7 @@ func helper4() {}
 
 	req := &ToolCallRequest{
 		ToolName: "Write",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"file_path": "test.go",
 			"content":   code,
 		},
@@ -273,7 +273,7 @@ func formatHelper() {}
 
 	req := &ToolCallRequest{
 		ToolName: "Write",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"file_path": "test.go",
 			"content":   code,
 		},
@@ -301,7 +301,7 @@ func TestSimplicityChecker_Reset(t *testing.T) {
 
 	req := &ToolCallRequest{
 		ToolName: "Write",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"file_path": "test.go",
 			"content":   code,
 		},
@@ -369,7 +369,7 @@ func TestSimplicityChecker_NonWriteEditTools(t *testing.T) {
 	// 使用 Read 工具（不应触发检测）
 	req := &ToolCallRequest{
 		ToolName: "Read",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"file_path": "test.go",
 		},
 	}
@@ -421,7 +421,7 @@ func Configure() {}
 
 	req := &ToolCallRequest{
 		ToolName: "Write",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"file_path": "config.go",
 			"content":   code,
 		},

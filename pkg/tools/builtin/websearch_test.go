@@ -52,7 +52,7 @@ func TestWebSearchTool_MissingAPIKey(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := tool.Execute(ctx, map[string]interface{}{
+	result, err := tool.Execute(ctx, map[string]any{
 		"query": "test query",
 	}, &tools.ToolContext{})
 
@@ -60,7 +60,7 @@ func TestWebSearchTool_MissingAPIKey(t *testing.T) {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	resultMap, ok := result.(map[string]interface{})
+	resultMap, ok := result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
@@ -84,7 +84,7 @@ func TestWebSearchTool_SuccessfulSearch(t *testing.T) {
 		}
 
 		// 解析请求体
-		var reqBody map[string]interface{}
+		var reqBody map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 			t.Errorf("Failed to decode request body: %v", err)
 		}
@@ -97,8 +97,8 @@ func TestWebSearchTool_SuccessfulSearch(t *testing.T) {
 		// 返回模拟的搜索结果
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"results": []map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"results": []map[string]any{
 				{
 					"title":   "Test Result 1",
 					"url":     "https://example.com/1",
@@ -162,7 +162,7 @@ func TestWebSearchTool_InvalidQuery(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	_, err = tool.Execute(ctx, map[string]interface{}{
+	_, err = tool.Execute(ctx, map[string]any{
 		"query": "", // 空查询
 	}, &tools.ToolContext{})
 
@@ -171,7 +171,7 @@ func TestWebSearchTool_InvalidQuery(t *testing.T) {
 	}
 
 	// 也可以测试非字符串查询
-	_, err2 := tool.Execute(ctx, map[string]interface{}{
+	_, err2 := tool.Execute(ctx, map[string]any{
 		"query": 123, // 非字符串
 	}, &tools.ToolContext{})
 
@@ -205,7 +205,7 @@ func TestWebSearchTool_MaxResultsValidation(t *testing.T) {
 	ctx := context.Background()
 
 	// max_results 太大(会被限制到 10)
-	_, err = tool.Execute(ctx, map[string]interface{}{
+	_, err = tool.Execute(ctx, map[string]any{
 		"query":       "test",
 		"max_results": 100,
 	}, &tools.ToolContext{})
@@ -217,7 +217,7 @@ func TestWebSearchTool_MaxResultsValidation(t *testing.T) {
 	}
 
 	// max_results 太小(会被限制到 1)
-	_, err = tool.Execute(ctx, map[string]interface{}{
+	_, err = tool.Execute(ctx, map[string]any{
 		"query":       "test",
 		"max_results": -5,
 	}, &tools.ToolContext{})
@@ -251,7 +251,7 @@ func TestWebSearchTool_TopicValidation(t *testing.T) {
 	// 测试有效的 topic 值
 	topics := []string{"general", "news", "finance"}
 	for _, topic := range topics {
-		_, err := tool.Execute(ctx, map[string]interface{}{
+		_, err := tool.Execute(ctx, map[string]any{
 			"query": "test",
 			"topic": topic,
 		}, &tools.ToolContext{})

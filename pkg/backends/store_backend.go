@@ -126,10 +126,7 @@ func (b *StoreBackend) Read(ctx context.Context, path string, offset, limit int)
 	// 处理 limit
 	endLine := totalLines
 	if limit > 0 {
-		endLine = offset + limit
-		if endLine > totalLines {
-			endLine = totalLines
-		}
+		endLine = min(offset+limit, totalLines)
 	}
 
 	selectedLines := data.Lines[offset:endLine]

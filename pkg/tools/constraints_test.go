@@ -309,11 +309,11 @@ func (m *mockTool) Description() string {
 	return "Mock tool for testing"
 }
 
-func (m *mockTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{}
+func (m *mockTool) InputSchema() map[string]any {
+	return map[string]any{}
 }
 
-func (m *mockTool) Execute(ctx context.Context, input map[string]interface{}, toolCtx *ToolContext) (interface{}, error) {
+func (m *mockTool) Execute(ctx context.Context, input map[string]any, toolCtx *ToolContext) (any, error) {
 	return "mock result", nil
 }
 

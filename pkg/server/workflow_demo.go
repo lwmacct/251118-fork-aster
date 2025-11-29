@@ -42,7 +42,7 @@ type WorkflowEvent struct {
 	Branch    string                 `json:"branch,omitempty"`
 	Author    string                 `json:"author"`
 	Text      string                 `json:"text"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // WorkflowRunResponse 表示工作流运行的结果。
@@ -541,7 +541,7 @@ func (a *LLMWorkflowAgent) Execute(ctx context.Context, message string) *stream.
 		// 为每次执行创建一个独立的 Agent 实例
 		agentConfig := &types.AgentConfig{
 			TemplateID: a.templateID,
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"workflow_step": a.name,
 			},
 		}
@@ -568,7 +568,7 @@ func (a *LLMWorkflowAgent) Execute(ctx context.Context, message string) *stream.
 				Role:    types.RoleAssistant,
 				Content: res.Text,
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"agent_description": a.description,
 			},
 		}, err)

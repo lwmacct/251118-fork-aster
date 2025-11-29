@@ -25,7 +25,7 @@ type EnterPlanModeResult struct {
 }
 
 // NewEnterPlanModeTool 创建EnterPlanMode工具
-func NewEnterPlanModeTool(config map[string]interface{}) (tools.Tool, error) {
+func NewEnterPlanModeTool(config map[string]any) (tools.Tool, error) {
 	basePath := ".aster/plans"
 	if bp, ok := config["base_path"].(string); ok && bp != "" {
 		basePath = bp
@@ -44,11 +44,11 @@ func (t *EnterPlanModeTool) Description() string {
 	return "进入规划模式，用于复杂任务的规划阶段。在此模式下只允许只读操作和计划文件写入。"
 }
 
-func (t *EnterPlanModeTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *EnterPlanModeTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"reason": map[string]interface{}{
+		"properties": map[string]any{
+			"reason": map[string]any{
 				"type":        "string",
 				"description": "进入规划模式的原因说明",
 			},
@@ -57,7 +57,7 @@ func (t *EnterPlanModeTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *EnterPlanModeTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *EnterPlanModeTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	reason := GetStringParam(input, "reason", "")
 
 	// 确保计划目录存在
@@ -150,7 +150,7 @@ func (t *EnterPlanModeTool) Execute(ctx context.Context, input map[string]interf
 You CANNOT edit code, run commands, or make any changes until plan is approved.`
 
 	// 构建响应
-	result := map[string]interface{}{
+	result := map[string]any{
 		"ok":             true,
 		"plan_file_path": planPath,
 		"plan_id":        planID,
@@ -172,7 +172,7 @@ You CANNOT edit code, run commands, or make any changes until plan is approved.`
 		"4. Call ExitPlanMode when ready for user approval",
 	}
 
-	result["constraints"] = map[string]interface{}{
+	result["constraints"] = map[string]any{
 		"read_only":             true,
 		"plan_file_writable":    planPath,
 		"code_editing_disabled": true,

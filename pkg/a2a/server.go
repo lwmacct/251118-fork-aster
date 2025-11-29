@@ -187,14 +187,14 @@ func (s *Server) handleMessageSend(ctx context.Context, agentID string, req *JSO
 }
 
 // handleMessageStream 处理 message/stream 方法
-func (s *Server) handleMessageStream(ctx context.Context, agentID string, req *JSONRPCRequest) *JSONRPCResponse {
+func (s *Server) handleMessageStream(_ context.Context, _ string, req *JSONRPCRequest) *JSONRPCResponse {
 	// 流式响应需要特殊处理，这里先返回不支持
 	return NewErrorResponse(req.ID, ErrorCodeUnsupportedOperation,
 		"streaming not yet implemented", nil)
 }
 
 // handleTasksGet 处理 tasks/get 方法
-func (s *Server) handleTasksGet(ctx context.Context, agentID string, req *JSONRPCRequest) *JSONRPCResponse {
+func (s *Server) handleTasksGet(_ context.Context, agentID string, req *JSONRPCRequest) *JSONRPCResponse {
 	var params TasksGetParams
 	if err := parseParams(req.Params, &params); err != nil {
 		return NewErrorResponse(req.ID, ErrorCodeInvalidParams, err.Error(), nil)
@@ -209,7 +209,7 @@ func (s *Server) handleTasksGet(ctx context.Context, agentID string, req *JSONRP
 }
 
 // handleTasksCancel 处理 tasks/cancel 方法
-func (s *Server) handleTasksCancel(ctx context.Context, agentID string, req *JSONRPCRequest) *JSONRPCResponse {
+func (s *Server) handleTasksCancel(_ context.Context, agentID string, req *JSONRPCRequest) *JSONRPCResponse {
 	var params TasksCancelParams
 	if err := parseParams(req.Params, &params); err != nil {
 		return NewErrorResponse(req.ID, ErrorCodeInvalidParams, err.Error(), nil)
@@ -280,7 +280,7 @@ func (s *Server) loadOrCreateTask(agentID, taskID, contextID string, metadata Me
 // ============== 辅助函数 ==============
 
 // parseParams 解析 JSON-RPC 参数
-func parseParams(params interface{}, target interface{}) error {
+func parseParams(params any, target any) error {
 	if params == nil {
 		return fmt.Errorf("params is required")
 	}

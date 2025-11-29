@@ -18,7 +18,7 @@ type RoomRecord struct {
 	Members   []core.RoomMember      `json:"members"`
 	CreatedAt time.Time              `json:"created_at"`
 	UpdatedAt time.Time              `json:"updated_at"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // RoomHandler handles room-related requests
@@ -41,7 +41,7 @@ func NewRoomHandler(st store.Store, pool *core.Pool) *RoomHandler {
 func (h *RoomHandler) Create(c *gin.Context) {
 	var req struct {
 		Name     string                 `json:"name" binding:"required"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -86,7 +86,7 @@ func (h *RoomHandler) Create(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "room.created", map[string]interface{}{
+	logging.Info(ctx, "room.created", map[string]any{
 		"room_id": roomID,
 		"name":    req.Name,
 	})
@@ -191,7 +191,7 @@ func (h *RoomHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "room.deleted", map[string]interface{}{
+	logging.Info(ctx, "room.deleted", map[string]any{
 		"room_id": id,
 	})
 
@@ -252,7 +252,7 @@ func (h *RoomHandler) Join(c *gin.Context) {
 		_ = (*h.store).Set(ctx, "rooms", id, &record)
 	}
 
-	logging.Info(ctx, "room.member.joined", map[string]interface{}{
+	logging.Info(ctx, "room.member.joined", map[string]any{
 		"room_id": id,
 		"member":  req.Name,
 	})
@@ -318,7 +318,7 @@ func (h *RoomHandler) Leave(c *gin.Context) {
 		_ = (*h.store).Set(ctx, "rooms", id, &record)
 	}
 
-	logging.Info(ctx, "room.member.left", map[string]interface{}{
+	logging.Info(ctx, "room.member.left", map[string]any{
 		"room_id": id,
 		"member":  req.Name,
 	})
@@ -377,7 +377,7 @@ func (h *RoomHandler) Say(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "room.message.sent", map[string]interface{}{
+	logging.Info(ctx, "room.message.sent", map[string]any{
 		"room_id": id,
 		"from":    req.From,
 	})

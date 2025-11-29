@@ -35,7 +35,7 @@ type KnowledgeItem struct {
 	Tags     []string `json:"tags"`
 
 	// 元数据
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata map[string]any `json:"metadata"`
 
 	// 时效性
 	CreatedAt time.Time  `json:"created_at"`
@@ -108,7 +108,7 @@ type SearchQuery struct {
 	// 检索配置
 	MaxResults int                    `json:"max_results"` // 最大结果数
 	Namespace  string                 `json:"namespace"`   // 命名空间
-	Filters    map[string]interface{} `json:"filters"`     // 自定义过滤
+	Filters    map[string]any `json:"filters"`     // 自定义过滤
 
 	// 搜索策略
 	Strategy     SearchStrategy     `json:"strategy"`      // 搜索策略

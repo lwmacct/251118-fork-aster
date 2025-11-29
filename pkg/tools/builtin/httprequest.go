@@ -22,7 +22,7 @@ type HttpRequestTool struct {
 }
 
 // NewHttpRequestTool 创建HTTP请求工具
-func NewHttpRequestTool(config map[string]interface{}) (tools.Tool, error) {
+func NewHttpRequestTool(config map[string]any) (tools.Tool, error) {
 	timeout := 30 * time.Second // 默认30秒,与 DeepAgents 一致
 	if t, ok := config["timeout"].(float64); ok {
 		timeout = time.Duration(t) * time.Second
@@ -44,28 +44,28 @@ func (t *HttpRequestTool) Description() string {
 	return "Make HTTP/HTTPS requests to external APIs and websites"
 }
 
-func (t *HttpRequestTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *HttpRequestTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"url": map[string]interface{}{
+		"properties": map[string]any{
+			"url": map[string]any{
 				"type":        "string",
 				"description": "Target URL (must start with http:// or https://)",
 			},
-			"method": map[string]interface{}{
+			"method": map[string]any{
 				"type":        "string",
 				"enum":        []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"},
 				"description": "HTTP method (default: GET)",
 			},
-			"headers": map[string]interface{}{
+			"headers": map[string]any{
 				"type":        "object",
 				"description": "HTTP headers as key-value pairs",
 			},
-			"body": map[string]interface{}{
+			"body": map[string]any{
 				"type":        "string",
 				"description": "Request body (for POST/PUT/PATCH)",
 			},
-			"timeout": map[string]interface{}{
+			"timeout": map[string]any{
 				"type":        "number",
 				"description": "Request timeout in seconds (default: 30)",
 			},
@@ -74,7 +74,7 @@ func (t *HttpRequestTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *HttpRequestTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *HttpRequestTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 1. 解析参数
 	url, ok := input["url"].(string)
 	if !ok || url == "" {
@@ -95,14 +95,14 @@ func (t *HttpRequestTool) Execute(ctx context.Context, input map[string]interfac
 	// 3. 创建HTTP请求
 	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"error":   fmt.Sprintf("failed to create request: %v", err),
 		}, nil
 	}
 
 	// 4. 设置请求头
-	if headers, ok := input["headers"].(map[string]interface{}); ok {
+	if headers, ok := input["headers"].(map[string]any); ok {
 		for key, value := range headers {
 			if valueStr, ok := value.(string); ok {
 				req.Header.Set(key, valueStr)
@@ -129,14 +129,14 @@ func (t *HttpRequestTool) Execute(ctx context.Context, input map[string]interfac
 		// 区分超时错误
 		var netErr net.Error
 		if ctx.Err() == context.DeadlineExceeded || (errors.As(err, &netErr) && netErr.Timeout()) {
-			return map[string]interface{}{
+			return map[string]any{
 				"success": false,
 				"error":   fmt.Sprintf("request timeout after %v", client.Timeout),
 				"url":     url,
 			}, nil
 		}
 
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"error":   fmt.Sprintf("request failed: %v", err),
 			"url":     url,
@@ -147,7 +147,7 @@ func (t *HttpRequestTool) Execute(ctx context.Context, input map[string]interfac
 	// 7. 读取响应体
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"success":     false,
 			"error":       fmt.Sprintf("failed to read response body: %v", err),
 			"status_code": resp.StatusCode,
@@ -156,12 +156,12 @@ func (t *HttpRequestTool) Execute(ctx context.Context, input map[string]interfac
 	}
 
 	// 8. 尝试解析JSON响应
-	var content interface{}
+	var content any
 	contentType := resp.Header.Get("Content-Type")
 
 	// 如果是JSON,尝试解析
 	if len(bodyBytes) > 0 {
-		var jsonData interface{}
+		var jsonData any
 		if err := json.Unmarshal(bodyBytes, &jsonData); err == nil {
 			// 成功解析为JSON
 			content = jsonData
@@ -182,7 +182,7 @@ func (t *HttpRequestTool) Execute(ctx context.Context, input map[string]interfac
 	}
 
 	// 10. 返回结果(与 DeepAgents 格式对齐)
-	return map[string]interface{}{
+	return map[string]any{
 		"success":      resp.StatusCode >= 200 && resp.StatusCode < 300,
 		"status_code":  resp.StatusCode,
 		"headers":      headers,
@@ -235,7 +235,7 @@ func (t *HttpRequestTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "发送 GET 请求获取 JSON 数据",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"url":    "https://api.example.com/users/1",
 				"method": "GET",
 				"headers": map[string]string{
@@ -245,7 +245,7 @@ func (t *HttpRequestTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "发送 POST 请求创建资源",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"url":    "https://api.example.com/users",
 				"method": "POST",
 				"headers": map[string]string{
@@ -257,7 +257,7 @@ func (t *HttpRequestTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "发送带超时的请求",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"url":     "https://slow-api.example.com/data",
 				"method":  "GET",
 				"timeout": 60,

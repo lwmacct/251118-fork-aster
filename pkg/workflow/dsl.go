@@ -41,7 +41,7 @@ type VariableDef struct {
 	Type        string      `json:"type"` // string, number, boolean, object, array
 	Description string      `json:"description"`
 	Required    bool        `json:"required"`
-	Default     interface{} `json:"default,omitempty"`
+	Default     any `json:"default,omitempty"`
 	Validation  string      `json:"validation,omitempty"` // JSON Schema or validation rules
 }
 
@@ -51,7 +51,7 @@ type NodeDef struct {
 	Name      string                 `json:"name"`
 	Type      NodeType               `json:"type"`
 	Position  Position               `json:"position"`
-	Config    map[string]interface{} `json:"config,omitempty"`
+	Config    map[string]any `json:"config,omitempty"`
 	Agent     *AgentRef              `json:"agent,omitempty"`     // Agent节点
 	Condition *ConditionDef          `json:"condition,omitempty"` // 条件节点
 	Loop      *LoopDef               `json:"loop,omitempty"`      // 循环节点
@@ -96,7 +96,7 @@ type EdgeDef struct {
 type AgentRef struct {
 	ID       string                 `json:"id"`
 	Template string                 `json:"template"`
-	Config   map[string]interface{} `json:"config,omitempty"`
+	Config   map[string]any `json:"config,omitempty"`
 	Inputs   map[string]string      `json:"inputs,omitempty"`  // 输入映射
 	Outputs  map[string]string      `json:"outputs,omitempty"` // 输出映射
 }
@@ -122,7 +122,7 @@ const (
 type ConditionRule struct {
 	Variable string      `json:"variable"` // 变量路径，如 "input.score"
 	Operator string      `json:"operator"` // eq, ne, gt, gte, lt, lte, in, nin, contains, regex
-	Value    interface{} `json:"value"`    // 比较值
+	Value    any `json:"value"`    // 比较值
 }
 
 // LoopDef 循环定义
@@ -243,9 +243,9 @@ type WorkflowContext struct {
 	Status      WorkflowStatus `json:"status"`
 
 	// 变量存储
-	Variables map[string]interface{} `json:"variables"`
-	Inputs    map[string]interface{} `json:"inputs"`
-	Outputs   map[string]interface{} `json:"outputs"`
+	Variables map[string]any `json:"variables"`
+	Inputs    map[string]any `json:"inputs"`
+	Outputs   map[string]any `json:"outputs"`
 
 	// 执行状态
 	CurrentNode string           `json:"current_node"`
@@ -253,7 +253,7 @@ type WorkflowContext struct {
 	Failed      map[string]error `json:"failed"`
 
 	// 元数据
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata map[string]any `json:"metadata"`
 
 	// 上下文
 	Context context.Context  `json:"-"`
@@ -281,7 +281,7 @@ type WorkflowResult struct {
 	StartTime   time.Time              `json:"start_time"`
 	EndTime     time.Time              `json:"end_time"`
 	Duration    time.Duration          `json:"duration"`
-	Outputs     map[string]interface{} `json:"outputs"`
+	Outputs     map[string]any `json:"outputs"`
 	Errors      []WorkflowError        `json:"errors,omitempty"`
 	Metrics     *WorkflowMetrics       `json:"metrics,omitempty"`
 	Trace       []WorkflowStep         `json:"trace,omitempty"`
@@ -317,11 +317,11 @@ type WorkflowStep struct {
 	StartTime  time.Time              `json:"start_time"`
 	EndTime    time.Time              `json:"end_time"`
 	Duration   time.Duration          `json:"duration"`
-	Inputs     map[string]interface{} `json:"inputs"`
-	Outputs    map[string]interface{} `json:"outputs"`
+	Inputs     map[string]any `json:"inputs"`
+	Outputs    map[string]any `json:"outputs"`
 	Error      string                 `json:"error,omitempty"`
 	RetryCount int                    `json:"retry_count"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   map[string]any `json:"metadata"`
 }
 
 // NodeRef 节点引用
@@ -359,7 +359,7 @@ func (b *DSLBuilder) SetDescription(desc string) *DSLBuilder {
 }
 
 // AddInput 添加输入
-func (b *DSLBuilder) AddInput(name, varType, description string, required bool, defaultValue interface{}) *DSLBuilder {
+func (b *DSLBuilder) AddInput(name, varType, description string, required bool, defaultValue any) *DSLBuilder {
 	b.def.Inputs = append(b.def.Inputs, VariableDef{
 		Name:        name,
 		Type:        varType,
@@ -570,11 +570,11 @@ func validateWorkflowDefinition(def *WorkflowDefinition) error {
 
 // ExpressionEvaluator 表达式求值器
 type ExpressionEvaluator struct {
-	variables map[string]interface{}
+	variables map[string]any
 }
 
 // NewExpressionEvaluator 创建表达式求值器
-func NewExpressionEvaluator(variables map[string]interface{}) *ExpressionEvaluator {
+func NewExpressionEvaluator(variables map[string]any) *ExpressionEvaluator {
 	return &ExpressionEvaluator{
 		variables: variables,
 	}
@@ -654,7 +654,7 @@ func (e *ExpressionEvaluator) evaluateComparison(expression string) (bool, error
 }
 
 // compareNumbers 比较数字
-func (e *ExpressionEvaluator) compareNumbers(aVal, bVal interface{}, compare func(float64, float64) bool) (bool, error) {
+func (e *ExpressionEvaluator) compareNumbers(aVal, bVal any, compare func(float64, float64) bool) (bool, error) {
 	a, err := e.toFloat64(aVal)
 	if err != nil {
 		return false, fmt.Errorf("cannot convert left operand to number: %v", err)
@@ -669,7 +669,7 @@ func (e *ExpressionEvaluator) compareNumbers(aVal, bVal interface{}, compare fun
 }
 
 // toFloat64 转换为float64
-func (e *ExpressionEvaluator) toFloat64(v interface{}) (float64, error) {
+func (e *ExpressionEvaluator) toFloat64(v any) (float64, error) {
 	switch val := v.(type) {
 	case float64:
 		return val, nil

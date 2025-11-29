@@ -28,13 +28,13 @@ type User struct {
 	Username string                 `json:"username"`
 	Email    string                 `json:"email"`
 	Roles    []string               `json:"roles"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 // Authenticator 认证器接口
 type Authenticator interface {
 	// Authenticate 验证凭证并返回用户信息
-	Authenticate(ctx context.Context, credentials interface{}) (*User, error)
+	Authenticate(ctx context.Context, credentials any) (*User, error)
 
 	// Validate 验证令牌是否有效
 	Validate(ctx context.Context, token string) (*User, error)
@@ -63,7 +63,7 @@ func (m *Manager) Register(auth Authenticator) {
 }
 
 // Authenticate 使用指定方法进行认证
-func (m *Manager) Authenticate(ctx context.Context, method AuthMethod, credentials interface{}) (*User, error) {
+func (m *Manager) Authenticate(ctx context.Context, method AuthMethod, credentials any) (*User, error) {
 	auth, exists := m.authenticators[method]
 	if !exists {
 		return nil, errors.New("unsupported authentication method")
@@ -98,5 +98,5 @@ type TokenInfo struct {
 	Token     string                 `json:"token"`
 	ExpiresAt time.Time              `json:"expires_at"`
 	User      *User                  `json:"user,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }

@@ -165,9 +165,9 @@ func (p *MemoryProvenance) Freshness() time.Duration {
 
 // ToMetadata 将 Provenance 转换为 metadata map。
 // 用于存储到 VectorStore。
-func (p *MemoryProvenance) ToMetadata() map[string]interface{} {
-	meta := map[string]interface{}{
-		"provenance": map[string]interface{}{
+func (p *MemoryProvenance) ToMetadata() map[string]any {
+	meta := map[string]any{
+		"provenance": map[string]any{
 			"source_type":         string(p.SourceType),
 			"confidence":          p.Confidence,
 			"sources":             p.Sources,
@@ -180,23 +180,23 @@ func (p *MemoryProvenance) ToMetadata() map[string]interface{} {
 	}
 
 	if p.LastAccessedAt != nil {
-		meta["provenance"].(map[string]interface{})["last_accessed_at"] = p.LastAccessedAt.Format(time.RFC3339)
+		meta["provenance"].(map[string]any)["last_accessed_at"] = p.LastAccessedAt.Format(time.RFC3339)
 	}
 
 	if len(p.Tags) > 0 {
-		meta["provenance"].(map[string]interface{})["tags"] = p.Tags
+		meta["provenance"].(map[string]any)["tags"] = p.Tags
 	}
 
 	return meta
 }
 
 // FromMetadata 从 metadata map 中提取 Provenance。
-func FromMetadata(meta map[string]interface{}) *MemoryProvenance {
+func FromMetadata(meta map[string]any) *MemoryProvenance {
 	if meta == nil {
 		return nil
 	}
 
-	provData, ok := meta["provenance"].(map[string]interface{})
+	provData, ok := meta["provenance"].(map[string]any)
 	if !ok {
 		return nil
 	}
@@ -211,7 +211,7 @@ func FromMetadata(meta map[string]interface{}) *MemoryProvenance {
 		p.Confidence = conf
 	}
 
-	if sources, ok := provData["sources"].([]interface{}); ok {
+	if sources, ok := provData["sources"].([]any); ok {
 		for _, s := range sources {
 			if str, ok := s.(string); ok {
 				p.Sources = append(p.Sources, str)
@@ -251,7 +251,7 @@ func FromMetadata(meta map[string]interface{}) *MemoryProvenance {
 		}
 	}
 
-	if tags, ok := provData["tags"].([]interface{}); ok {
+	if tags, ok := provData["tags"].([]any); ok {
 		for _, tag := range tags {
 			if str, ok := tag.(string); ok {
 				p.Tags = append(p.Tags, str)

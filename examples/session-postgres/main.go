@@ -123,7 +123,7 @@ func appendEventsExample(ctx context.Context, service *postgres.Service, session
 			Content: "我很乐意帮助您！请问有什么问题吗？",
 		},
 		Actions: session.EventActions{
-			StateDelta: map[string]interface{}{
+			StateDelta: map[string]any{
 				"session:last_response_time": time.Now().Unix(),
 				"session:message_count":      1,
 			},
@@ -152,7 +152,7 @@ func stateManagementExample(ctx context.Context, service *postgres.Service, sess
 			Content: "State update",
 		},
 		Actions: session.EventActions{
-			StateDelta: map[string]interface{}{
+			StateDelta: map[string]any{
 				// App 级状态（所有用户共享）
 				"app:version": "1.0.0",
 				"app:feature_flags": map[string]bool{

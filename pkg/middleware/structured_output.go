@@ -67,7 +67,7 @@ func (m *StructuredOutputMiddleware) WrapModelCall(ctx context.Context, req *Mod
 		if m.allowError {
 			log.Printf("[StructuredOutputMiddleware] parse failed: %v", parseErr)
 			if resp.Metadata == nil {
-				resp.Metadata = make(map[string]interface{})
+				resp.Metadata = make(map[string]any)
 			}
 			resp.Metadata["structured_error"] = parseErr.Error()
 			return resp, nil
@@ -76,7 +76,7 @@ func (m *StructuredOutputMiddleware) WrapModelCall(ctx context.Context, req *Mod
 	}
 
 	if resp.Metadata == nil {
-		resp.Metadata = make(map[string]interface{})
+		resp.Metadata = make(map[string]any)
 	}
 	resp.Metadata["structured_data"] = result.Data
 	resp.Metadata["structured_raw_json"] = result.RawJSON

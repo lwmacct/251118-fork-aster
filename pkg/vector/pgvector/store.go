@@ -169,7 +169,7 @@ LIMIT $3;
 		var (
 			id       string
 			distance float64
-			meta     map[string]interface{}
+			meta     map[string]any
 		)
 		if err := rows.Scan(&id, &distance, &meta); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)

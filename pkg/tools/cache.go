@@ -56,7 +56,7 @@ func DefaultCacheConfig() *CacheConfig {
 // CacheEntry 缓存条目
 type CacheEntry struct {
 	Key       string
-	Value     interface{}
+	Value     any
 	CreatedAt time.Time
 	ExpiresAt time.Time
 	Size      int64
@@ -114,7 +114,7 @@ func NewToolCache(config *CacheConfig) *ToolCache {
 }
 
 // GenerateKey 生成缓存键
-func (c *ToolCache) GenerateKey(toolName string, input map[string]interface{}) string {
+func (c *ToolCache) GenerateKey(toolName string, input map[string]any) string {
 	// 序列化输入参数
 	data, err := json.Marshal(input)
 	if err != nil {
@@ -128,7 +128,7 @@ func (c *ToolCache) GenerateKey(toolName string, input map[string]interface{}) s
 }
 
 // Get 获取缓存
-func (c *ToolCache) Get(ctx context.Context, key string) (interface{}, bool) {
+func (c *ToolCache) Get(ctx context.Context, key string) (any, bool) {
 	if !c.config.Enabled {
 		return nil, false
 	}
@@ -160,7 +160,7 @@ func (c *ToolCache) Get(ctx context.Context, key string) (interface{}, bool) {
 }
 
 // Set 设置缓存
-func (c *ToolCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (c *ToolCache) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
 	if !c.config.Enabled {
 		return nil
 	}
@@ -238,7 +238,7 @@ func (c *ToolCache) GetStats() *CacheStats {
 
 // 内存缓存操作
 
-func (c *ToolCache) getFromMemory(key string) (interface{}, bool) {
+func (c *ToolCache) getFromMemory(key string) (any, bool) {
 	c.memoryMu.RLock()
 	defer c.memoryMu.RUnlock()
 
@@ -255,7 +255,7 @@ func (c *ToolCache) getFromMemory(key string) (interface{}, bool) {
 	return entry.Value, true
 }
 
-func (c *ToolCache) setToMemory(key string, value interface{}, ttl time.Duration) {
+func (c *ToolCache) setToMemory(key string, value any, ttl time.Duration) {
 	c.memoryMu.Lock()
 	defer c.memoryMu.Unlock()
 
@@ -315,7 +315,7 @@ func (c *ToolCache) evictOldest() {
 
 // 文件缓存操作
 
-func (c *ToolCache) getFromFile(key string) (interface{}, bool) {
+func (c *ToolCache) getFromFile(key string) (any, bool) {
 	filePath := c.getCacheFilePath(key)
 
 	// 读取文件
@@ -341,7 +341,7 @@ func (c *ToolCache) getFromFile(key string) (interface{}, bool) {
 	return entry.Value, true
 }
 
-func (c *ToolCache) setToFile(key string, value interface{}, ttl time.Duration) error {
+func (c *ToolCache) setToFile(key string, value any, ttl time.Duration) error {
 	// 确保缓存目录存在
 	if err := os.MkdirAll(c.config.CacheDir, 0755); err != nil {
 		return fmt.Errorf("failed to create cache directory: %w", err)
@@ -486,7 +486,7 @@ func (ct *CachedTool) Description() string {
 }
 
 // InputSchema 实现 Tool 接口
-func (ct *CachedTool) InputSchema() map[string]interface{} {
+func (ct *CachedTool) InputSchema() map[string]any {
 	return ct.tool.InputSchema()
 }
 
@@ -496,7 +496,7 @@ func (ct *CachedTool) Prompt() string {
 }
 
 // Execute 实现 Tool 接口（带缓存）
-func (ct *CachedTool) Execute(ctx context.Context, input map[string]interface{}, tc *ToolContext) (interface{}, error) {
+func (ct *CachedTool) Execute(ctx context.Context, input map[string]any, tc *ToolContext) (any, error) {
 	// 生成缓存键
 	key := ct.cache.GenerateKey(ct.tool.Name(), input)
 

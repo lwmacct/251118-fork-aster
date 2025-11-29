@@ -126,10 +126,7 @@ func (cc *ConfidenceCalculator) calculateRecencyBoost(p *MemoryProvenance) float
 		return 0.0
 	}
 
-	timeSinceAccess := time.Since(*p.LastAccessedAt)
-	if timeSinceAccess < 0 {
-		timeSinceAccess = 0
-	}
+	timeSinceAccess := max(time.Since(*p.LastAccessedAt), 0)
 
 	// 访问在1天内：完整权重
 	// 访问在30天前：无权重

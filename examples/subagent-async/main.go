@@ -36,7 +36,7 @@ func main() {
 
 	// 3. 创建子代理工厂（模拟长时间运行的任务）
 	factory := func(ctx context.Context, spec middleware.SubAgentSpec) (middleware.SubAgent, error) {
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			// 模拟长时间运行的任务
 			fmt.Printf("[%s] 开始执行任务: %s\n", spec.Name, description)
 			time.Sleep(5 * time.Second) // 模拟5秒的处理时间
@@ -108,7 +108,7 @@ func main() {
 
 	// 启动任务 1
 	fmt.Println("启动任务 1: 研究 AI Agent 架构...")
-	result1, err := toolMap["task"].Execute(ctx, map[string]interface{}{
+	result1, err := toolMap["task"].Execute(ctx, map[string]any{
 		"description":   "深度研究 AI Agent 的架构设计模式，包括事件驱动、中间件、工具系统等",
 		"subagent_type": "researcher",
 		"async":         true, // 异步执行
@@ -117,7 +117,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("启动任务 1 失败: %v", err)
 	}
-	task1Result := result1.(map[string]interface{})
+	task1Result := result1.(map[string]any)
 	task1ID := task1Result["task_id"].(string)
 	fmt.Printf("✓ 任务 1 已启动，task_id: %s\n", task1ID)
 	fmt.Printf("  状态: %s\n", task1Result["status"])
@@ -125,7 +125,7 @@ func main() {
 
 	// 启动任务 2
 	fmt.Println("启动任务 2: 分析大规模数据集...")
-	result2, err := toolMap["task"].Execute(ctx, map[string]interface{}{
+	result2, err := toolMap["task"].Execute(ctx, map[string]any{
 		"description":   "分析用户行为数据，识别模式和趋势，生成可视化报告",
 		"subagent_type": "data-analyst",
 		"async":         true,
@@ -134,7 +134,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("启动任务 2 失败: %v", err)
 	}
-	task2Result := result2.(map[string]interface{})
+	task2Result := result2.(map[string]any)
 	task2ID := task2Result["task_id"].(string)
 	fmt.Printf("✓ 任务 2 已启动，task_id: %s\n", task2ID)
 	fmt.Printf("  状态: %s\n\n", task2Result["status"])
@@ -142,10 +142,10 @@ func main() {
 	// 9. 列出所有任务
 	fmt.Println("=== 演示 2: 列出所有任务 ===")
 	fmt.Println()
-	listResult, _ := toolMap["list_subagents"].Execute(ctx, map[string]interface{}{}, nil)
-	listData := listResult.(map[string]interface{})
+	listResult, _ := toolMap["list_subagents"].Execute(ctx, map[string]any{}, nil)
+	listData := listResult.(map[string]any)
 	fmt.Printf("当前任务数: %v\n", listData["count"])
-	if subagents, ok := listData["subagents"].([]map[string]interface{}); ok {
+	if subagents, ok := listData["subagents"].([]map[string]any); ok {
 		for _, sa := range subagents {
 			fmt.Printf("- task_id: %s, type: %s, status: %s\n",
 				sa["task_id"], sa["subagent_type"], sa["status"])
@@ -158,11 +158,11 @@ func main() {
 	fmt.Println()
 
 	checkTask := func(taskID string, taskName string) {
-		for i := 0; i < 10; i++ {
-			queryResult, _ := toolMap["query_subagent"].Execute(ctx, map[string]interface{}{
+		for range 10 {
+			queryResult, _ := toolMap["query_subagent"].Execute(ctx, map[string]any{
 				"task_id": taskID,
 			}, nil)
-			queryData := queryResult.(map[string]interface{})
+			queryData := queryResult.(map[string]any)
 
 			status := queryData["status"].(string)
 			duration := queryData["duration"].(float64)
@@ -207,13 +207,13 @@ func main() {
 
 	// 启动一个新任务
 	fmt.Println("启动任务 3: 长时间运行的分析...")
-	result3, _ := toolMap["task"].Execute(ctx, map[string]interface{}{
+	result3, _ := toolMap["task"].Execute(ctx, map[string]any{
 		"description":   "执行复杂的数据挖掘任务",
 		"subagent_type": "data-analyst",
 		"async":         true,
 		"timeout":       60,
 	}, nil)
-	task3Result := result3.(map[string]interface{})
+	task3Result := result3.(map[string]any)
 	task3ID := task3Result["task_id"].(string)
 	fmt.Printf("✓ 任务 3 已启动，task_id: %s\n\n", task3ID)
 
@@ -222,35 +222,35 @@ func main() {
 
 	// 停止任务
 	fmt.Println("停止任务 3...")
-	stopResult, _ := toolMap["stop_subagent"].Execute(ctx, map[string]interface{}{
+	stopResult, _ := toolMap["stop_subagent"].Execute(ctx, map[string]any{
 		"task_id": task3ID,
 	}, nil)
-	stopData := stopResult.(map[string]interface{})
+	stopData := stopResult.(map[string]any)
 	fmt.Printf("✓ %s\n\n", stopData["message"])
 
 	// 查询状态
-	queryResult, _ := toolMap["query_subagent"].Execute(ctx, map[string]interface{}{
+	queryResult, _ := toolMap["query_subagent"].Execute(ctx, map[string]any{
 		"task_id": task3ID,
 	}, nil)
-	queryData := queryResult.(map[string]interface{})
+	queryData := queryResult.(map[string]any)
 	fmt.Printf("任务状态: %s\n\n", queryData["status"])
 
 	// 恢复任务
 	fmt.Println("恢复任务 3...")
-	resumeResult, _ := toolMap["resume_subagent"].Execute(ctx, map[string]interface{}{
+	resumeResult, _ := toolMap["resume_subagent"].Execute(ctx, map[string]any{
 		"task_id": task3ID,
 	}, nil)
-	resumeData := resumeResult.(map[string]interface{})
+	resumeData := resumeResult.(map[string]any)
 	fmt.Printf("✓ %s\n", resumeData["message"])
 	fmt.Printf("新的 task_id: %s\n\n", resumeData["new_task_id"])
 
 	// 12. 最终列出所有任务
 	fmt.Println("=== 最终任务列表 ===")
 	fmt.Println()
-	finalListResult, _ := toolMap["list_subagents"].Execute(ctx, map[string]interface{}{}, nil)
-	finalListData := finalListResult.(map[string]interface{})
+	finalListResult, _ := toolMap["list_subagents"].Execute(ctx, map[string]any{}, nil)
+	finalListData := finalListResult.(map[string]any)
 	fmt.Printf("总任务数: %v\n", finalListData["count"])
-	if subagents, ok := finalListData["subagents"].([]map[string]interface{}); ok {
+	if subagents, ok := finalListData["subagents"].([]map[string]any); ok {
 		for _, sa := range subagents {
 			fmt.Printf("- task_id: %s, type: %s, status: %s, duration: %.1fs\n",
 				sa["task_id"], sa["subagent_type"], sa["status"], sa["duration"])

@@ -106,7 +106,7 @@ func (s *ActorSuite) TestCounterConcurrency() {
 func (s *ActorSuite) TestSupervisorRestart() {
 	// 使用静默 panic 处理器
 	config := actor.DefaultSystemConfig()
-	config.PanicHandler = func(a *actor.PID, msg actor.Message, err interface{}) {}
+	config.PanicHandler = func(a *actor.PID, msg actor.Message, err any) {}
 	s.system.Shutdown()
 	s.system = actor.NewSystemWithConfig("test", config)
 

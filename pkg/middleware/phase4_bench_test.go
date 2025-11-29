@@ -232,7 +232,7 @@ func BenchmarkExtractMessageContent(b *testing.B) {
 		Role: types.MessageRoleAssistant,
 		ContentBlocks: []types.ContentBlock{
 			&types.TextBlock{Text: "Hello, this is a test message"},
-			&types.ToolUseBlock{Name: "test_tool", Input: map[string]interface{}{"key": "value"}},
+			&types.ToolUseBlock{Name: "test_tool", Input: map[string]any{"key": "value"}},
 			&types.TextBlock{Text: "Another text block"},
 		},
 	}

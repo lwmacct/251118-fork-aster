@@ -216,7 +216,7 @@ func validateChineseID(id string) bool {
 	checkCodes := []rune{'1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'}
 
 	sum := 0
-	for i := 0; i < 17; i++ {
+	for i := range 17 {
 		digit := int(id[i] - '0')
 		sum += digit * weights[i]
 	}

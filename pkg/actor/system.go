@@ -50,7 +50,7 @@ type SystemConfig struct {
 	// EnableDeadLetterLogging 是否记录死信
 	EnableDeadLetterLogging bool
 	// PanicHandler panic 处理函数
-	PanicHandler func(actor *PID, msg Message, err interface{})
+	PanicHandler func(actor *PID, msg Message, err any)
 }
 
 // DefaultSystemConfig 默认系统配置
@@ -64,7 +64,7 @@ func DefaultSystemConfig() *SystemConfig {
 	}
 }
 
-func defaultPanicHandler(actor *PID, msg Message, err interface{}) {
+func defaultPanicHandler(actor *PID, msg Message, err any) {
 	log.Printf("[Actor] PANIC in %s processing %s: %v\n%s",
 		actor.ID, msg.Kind(), err, debug.Stack())
 }
@@ -525,7 +525,7 @@ func (s *System) processMessage(cell *actorCell, env envelope) {
 }
 
 // handleFailure 处理 Actor 失败
-func (s *System) handleFailure(cell *actorCell, msg Message, err interface{}) {
+func (s *System) handleFailure(cell *actorCell, msg Message, err any) {
 	supervisor := cell.supervisor
 	if supervisor == nil && cell.parent != nil {
 		// 使用父 Actor 的监督策略

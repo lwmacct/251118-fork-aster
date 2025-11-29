@@ -22,7 +22,7 @@ func TestPipeline_IngestAndSearch(t *testing.T) {
 		ID:        "doc1",
 		Text:      "Aster is built in Go.\n\nIt supports workflows and memory.",
 		Namespace: "demo",
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"source": "test",
 		},
 	})
@@ -33,7 +33,7 @@ func TestPipeline_IngestAndSearch(t *testing.T) {
 		t.Fatalf("expected 2 chunks, got %d", len(chunks))
 	}
 
-	hits, err := pipe.Search(context.Background(), "workflows", 2, map[string]interface{}{
+	hits, err := pipe.Search(context.Background(), "workflows", 2, map[string]any{
 		"namespace": "demo",
 	})
 	if err != nil {

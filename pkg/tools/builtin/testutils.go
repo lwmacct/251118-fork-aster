@@ -106,7 +106,7 @@ func NewMockToolContext() sandbox.Sandbox {
 }
 
 // ExecuteToolWithInput 使用指定输入执行工具
-func ExecuteToolWithInput(t *testing.T, tool tools.Tool, input map[string]interface{}) map[string]interface{} {
+func ExecuteToolWithInput(t *testing.T, tool tools.Tool, input map[string]any) map[string]any {
 	ctx := context.Background()
 	tc := &tools.ToolContext{
 		Signal:  ctx,
@@ -118,17 +118,17 @@ func ExecuteToolWithInput(t *testing.T, tool tools.Tool, input map[string]interf
 		t.Fatalf("Tool execution failed: %v", err)
 	}
 
-	// 将result转换为map[string]interface{}
-	if resultMap, ok := result.(map[string]interface{}); ok {
+	// 将result转换为map[string]any
+	if resultMap, ok := result.(map[string]any); ok {
 		return resultMap
 	}
 
-	t.Fatalf("Expected map[string]interface{} result, got %T", result)
+	t.Fatalf("Expected map[string]any result, got %T", result)
 	return nil
 }
 
 // ExecuteToolWithRealFS 使用真实文件系统执行工具
-func ExecuteToolWithRealFS(t *testing.T, tool tools.Tool, input map[string]interface{}) map[string]interface{} {
+func ExecuteToolWithRealFS(t *testing.T, tool tools.Tool, input map[string]any) map[string]any {
 	ctx := context.Background()
 	// 使用真实的文件系统而不是Mock
 	tc := &tools.ToolContext{
@@ -141,12 +141,12 @@ func ExecuteToolWithRealFS(t *testing.T, tool tools.Tool, input map[string]inter
 		t.Fatalf("Tool execution failed: %v", err)
 	}
 
-	// 将result转换为map[string]interface{}
-	if resultMap, ok := result.(map[string]interface{}); ok {
+	// 将result转换为map[string]any
+	if resultMap, ok := result.(map[string]any); ok {
 		return resultMap
 	}
 
-	t.Fatalf("Expected map[string]interface{} result, got %T", result)
+	t.Fatalf("Expected map[string]any result, got %T", result)
 	return nil
 }
 
@@ -235,7 +235,7 @@ func (rfs *RealFS) Glob(ctx context.Context, pattern string, opts *sandbox.GlobO
 }
 
 // AssertToolSuccess 断言工具执行成功
-func AssertToolSuccess(t *testing.T, result map[string]interface{}) map[string]interface{} {
+func AssertToolSuccess(t *testing.T, result map[string]any) map[string]any {
 	if ok, exists := result["ok"]; !exists || !ok.(bool) {
 		t.Errorf("Expected tool to succeed, got result: %+v", result)
 	}
@@ -243,7 +243,7 @@ func AssertToolSuccess(t *testing.T, result map[string]interface{}) map[string]i
 }
 
 // AssertToolError 断言工具执行失败
-func AssertToolError(t *testing.T, result map[string]interface{}) string {
+func AssertToolError(t *testing.T, result map[string]any) string {
 	if ok, exists := result["ok"]; exists && ok.(bool) {
 		t.Errorf("Expected tool to fail, but it succeeded")
 	}
@@ -350,7 +350,7 @@ func RunConcurrentTest(concurrency int, testFunc func() error) *ConcurrentTestRe
 	start := time.Now()
 
 	// 启动并发goroutines
-	for i := 0; i < concurrency; i++ {
+	for range concurrency {
 		go func() {
 			results <- testFunc()
 		}()
@@ -361,7 +361,7 @@ func RunConcurrentTest(concurrency int, testFunc func() error) *ConcurrentTestRe
 	errorCount := 0
 	var errors []error
 
-	for i := 0; i < concurrency; i++ {
+	for range concurrency {
 		if err := <-results; err != nil {
 			errorCount++
 			errors = append(errors, err)
@@ -386,7 +386,7 @@ func SkipIfShort(t *testing.T) {
 }
 
 // BenchmarkTool 工具性能基准测试辅助函数
-func BenchmarkTool(b *testing.B, tool tools.Tool, input map[string]interface{}) {
+func BenchmarkTool(b *testing.B, tool tools.Tool, input map[string]any) {
 	ctx := context.Background()
 	tc := &tools.ToolContext{
 		Signal:  ctx,

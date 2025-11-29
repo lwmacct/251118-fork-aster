@@ -29,7 +29,7 @@ var (
 - Helping with architecture and design decisions
 
 Always provide clear, well-documented code with proper error handling.`,
-			Tools: []interface{}{"Read", "Write", "Bash", "TodoWrite"},
+			Tools: []any{"Read", "Write", "Bash", "TodoWrite"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:         true,
@@ -64,7 +64,7 @@ Always provide clear, well-documented code with proper error handling.`,
 - Organize research materials
 
 Always be thorough, accurate, and cite your sources when possible.`,
-			Tools: []interface{}{"Read", "WebSearch", "TodoWrite"},
+			Tools: []any{"Read", "WebSearch", "TodoWrite"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:         true,
@@ -97,7 +97,7 @@ Always be thorough, accurate, and cite your sources when possible.`,
 - Provide data-driven insights
 
 Always explain your methodology and validate your findings.`,
-			Tools: []interface{}{"Read", "Write", "Bash"},
+			Tools: []any{"Read", "Write", "Bash"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:         true,
@@ -132,7 +132,7 @@ Always explain your methodology and validate your findings.`,
 - Ensure security and compliance
 
 Always follow best practices for security, reliability, and scalability.`,
-			Tools: []interface{}{"Read", "Write", "Bash"},
+			Tools: []any{"Read", "Write", "Bash"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:         true,
@@ -167,7 +167,7 @@ Always follow best practices for security, reliability, and scalability.`,
 - Make technical content accessible
 
 Always write in clear, concise language appropriate for the target audience.`,
-			Tools: []interface{}{"Read", "Write"},
+			Tools: []any{"Read", "Write"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:         true,
@@ -201,7 +201,7 @@ Always write in clear, concise language appropriate for the target audience.`,
 - Identify risks and dependencies
 
 Always maintain clear communication and keep tasks well-organized.`,
-			Tools: []interface{}{"TodoWrite", "Read", "Write"},
+			Tools: []any{"TodoWrite", "Read", "Write"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:             true,
@@ -235,7 +235,7 @@ Always maintain clear communication and keep tasks well-organized.`,
 - Perform security assessments
 
 Always prioritize security and follow the principle of least privilege.`,
-			Tools: []interface{}{"Read", "Write"},
+			Tools: []any{"Read", "Write"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:         true,
@@ -262,7 +262,7 @@ Always prioritize security and follow the principle of least privilege.`,
 		Template: &types.AgentTemplateDefinition{
 			ID:           "general-assistant",
 			SystemPrompt: `You are a helpful assistant. Help users with their tasks efficiently and accurately.`,
-			Tools:        []interface{}{"Read", "Write", "TodoWrite"},
+			Tools:        []any{"Read", "Write", "TodoWrite"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:         true,
@@ -310,7 +310,7 @@ Return findings with:
 - Be thorough but efficient
 - Report both findings and non-findings
 - Suggest areas for further investigation`,
-			Tools: []interface{}{"Read", "Glob", "Grep", "WebFetch", "WebSearch"},
+			Tools: []any{"Read", "Glob", "Grep", "WebFetch", "WebSearch"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:         false,
@@ -361,7 +361,7 @@ Return a detailed plan with:
 - Be specific about file changes required
 - Include rollback considerations
 - Focus on maintainability and simplicity`,
-			Tools: []interface{}{"Read", "Glob", "Grep", "WebFetch", "WebSearch", "AskUserQuestion"},
+			Tools: []any{"Read", "Glob", "Grep", "WebFetch", "WebSearch", "AskUserQuestion"},
 			Runtime: &types.AgentTemplateRuntime{
 				Todo: &types.TodoConfig{
 					Enabled:         true,

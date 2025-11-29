@@ -12,7 +12,7 @@ type JSONSchema struct {
 	Properties map[string]*JSONSchema `json:"properties,omitempty"` // 对象属性（仅 type=object 时有效）
 	Items      *JSONSchema            `json:"items,omitempty"`      // 数组元素（仅 type=array 时有效）
 	Required   []string               `json:"required,omitempty"`   // 必需字段（仅 type=object 时有效）
-	Enum       []interface{}          `json:"enum,omitempty"`       // 枚举值
+	Enum       []any          `json:"enum,omitempty"`       // 枚举值
 	MinLength  *int                   `json:"minLength,omitempty"`  // 最小长度（仅 type=string 时有效）
 	MaxLength  *int                   `json:"maxLength,omitempty"`  // 最大长度（仅 type=string 时有效）
 	Pattern    string                 `json:"pattern,omitempty"`    // 正则模式（仅 type=string 时有效）
@@ -67,7 +67,7 @@ func (s *JSONSchema) ValidateContent(content string) error {
 	}
 
 	// 否则，尝试解析为 JSON 并验证
-	var data interface{}
+	var data any
 	if err := json.Unmarshal([]byte(content), &data); err != nil {
 		return fmt.Errorf("content is not valid JSON: %w", err)
 	}
@@ -91,7 +91,7 @@ func (s *JSONSchema) validateString(value string) error {
 }
 
 // validateValue 验证任意类型的值
-func (s *JSONSchema) validateValue(value interface{}) error {
+func (s *JSONSchema) validateValue(value any) error {
 	if s.Type != "" {
 		if err := s.validateType(value); err != nil {
 			return err
@@ -126,14 +126,14 @@ func (s *JSONSchema) validateValue(value interface{}) error {
 }
 
 // validateType 验证值的类型
-func (s *JSONSchema) validateType(value interface{}) error {
+func (s *JSONSchema) validateType(value any) error {
 	switch s.Type {
 	case "object":
-		if _, ok := value.(map[string]interface{}); !ok {
+		if _, ok := value.(map[string]any); !ok {
 			return fmt.Errorf("expected object, got %T", value)
 		}
 	case "array":
-		if _, ok := value.([]interface{}); !ok {
+		if _, ok := value.([]any); !ok {
 			return fmt.Errorf("expected array, got %T", value)
 		}
 	case "string":
@@ -169,8 +169,8 @@ func (s *JSONSchema) validateType(value interface{}) error {
 }
 
 // validateObject 验证对象
-func (s *JSONSchema) validateObject(value interface{}) error {
-	obj, ok := value.(map[string]interface{})
+func (s *JSONSchema) validateObject(value any) error {
+	obj, ok := value.(map[string]any)
 	if !ok {
 		return fmt.Errorf("expected object, got %T", value)
 	}
@@ -195,8 +195,8 @@ func (s *JSONSchema) validateObject(value interface{}) error {
 }
 
 // validateArray 验证数组
-func (s *JSONSchema) validateArray(value interface{}) error {
-	arr, ok := value.([]interface{})
+func (s *JSONSchema) validateArray(value any) error {
+	arr, ok := value.([]any)
 	if !ok {
 		return fmt.Errorf("expected array, got %T", value)
 	}
@@ -214,7 +214,7 @@ func (s *JSONSchema) validateArray(value interface{}) error {
 }
 
 // NewJSONSchemaFromMap 从 map 创建 JSONSchema（方便从配置文件加载）
-func NewJSONSchemaFromMap(m map[string]interface{}) (*JSONSchema, error) {
+func NewJSONSchemaFromMap(m map[string]any) (*JSONSchema, error) {
 	// 序列化再反序列化，简单实现类型转换
 	jsonData, err := json.Marshal(m)
 	if err != nil {
@@ -234,18 +234,18 @@ func NewJSONSchemaFromMap(m map[string]interface{}) (*JSONSchema, error) {
 }
 
 // ToMap 将 JSONSchema 转换为 map（方便序列化）
-func (s *JSONSchema) ToMap() map[string]interface{} {
+func (s *JSONSchema) ToMap() map[string]any {
 	if s == nil {
 		return nil
 	}
 
-	result := make(map[string]interface{})
+	result := make(map[string]any)
 
 	if s.Type != "" {
 		result["type"] = s.Type
 	}
 	if s.Properties != nil {
-		props := make(map[string]interface{})
+		props := make(map[string]any)
 		for name, prop := range s.Properties {
 			props[name] = prop.ToMap()
 		}

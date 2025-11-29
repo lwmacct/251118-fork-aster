@@ -39,7 +39,7 @@ func TestHttpRequestTool_Success(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := tool.Execute(ctx, map[string]interface{}{
+	result, err := tool.Execute(ctx, map[string]any{
 		"url":    server.URL,
 		"method": "GET",
 	}, &tools.ToolContext{})
@@ -48,7 +48,7 @@ func TestHttpRequestTool_Success(t *testing.T) {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	resultMap, ok := result.(map[string]interface{})
+	resultMap, ok := result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
@@ -71,7 +71,7 @@ func TestHttpRequestTool_JsonResponse(t *testing.T) {
 	server := newLocalHTTPServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"message": "success",
 			"code":    0,
 		})
@@ -84,7 +84,7 @@ func TestHttpRequestTool_JsonResponse(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := tool.Execute(ctx, map[string]interface{}{
+	result, err := tool.Execute(ctx, map[string]any{
 		"url": server.URL,
 	}, &tools.ToolContext{})
 
@@ -92,13 +92,13 @@ func TestHttpRequestTool_JsonResponse(t *testing.T) {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	resultMap, ok := result.(map[string]interface{})
+	resultMap, ok := result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
 
 	// 验证content被解析为JSON
-	content, ok := resultMap["content"].(map[string]interface{})
+	content, ok := resultMap["content"].(map[string]any)
 	if !ok {
 		t.Fatal("Content is not a JSON object")
 	}
@@ -136,7 +136,7 @@ func TestHttpRequestTool_POST_WithBody(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := tool.Execute(ctx, map[string]interface{}{
+	result, err := tool.Execute(ctx, map[string]any{
 		"url":    server.URL,
 		"method": "POST",
 		"body":   "test data",
@@ -146,7 +146,7 @@ func TestHttpRequestTool_POST_WithBody(t *testing.T) {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	resultMap, ok := result.(map[string]interface{})
+	resultMap, ok := result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
@@ -177,9 +177,9 @@ func TestHttpRequestTool_CustomHeaders(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := tool.Execute(ctx, map[string]interface{}{
+	result, err := tool.Execute(ctx, map[string]any{
 		"url": server.URL,
-		"headers": map[string]interface{}{
+		"headers": map[string]any{
 			"Authorization": "Bearer test-token",
 			"Accept":        "application/json",
 		},
@@ -189,7 +189,7 @@ func TestHttpRequestTool_CustomHeaders(t *testing.T) {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	resultMap, ok := result.(map[string]interface{})
+	resultMap, ok := result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
@@ -210,7 +210,7 @@ func TestHttpRequestTool_InvalidURL(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := tool.Execute(ctx, map[string]interface{}{
+	result, err := tool.Execute(ctx, map[string]any{
 		"url": "not-a-valid-url",
 	}, &tools.ToolContext{})
 
@@ -218,7 +218,7 @@ func TestHttpRequestTool_InvalidURL(t *testing.T) {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	resultMap, ok := result.(map[string]interface{})
+	resultMap, ok := result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
@@ -242,7 +242,7 @@ func TestHttpRequestTool_404Status(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := tool.Execute(ctx, map[string]interface{}{
+	result, err := tool.Execute(ctx, map[string]any{
 		"url": server.URL + "/nonexistent",
 	}, &tools.ToolContext{})
 
@@ -250,7 +250,7 @@ func TestHttpRequestTool_404Status(t *testing.T) {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	resultMap, ok := result.(map[string]interface{})
+	resultMap, ok := result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
@@ -278,7 +278,7 @@ func TestHttpRequestTool_EmptyResponse(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := tool.Execute(ctx, map[string]interface{}{
+	result, err := tool.Execute(ctx, map[string]any{
 		"url": server.URL,
 	}, &tools.ToolContext{})
 
@@ -286,7 +286,7 @@ func TestHttpRequestTool_EmptyResponse(t *testing.T) {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	resultMap, ok := result.(map[string]interface{})
+	resultMap, ok := result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}

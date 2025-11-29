@@ -157,7 +157,7 @@ func (m *FilesystemMiddleware) evictLargeResults(ctx context.Context, req *ToolC
 				preview = resultStr
 			}
 
-			resp.Result = map[string]interface{}{
+			resp.Result = map[string]any{
 				"ok":      true,
 				"evicted": true,
 				"path":    path,

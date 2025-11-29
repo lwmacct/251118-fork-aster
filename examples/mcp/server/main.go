@@ -24,15 +24,15 @@ type EchoTool struct{}
 func (t *EchoTool) Name() string        { return "echo" }
 func (t *EchoTool) Description() string { return "Echo the input text with an optional prefix." }
 
-func (t *EchoTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *EchoTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"text": map[string]interface{}{
+		"properties": map[string]any{
+			"text": map[string]any{
 				"type":        "string",
 				"description": "Text to echo.",
 			},
-			"prefix": map[string]interface{}{
+			"prefix": map[string]any{
 				"type":        "string",
 				"description": "Optional prefix to add before the text.",
 			},
@@ -41,7 +41,7 @@ func (t *EchoTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *EchoTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *EchoTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	text, _ := input["text"].(string)
 	prefix, _ := input["prefix"].(string)
 
@@ -58,7 +58,7 @@ func (t *EchoTool) Prompt() string {
 func main() {
 	// 1. 注册工具
 	registry := tools.NewRegistry()
-	registry.Register("echo", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("echo", func(config map[string]any) (tools.Tool, error) {
 		return &EchoTool{}, nil
 	})
 

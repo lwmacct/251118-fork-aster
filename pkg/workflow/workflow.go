@@ -28,7 +28,7 @@ type Workflow struct {
 	// 会话
 	SessionID    string
 	UserID       string
-	SessionState map[string]interface{}
+	SessionState map[string]any
 	CacheSession bool
 
 	// 配置
@@ -50,10 +50,10 @@ type Workflow struct {
 	SkipEvents           []WorkflowEventType
 
 	// 输入验证
-	InputSchema interface{} // Type for input validation
+	InputSchema any // Type for input validation
 
 	// 元数据
-	Metadata map[string]interface{}
+	Metadata map[string]any
 
 	// 历史
 	AddWorkflowHistory bool
@@ -79,7 +79,7 @@ func New(name string) *Workflow {
 		StoreEvents:          false,
 		StoreExecutorOutputs: true,
 		SkipEvents:           make([]WorkflowEventType, 0),
-		Metadata:             make(map[string]interface{}),
+		Metadata:             make(map[string]any),
 		AddWorkflowHistory:   false,
 		NumHistoryRuns:       3,
 		CacheSession:         false,
@@ -114,9 +114,9 @@ func (w *Workflow) WithTimeout(timeout time.Duration) *Workflow {
 }
 
 // WithMetadata 添加元数据
-func (w *Workflow) WithMetadata(key string, value interface{}) *Workflow {
+func (w *Workflow) WithMetadata(key string, value any) *Workflow {
 	if w.Metadata == nil {
-		w.Metadata = make(map[string]interface{})
+		w.Metadata = make(map[string]any)
 	}
 	w.Metadata[key] = value
 	return w
@@ -170,7 +170,7 @@ func (w *Workflow) Validate() error {
 }
 
 // ValidateInput 验证输入
-func (w *Workflow) ValidateInput(input interface{}) error {
+func (w *Workflow) ValidateInput(input any) error {
 	if w.InputSchema == nil {
 		return nil
 	}
@@ -224,7 +224,7 @@ func (w *Workflow) CreateSession(sessionID, userID string) *WorkflowSession {
 	session := &WorkflowSession{
 		ID:         sessionID,
 		WorkflowID: w.ID,
-		State:      make(map[string]interface{}),
+		State:      make(map[string]any),
 		History:    make([]*WorkflowRun, 0),
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
@@ -346,7 +346,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Re
 			WorkflowName: w.Name,
 			RunID:        runID,
 			Timestamp:    startTime,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"input":      input.Input,
 				"session_id": sessionID,
 				"user_id":    userID,
@@ -356,7 +356,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Re
 		}
 
 		// 合并会话状态
-		sessionState := make(map[string]interface{})
+		sessionState := make(map[string]any)
 		if session.State != nil {
 			for k, v := range session.State {
 				sessionState[k] = v
@@ -401,7 +401,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Re
 					StepID:       step.ID(),
 					StepName:     step.Name(),
 					Timestamp:    stepStartTime,
-					Data: map[string]interface{}{
+					Data: map[string]any{
 						"index": i,
 						"type":  step.Type(),
 					},
@@ -454,7 +454,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Re
 						StepID:       step.ID(),
 						StepName:     step.Name(),
 						Timestamp:    stepEndTime,
-						Data: map[string]interface{}{
+						Data: map[string]any{
 							"error":    stepError.Error(),
 							"duration": stepEndTime.Sub(stepStartTime).Seconds(),
 						},
@@ -478,7 +478,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Re
 						WorkflowName: w.Name,
 						RunID:        runID,
 						Timestamp:    run.EndTime,
-						Data: map[string]interface{}{
+						Data: map[string]any{
 							"error":    stepError.Error(),
 							"duration": run.Duration,
 							"metrics":  run.Metrics,
@@ -514,7 +514,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Re
 					StepID:       step.ID(),
 					StepName:     step.Name(),
 					Timestamp:    stepEndTime,
-					Data: map[string]interface{}{
+					Data: map[string]any{
 						"output":   stepOutput,
 						"duration": stepEndTime.Sub(stepStartTime).Seconds(),
 					},
@@ -536,7 +536,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Re
 					WorkflowName: w.Name,
 					RunID:        runID,
 					Timestamp:    run.EndTime,
-					Data: map[string]interface{}{
+					Data: map[string]any{
 						"reason": ctx.Err().Error(),
 					},
 				}, ctx.Err())
@@ -566,7 +566,7 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Re
 			WorkflowName: w.Name,
 			RunID:        runID,
 			Timestamp:    run.EndTime,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"output":       run.Output,
 				"duration":     run.Duration,
 				"metrics":      run.Metrics,
@@ -582,8 +582,8 @@ func (w *Workflow) Execute(ctx context.Context, input *WorkflowInput) *stream.Re
 // ===== 辅助方法 =====
 
 // GetWorkflowData 获取 Workflow 数据
-func (w *Workflow) GetWorkflowData() map[string]interface{} {
-	return map[string]interface{}{
+func (w *Workflow) GetWorkflowData() map[string]any {
+	return map[string]any{
 		"id":          w.ID,
 		"name":        w.Name,
 		"description": w.Description,

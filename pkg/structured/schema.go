@@ -12,7 +12,7 @@ type JSONSchema struct {
 	Items       *JSONSchema            `json:"items,omitempty"`
 	Required    []string               `json:"required,omitempty"`
 	Description string                 `json:"description,omitempty"`
-	Enum        []interface{}          `json:"enum,omitempty"`
+	Enum        []any          `json:"enum,omitempty"`
 	Minimum     *float64               `json:"minimum,omitempty"`
 	Maximum     *float64               `json:"maximum,omitempty"`
 	MinLength   *int                   `json:"minLength,omitempty"`
@@ -35,7 +35,7 @@ func NewSchemaValidator(schema *JSONSchema) *SchemaValidator {
 
 // Validate 验证 JSON 数据
 func (sv *SchemaValidator) Validate(jsonData string) error {
-	var data interface{}
+	var data any
 	if err := json.Unmarshal([]byte(jsonData), &data); err != nil {
 		return fmt.Errorf("invalid json: %w", err)
 	}
@@ -44,7 +44,7 @@ func (sv *SchemaValidator) Validate(jsonData string) error {
 }
 
 // validateValue 验证值
-func (sv *SchemaValidator) validateValue(value interface{}, schema *JSONSchema, path string) error {
+func (sv *SchemaValidator) validateValue(value any, schema *JSONSchema, path string) error {
 	if schema == nil {
 		return nil
 	}
@@ -72,7 +72,7 @@ func (sv *SchemaValidator) validateValue(value interface{}, schema *JSONSchema, 
 }
 
 // validateType 验证类型
-func (sv *SchemaValidator) validateType(value interface{}, expectedType string, path string) error {
+func (sv *SchemaValidator) validateType(value any, expectedType string, path string) error {
 	actualType := getJSONType(value)
 
 	// integer 可以是 number
@@ -92,8 +92,8 @@ func (sv *SchemaValidator) validateType(value interface{}, expectedType string, 
 }
 
 // validateObject 验证对象
-func (sv *SchemaValidator) validateObject(value interface{}, schema *JSONSchema, path string) error {
-	obj, ok := value.(map[string]interface{})
+func (sv *SchemaValidator) validateObject(value any, schema *JSONSchema, path string) error {
+	obj, ok := value.(map[string]any)
 	if !ok {
 		return fmt.Errorf("%s: expected object", path)
 	}
@@ -119,8 +119,8 @@ func (sv *SchemaValidator) validateObject(value interface{}, schema *JSONSchema,
 }
 
 // validateArray 验证数组
-func (sv *SchemaValidator) validateArray(value interface{}, schema *JSONSchema, path string) error {
-	arr, ok := value.([]interface{})
+func (sv *SchemaValidator) validateArray(value any, schema *JSONSchema, path string) error {
+	arr, ok := value.([]any)
 	if !ok {
 		return fmt.Errorf("%s: expected array", path)
 	}
@@ -139,7 +139,7 @@ func (sv *SchemaValidator) validateArray(value interface{}, schema *JSONSchema, 
 }
 
 // validateString 验证字符串
-func (sv *SchemaValidator) validateString(value interface{}, schema *JSONSchema, path string) error {
+func (sv *SchemaValidator) validateString(value any, schema *JSONSchema, path string) error {
 	str, ok := value.(string)
 	if !ok {
 		return fmt.Errorf("%s: expected string", path)
@@ -172,7 +172,7 @@ func (sv *SchemaValidator) validateString(value interface{}, schema *JSONSchema,
 }
 
 // validateNumber 验证数字
-func (sv *SchemaValidator) validateNumber(value interface{}, schema *JSONSchema, path string) error {
+func (sv *SchemaValidator) validateNumber(value any, schema *JSONSchema, path string) error {
 	num, ok := value.(float64)
 	if !ok {
 		return fmt.Errorf("%s: expected number", path)
@@ -191,11 +191,11 @@ func (sv *SchemaValidator) validateNumber(value interface{}, schema *JSONSchema,
 }
 
 // getJSONType 获取 JSON 类型
-func getJSONType(value interface{}) string {
+func getJSONType(value any) string {
 	switch value.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		return "object"
-	case []interface{}:
+	case []any:
 		return "array"
 	case string:
 		return "string"

@@ -100,16 +100,16 @@ type NodeResult struct {
 	StartTime  time.Time              `json:"start_time"`
 	EndTime    time.Time              `json:"end_time"`
 	Duration   time.Duration          `json:"duration"`
-	Inputs     map[string]interface{} `json:"inputs"`
-	Outputs    map[string]interface{} `json:"outputs"`
+	Inputs     map[string]any `json:"inputs"`
+	Outputs    map[string]any `json:"outputs"`
 	Error      string                 `json:"error,omitempty"`
 	RetryCount int                    `json:"retry_count"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   map[string]any `json:"metadata"`
 }
 
 // AgentFactory Agent工厂接口
 type AgentFactory interface {
-	CreateAgent(ctx context.Context, ref *AgentRef, config map[string]interface{}) (workflow.Agent, error)
+	CreateAgent(ctx context.Context, ref *AgentRef, config map[string]any) (workflow.Agent, error)
 }
 
 // SessionManager 会话管理器接口
@@ -132,7 +132,7 @@ type WorkflowEvent struct {
 	ExecutionID string                 `json:"execution_id"`
 	NodeID      string                 `json:"node_id"`
 	Timestamp   time.Time              `json:"timestamp"`
-	Data        map[string]interface{} `json:"data"`
+	Data        map[string]any `json:"data"`
 }
 
 // EventHandler 事件处理器
@@ -185,7 +185,7 @@ func (e *Engine) SetDependencies(factory AgentFactory, sessionMgr SessionManager
 }
 
 // Execute 执行工作流
-func (e *Engine) Execute(ctx context.Context, workflowID string, inputs map[string]interface{}) (*WorkflowResult, error) {
+func (e *Engine) Execute(ctx context.Context, workflowID string, inputs map[string]any) (*WorkflowResult, error) {
 	// 加载工作流定义
 	def, err := e.loadWorkflowDefinition(workflowID)
 	if err != nil {
@@ -217,7 +217,7 @@ func (e *Engine) Execute(ctx context.Context, workflowID string, inputs map[stri
 }
 
 // ExecuteAsync 异步执行工作流
-func (e *Engine) ExecuteAsync(ctx context.Context, workflowID string, inputs map[string]interface{}) (string, error) {
+func (e *Engine) ExecuteAsync(ctx context.Context, workflowID string, inputs map[string]any) (string, error) {
 	// 加载工作流定义
 	def, err := e.loadWorkflowDefinition(workflowID)
 	if err != nil {
@@ -385,7 +385,7 @@ func (e *Engine) loadWorkflowDefinition(workflowID string) (*WorkflowDefinition,
 }
 
 // validateInputs 验证输入
-func (e *Engine) validateInputs(def *WorkflowDefinition, inputs map[string]interface{}) error {
+func (e *Engine) validateInputs(def *WorkflowDefinition, inputs map[string]any) error {
 	for _, inputDef := range def.Inputs {
 		if inputDef.Required {
 			if _, exists := inputs[inputDef.Name]; !exists {
@@ -397,7 +397,7 @@ func (e *Engine) validateInputs(def *WorkflowDefinition, inputs map[string]inter
 }
 
 // createExecution 创建执行实例
-func (e *Engine) createExecution(def *WorkflowDefinition, inputs map[string]interface{}) (*WorkflowExecution, error) {
+func (e *Engine) createExecution(def *WorkflowDefinition, inputs map[string]any) (*WorkflowExecution, error) {
 	executionID := generateExecutionID()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -415,12 +415,12 @@ func (e *Engine) createExecution(def *WorkflowDefinition, inputs map[string]inte
 		ExecutionID: executionID,
 		StartTime:   time.Now(),
 		Status:      StatusPending,
-		Variables:   make(map[string]interface{}),
+		Variables:   make(map[string]any),
 		Inputs:      inputs,
-		Outputs:     make(map[string]interface{}),
+		Outputs:     make(map[string]any),
 		Completed:   make(map[string]bool),
 		Failed:      make(map[string]error),
-		Metadata:    make(map[string]interface{}),
+		Metadata:    make(map[string]any),
 		Context:     ctx,
 		Session:     session,
 	}
@@ -455,7 +455,7 @@ func (e *Engine) createExecution(def *WorkflowDefinition, inputs map[string]inte
 			ExecutionID: executionID,
 			NodeID:      "",
 			Timestamp:   time.Now(),
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"workflow_id": def.ID,
 			},
 		})
@@ -536,9 +536,9 @@ func (e *Engine) executeNode(execution *WorkflowExecution, nodeID string) bool {
 		NodeType:  node.Type,
 		Status:    StatusRunning,
 		StartTime: time.Now(),
-		Inputs:    make(map[string]interface{}),
-		Outputs:   make(map[string]interface{}),
-		Metadata:  make(map[string]interface{}),
+		Inputs:    make(map[string]any),
+		Outputs:   make(map[string]any),
+		Metadata:  make(map[string]any),
 	}
 
 	// 执行节点
@@ -591,7 +591,7 @@ func (e *Engine) executeNode(execution *WorkflowExecution, nodeID string) bool {
 			ExecutionID: execution.ID,
 			NodeID:      nodeID,
 			Timestamp:   time.Now(),
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"node_type": node.Type,
 				"duration":  result.Duration,
 			},
@@ -806,7 +806,7 @@ func (e *Engine) prepareInputMessage(execution *WorkflowExecution, node *NodeDef
 }
 
 // processAgentEvent 处理Agent事件
-func (e *Engine) processAgentEvent(event *session.Event, outputs map[string]interface{}) map[string]interface{} {
+func (e *Engine) processAgentEvent(event *session.Event, outputs map[string]any) map[string]any {
 	if event.Content.Content != "" {
 		outputs["content"] = event.Content.Content
 	}
@@ -876,7 +876,7 @@ func (e *Engine) markExecutionCompleted(execution *WorkflowExecution) {
 			ExecutionID: execution.ID,
 			NodeID:      "",
 			Timestamp:   time.Now(),
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"duration": execution.EndTime.Sub(execution.StartTime),
 			},
 		})
@@ -911,7 +911,7 @@ func (e *Engine) markExecutionFailed(execution *WorkflowExecution, err error) {
 			ExecutionID: execution.ID,
 			NodeID:      "",
 			Timestamp:   time.Now(),
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"error": err.Error(),
 			},
 		})

@@ -36,7 +36,7 @@ func TestSubAgentMiddleware_AsyncExecution(t *testing.T) {
 
 	// 创建工厂
 	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			time.Sleep(100 * time.Millisecond) // 模拟处理时间
 			return "Task completed: " + description, nil
 		}
@@ -56,14 +56,14 @@ func TestSubAgentMiddleware_AsyncExecution(t *testing.T) {
 
 	// 测试异步执行
 	ctx := context.Background()
-	result, err := taskTool.Execute(ctx, map[string]interface{}{
+	result, err := taskTool.Execute(ctx, map[string]any{
 		"description":   "Test async task",
 		"subagent_type": "test-agent",
 		"async":         true,
 	}, nil)
 	require.NoError(t, err)
 
-	resultMap := result.(map[string]interface{})
+	resultMap := result.(map[string]any)
 	assert.True(t, resultMap["ok"].(bool))
 	assert.NotEmpty(t, resultMap["task_id"])
 	assert.Equal(t, "test-agent", resultMap["subagent_type"])
@@ -76,12 +76,12 @@ func TestSubAgentMiddleware_AsyncExecution(t *testing.T) {
 	// 查询任务状态
 	queryTool := getTool[*QuerySubagentTool](t, mw, "query_subagent")
 
-	queryResult, err := queryTool.Execute(ctx, map[string]interface{}{
+	queryResult, err := queryTool.Execute(ctx, map[string]any{
 		"task_id": taskID,
 	}, nil)
 	require.NoError(t, err)
 
-	queryMap := queryResult.(map[string]interface{})
+	queryMap := queryResult.(map[string]any)
 	assert.True(t, queryMap["ok"].(bool))
 	assert.Equal(t, "completed", queryMap["status"])
 	assert.Contains(t, queryMap["output"], "Task completed")
@@ -97,7 +97,7 @@ func TestSubAgentMiddleware_QuerySubagent(t *testing.T) {
 	}
 
 	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			time.Sleep(50 * time.Millisecond)
 			return "result: " + description, nil
 		}
@@ -113,25 +113,25 @@ func TestSubAgentMiddleware_QuerySubagent(t *testing.T) {
 
 	taskTool := getTool[*TaskTool](t, mw, "task")
 	ctx := context.Background()
-	taskResult, err := taskTool.Execute(ctx, map[string]interface{}{
+	taskResult, err := taskTool.Execute(ctx, map[string]any{
 		"description":   "Query status",
 		"subagent_type": "test-agent",
 		"async":         true,
 	}, nil)
 	require.NoError(t, err)
 
-	taskMap := taskResult.(map[string]interface{})
+	taskMap := taskResult.(map[string]any)
 	taskID := taskMap["task_id"].(string)
 
 	time.Sleep(150 * time.Millisecond)
 
 	queryTool := getTool[*QuerySubagentTool](t, mw, "query_subagent")
-	result, err := queryTool.Execute(ctx, map[string]interface{}{
+	result, err := queryTool.Execute(ctx, map[string]any{
 		"task_id": taskID,
 	}, nil)
 	require.NoError(t, err)
 
-	resultMap := result.(map[string]interface{})
+	resultMap := result.(map[string]any)
 	assert.True(t, resultMap["ok"].(bool))
 	assert.Equal(t, taskID, resultMap["task_id"])
 	assert.Equal(t, "completed", resultMap["status"])
@@ -148,7 +148,7 @@ func TestSubAgentMiddleware_StopSubagent(t *testing.T) {
 	}
 
 	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			ticker := time.NewTicker(50 * time.Millisecond)
 			defer ticker.Stop()
 			for {
@@ -171,32 +171,32 @@ func TestSubAgentMiddleware_StopSubagent(t *testing.T) {
 
 	taskTool := getTool[*TaskTool](t, mw, "task")
 	ctx := context.Background()
-	taskResult, err := taskTool.Execute(ctx, map[string]interface{}{
+	taskResult, err := taskTool.Execute(ctx, map[string]any{
 		"description":   "long running",
 		"subagent_type": "slow-agent",
 		"async":         true,
 	}, nil)
 	require.NoError(t, err)
 
-	taskID := taskResult.(map[string]interface{})["task_id"].(string)
+	taskID := taskResult.(map[string]any)["task_id"].(string)
 	stopTool := getTool[*StopSubagentTool](t, mw, "stop_subagent")
 
-	result, err := stopTool.Execute(ctx, map[string]interface{}{
+	result, err := stopTool.Execute(ctx, map[string]any{
 		"task_id": taskID,
 	}, nil)
 	require.NoError(t, err)
 
-	resultMap := result.(map[string]interface{})
+	resultMap := result.(map[string]any)
 	assert.True(t, resultMap["ok"].(bool))
 	assert.Equal(t, taskID, resultMap["task_id"])
 
 	queryTool := getTool[*QuerySubagentTool](t, mw, "query_subagent")
-	statusResult, err := queryTool.Execute(ctx, map[string]interface{}{
+	statusResult, err := queryTool.Execute(ctx, map[string]any{
 		"task_id": taskID,
 	}, nil)
 	require.NoError(t, err)
 
-	status := statusResult.(map[string]interface{})
+	status := statusResult.(map[string]any)
 	assert.Equal(t, "stopped", status["status"])
 }
 
@@ -210,7 +210,7 @@ func TestSubAgentMiddleware_ResumeSubagent(t *testing.T) {
 	}
 
 	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			select {
 			case <-ctx.Done():
 				return "", ctx.Err()
@@ -230,25 +230,25 @@ func TestSubAgentMiddleware_ResumeSubagent(t *testing.T) {
 
 	taskTool := getTool[*TaskTool](t, mw, "task")
 	ctx := context.Background()
-	taskResult, err := taskTool.Execute(ctx, map[string]interface{}{
+	taskResult, err := taskTool.Execute(ctx, map[string]any{
 		"description":   "needs resume",
 		"subagent_type": "resumable-agent",
 		"async":         true,
 	}, nil)
 	require.NoError(t, err)
 
-	taskID := taskResult.(map[string]interface{})["task_id"].(string)
+	taskID := taskResult.(map[string]any)["task_id"].(string)
 	stopTool := getTool[*StopSubagentTool](t, mw, "stop_subagent")
-	_, err = stopTool.Execute(ctx, map[string]interface{}{"task_id": taskID}, nil)
+	_, err = stopTool.Execute(ctx, map[string]any{"task_id": taskID}, nil)
 	require.NoError(t, err)
 
 	resumeTool := getTool[*ResumeSubagentTool](t, mw, "resume_subagent")
-	result, err := resumeTool.Execute(ctx, map[string]interface{}{
+	result, err := resumeTool.Execute(ctx, map[string]any{
 		"task_id": taskID,
 	}, nil)
 	require.NoError(t, err)
 
-	resultMap := result.(map[string]interface{})
+	resultMap := result.(map[string]any)
 	assert.True(t, resultMap["ok"].(bool))
 	assert.Equal(t, taskID, resultMap["old_task_id"])
 	assert.NotEmpty(t, resultMap["new_task_id"])
@@ -264,7 +264,7 @@ func TestSubAgentMiddleware_ListSubagents(t *testing.T) {
 	}
 
 	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			time.Sleep(50 * time.Millisecond)
 			return "done", nil
 		}
@@ -282,7 +282,7 @@ func TestSubAgentMiddleware_ListSubagents(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 3; i++ {
-		_, err := taskTool.Execute(ctx, map[string]interface{}{
+		_, err := taskTool.Execute(ctx, map[string]any{
 			"description":   "list job",
 			"subagent_type": "worker",
 			"async":         true,
@@ -293,10 +293,10 @@ func TestSubAgentMiddleware_ListSubagents(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	listTool := getTool[*ListSubagentsTool](t, mw, "list_subagents")
-	result, err := listTool.Execute(ctx, map[string]interface{}{}, nil)
+	result, err := listTool.Execute(ctx, map[string]any{}, nil)
 	require.NoError(t, err)
 
-	resultMap := result.(map[string]interface{})
+	resultMap := result.(map[string]any)
 	assert.True(t, resultMap["ok"].(bool))
 	count := resultMap["count"].(int)
 	assert.GreaterOrEqual(t, count, 3)
@@ -315,7 +315,7 @@ func TestSubAgentMiddleware_SyncVsAsync(t *testing.T) {
 
 	// 创建工厂
 	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			time.Sleep(500 * time.Millisecond) // 模拟慢速处理
 			return "Slow task completed", nil
 		}
@@ -337,7 +337,7 @@ func TestSubAgentMiddleware_SyncVsAsync(t *testing.T) {
 	// 测试同步执行（应该阻塞）
 	t.Run("Sync", func(t *testing.T) {
 		start := time.Now()
-		result, err := taskTool.Execute(ctx, map[string]interface{}{
+		result, err := taskTool.Execute(ctx, map[string]any{
 			"description":   "Sync task",
 			"subagent_type": "slow-agent",
 			"async":         false,
@@ -345,7 +345,7 @@ func TestSubAgentMiddleware_SyncVsAsync(t *testing.T) {
 		duration := time.Since(start)
 
 		require.NoError(t, err)
-		resultMap := result.(map[string]interface{})
+		resultMap := result.(map[string]any)
 		assert.True(t, resultMap["ok"].(bool))
 		assert.Contains(t, resultMap["result"], "Slow task completed")
 
@@ -356,7 +356,7 @@ func TestSubAgentMiddleware_SyncVsAsync(t *testing.T) {
 	// 测试异步执行（应该立即返回）
 	t.Run("Async", func(t *testing.T) {
 		start := time.Now()
-		result, err := taskTool.Execute(ctx, map[string]interface{}{
+		result, err := taskTool.Execute(ctx, map[string]any{
 			"description":   "Async task",
 			"subagent_type": "slow-agent",
 			"async":         true,
@@ -364,7 +364,7 @@ func TestSubAgentMiddleware_SyncVsAsync(t *testing.T) {
 		duration := time.Since(start)
 
 		require.NoError(t, err)
-		resultMap := result.(map[string]interface{})
+		resultMap := result.(map[string]any)
 		assert.True(t, resultMap["ok"].(bool))
 		assert.NotEmpty(t, resultMap["task_id"])
 

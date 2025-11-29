@@ -49,7 +49,7 @@ func (d Directive) String() string {
 type SupervisorStrategy interface {
 	// HandleFailure 处理 Actor 失败
 	// 返回应该采取的指令，可以是 Directive 或 DirectiveWithDelay
-	HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{}
+	HandleFailure(system *System, child *PID, msg Message, err any) any
 }
 
 // ============== 内置监督策略 ==============
@@ -67,7 +67,7 @@ type OneForOneStrategy struct {
 }
 
 // Decider 决策函数类型
-type Decider func(err interface{}) Directive
+type Decider func(err any) Directive
 
 // NewOneForOneStrategy 创建一对一策略
 func NewOneForOneStrategy(maxRestarts int, within time.Duration, decider Decider) *OneForOneStrategy {
@@ -83,7 +83,7 @@ func NewOneForOneStrategy(maxRestarts int, within time.Duration, decider Decider
 }
 
 // HandleFailure 实现 SupervisorStrategy
-func (s *OneForOneStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{} {
+func (s *OneForOneStrategy) HandleFailure(system *System, child *PID, msg Message, err any) any {
 	directive := s.Decider(err)
 
 	if directive == DirectiveRestart {
@@ -140,7 +140,7 @@ func NewAllForOneStrategy(maxRestarts int, within time.Duration, decider Decider
 }
 
 // HandleFailure 实现 SupervisorStrategy
-func (s *AllForOneStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{} {
+func (s *AllForOneStrategy) HandleFailure(system *System, child *PID, msg Message, err any) any {
 	directive := s.Decider(err)
 
 	if directive == DirectiveRestart {
@@ -199,7 +199,7 @@ func NewExponentialBackoffStrategy(initialDelay, maxDelay time.Duration, maxRest
 }
 
 // HandleFailure 实现 SupervisorStrategy
-func (s *ExponentialBackoffStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{} {
+func (s *ExponentialBackoffStrategy) HandleFailure(system *System, child *PID, msg Message, err any) any {
 	directive := s.Decider(err)
 
 	if directive == DirectiveRestart {
@@ -243,25 +243,25 @@ func (s *ExponentialBackoffStrategy) Reset() {
 
 // DefaultDecider 默认决策器
 // 对所有错误采取重启策略
-func DefaultDecider(err interface{}) Directive {
+func DefaultDecider(err any) Directive {
 	return DirectiveRestart
 }
 
 // StoppingDecider 停止决策器
 // 对所有错误采取停止策略
-func StoppingDecider(err interface{}) Directive {
+func StoppingDecider(err any) Directive {
 	return DirectiveStop
 }
 
 // EscalatingDecider 上报决策器
 // 对所有错误采取上报策略
-func EscalatingDecider(err interface{}) Directive {
+func EscalatingDecider(err any) Directive {
 	return DirectiveEscalate
 }
 
 // ResumingDecider 恢复决策器
 // 对所有错误采取恢复策略（忽略错误继续运行）
-func ResumingDecider(err interface{}) Directive {
+func ResumingDecider(err any) Directive {
 	return DirectiveResume
 }
 
@@ -309,7 +309,7 @@ func (s *CompositeStrategy) RegisterStrategy(errType string, strategy Supervisor
 }
 
 // HandleFailure 实现 SupervisorStrategy
-func (s *CompositeStrategy) HandleFailure(system *System, child *PID, msg Message, err interface{}) interface{} {
+func (s *CompositeStrategy) HandleFailure(system *System, child *PID, msg Message, err any) any {
 	// 尝试匹配错误类型
 	if e, ok := err.(error); ok {
 		errType := e.Error()

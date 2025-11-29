@@ -286,11 +286,11 @@ func (tm *ToolManager) GetIndex() *search.ToolIndex {
 }
 
 // Stats 返回统计信息
-func (tm *ToolManager) Stats() map[string]interface{} {
+func (tm *ToolManager) Stats() map[string]any {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	return map[string]interface{}{
+	return map[string]any{
 		"active_count":   len(tm.activeTools),
 		"deferred_count": len(tm.deferredTools),
 		"total_indexed":  tm.index.Count(),

@@ -14,13 +14,13 @@ import (
 // 用于在执行过程中向用户提出结构化问题并获取回答
 type AskUserQuestionTool struct {
 	// 待处理的请求映射: requestID -> response channel
-	pendingRequests map[string]chan map[string]interface{}
+	pendingRequests map[string]chan map[string]any
 }
 
 // NewAskUserQuestionTool 创建AskUserQuestion工具
-func NewAskUserQuestionTool(config map[string]interface{}) (tools.Tool, error) {
+func NewAskUserQuestionTool(config map[string]any) (tools.Tool, error) {
 	return &AskUserQuestionTool{
-		pendingRequests: make(map[string]chan map[string]interface{}),
+		pendingRequests: make(map[string]chan map[string]any),
 	}, nil
 }
 
@@ -32,40 +32,40 @@ func (t *AskUserQuestionTool) Description() string {
 	return "向用户提出结构化问题，用于澄清需求、确认方案或收集偏好"
 }
 
-func (t *AskUserQuestionTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *AskUserQuestionTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"questions": map[string]interface{}{
+		"properties": map[string]any{
+			"questions": map[string]any{
 				"type":        "array",
 				"description": "要向用户提出的问题列表（1-4个问题）",
 				"minItems":    1,
 				"maxItems":    4,
-				"items": map[string]interface{}{
+				"items": map[string]any{
 					"type": "object",
-					"properties": map[string]interface{}{
-						"question": map[string]interface{}{
+					"properties": map[string]any{
+						"question": map[string]any{
 							"type":        "string",
 							"description": "完整的问题文本，应清晰、具体，以问号结尾",
 						},
-						"header": map[string]interface{}{
+						"header": map[string]any{
 							"type":        "string",
 							"description": "简短标签，最多12字符，如'Auth method'、'Library'",
 							"maxLength":   12,
 						},
-						"options": map[string]interface{}{
+						"options": map[string]any{
 							"type":        "array",
 							"description": "可选答案列表（2-4个选项）",
 							"minItems":    2,
 							"maxItems":    4,
-							"items": map[string]interface{}{
+							"items": map[string]any{
 								"type": "object",
-								"properties": map[string]interface{}{
-									"label": map[string]interface{}{
+								"properties": map[string]any{
+									"label": map[string]any{
 										"type":        "string",
 										"description": "选项标签，1-5个词",
 									},
-									"description": map[string]interface{}{
+									"description": map[string]any{
 										"type":        "string",
 										"description": "选项说明，解释该选项的含义或影响",
 									},
@@ -73,7 +73,7 @@ func (t *AskUserQuestionTool) InputSchema() map[string]interface{} {
 								"required": []string{"label", "description"},
 							},
 						},
-						"multi_select": map[string]interface{}{
+						"multi_select": map[string]any{
 							"type":        "boolean",
 							"description": "是否允许多选，默认为false",
 							"default":     false,
@@ -87,7 +87,7 @@ func (t *AskUserQuestionTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := ValidateRequired(input, []string{"questions"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -115,11 +115,11 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]inte
 	requestID := uuid.New().String()
 
 	// 创建响应通道
-	responseChan := make(chan map[string]interface{}, 1)
+	responseChan := make(chan map[string]any, 1)
 	t.pendingRequests[requestID] = responseChan
 
 	// 创建响应回调函数
-	respond := func(answers map[string]interface{}) error {
+	respond := func(answers map[string]any) error {
 		select {
 		case responseChan <- answers:
 			return nil
@@ -131,7 +131,7 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]inte
 	// 发送事件到 Control 通道
 	if tc.Reporter != nil {
 		// 通过 Reporter 发送中间结果，包含事件信息
-		tc.Reporter.Intermediate("ask_user_event", map[string]interface{}{
+		tc.Reporter.Intermediate("ask_user_event", map[string]any{
 			"request_id": requestID,
 			"questions":  questions,
 			"event_type": "ask_user",
@@ -151,7 +151,7 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]inte
 	select {
 	case answers := <-responseChan:
 		delete(t.pendingRequests, requestID)
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":         true,
 			"request_id": requestID,
 			"answers":    answers,
@@ -160,7 +160,7 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]inte
 
 	case <-ctx.Done():
 		delete(t.pendingRequests, requestID)
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":         false,
 			"request_id": requestID,
 			"error":      "request cancelled or timed out",
@@ -169,7 +169,7 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]inte
 
 	case <-time.After(5 * time.Minute): // 5分钟超时
 		delete(t.pendingRequests, requestID)
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":         false,
 			"request_id": requestID,
 			"error":      "user response timeout (5 minutes)",
@@ -179,15 +179,15 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]inte
 }
 
 // parseQuestions 解析问题列表
-func (t *AskUserQuestionTool) parseQuestions(value interface{}) ([]types.Question, error) {
-	questionsRaw, ok := value.([]interface{})
+func (t *AskUserQuestionTool) parseQuestions(value any) ([]types.Question, error) {
+	questionsRaw, ok := value.([]any)
 	if !ok {
 		return nil, fmt.Errorf("questions must be an array")
 	}
 
 	questions := make([]types.Question, 0, len(questionsRaw))
 	for i, qRaw := range questionsRaw {
-		qMap, ok := qRaw.(map[string]interface{})
+		qMap, ok := qRaw.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("question[%d] must be an object", i)
 		}
@@ -214,15 +214,15 @@ func (t *AskUserQuestionTool) parseQuestions(value interface{}) ([]types.Questio
 }
 
 // parseOptions 解析选项列表
-func (t *AskUserQuestionTool) parseOptions(value interface{}, questionIndex int) ([]types.QuestionOption, error) {
-	optionsRaw, ok := value.([]interface{})
+func (t *AskUserQuestionTool) parseOptions(value any, questionIndex int) ([]types.QuestionOption, error) {
+	optionsRaw, ok := value.([]any)
 	if !ok {
 		return nil, fmt.Errorf("question[%d].options must be an array", questionIndex)
 	}
 
 	options := make([]types.QuestionOption, 0, len(optionsRaw))
 	for j, oRaw := range optionsRaw {
-		oMap, ok := oRaw.(map[string]interface{})
+		oMap, ok := oRaw.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("question[%d].options[%d] must be an object", questionIndex, j)
 		}
@@ -265,7 +265,7 @@ func (t *AskUserQuestionTool) validateQuestion(q types.Question, index int) erro
 }
 
 // ReceiveAnswer 接收用户回答（供外部调用）
-func (t *AskUserQuestionTool) ReceiveAnswer(requestID string, answers map[string]interface{}) error {
+func (t *AskUserQuestionTool) ReceiveAnswer(requestID string, answers map[string]any) error {
 	ch, exists := t.pendingRequests[requestID]
 	if !exists {
 		return fmt.Errorf("no pending request with ID: %s", requestID)

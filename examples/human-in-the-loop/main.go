@@ -56,7 +56,7 @@ func main() {
 		ID:           "hitl-demo",
 		Model:        "claude-sonnet-4-5",
 		SystemPrompt: buildSystemPrompt(),
-		Tools:        []interface{}{"Bash", "Read", "Write"},
+		Tools:        []any{"Bash", "Read", "Write"},
 	})
 
 	// 7. 创建依赖
@@ -101,16 +101,16 @@ func main() {
 func createHITLMiddleware() (*middleware.HumanInTheLoopMiddleware, error) {
 	return middleware.NewHumanInTheLoopMiddleware(&middleware.HumanInTheLoopMiddlewareConfig{
 		// 配置需要审核的工具
-		InterruptOn: map[string]interface{}{
-			"Bash": map[string]interface{}{
+		InterruptOn: map[string]any{
+			"Bash": map[string]any{
 				"message":           "⚠️  Shell 命令执行需要审核，请确认命令安全性",
 				"allowed_decisions": []string{"approve", "reject", "edit"},
 			},
-			"Write": map[string]interface{}{
+			"Write": map[string]any{
 				"message":           "📝 文件写入操作需要审核",
 				"allowed_decisions": []string{"approve", "reject", "edit"},
 			},
-			"fs_delete": map[string]interface{}{
+			"fs_delete": map[string]any{
 				"message":           "🗑️  文件删除操作需要审核",
 				"allowed_decisions": []string{"approve", "reject"},
 			},
@@ -274,7 +274,7 @@ func promptForDecision(action middleware.ActionRequest, config middleware.Interr
 	}
 }
 
-func promptForHighRiskDecision(action middleware.ActionRequest) ([]middleware.Decision, error) {
+func promptForHighRiskDecision(_ middleware.ActionRequest) ([]middleware.Decision, error) {
 	fmt.Println("\n⚠️  这是一个高风险操作！")
 	fmt.Println("如果你确定要执行，请输入 'CONFIRM'")
 	fmt.Println("否则输入任何其他内容拒绝")
@@ -298,7 +298,7 @@ func promptForHighRiskDecision(action middleware.ActionRequest) ([]middleware.De
 
 func promptForEdit(action middleware.ActionRequest) ([]middleware.Decision, error) {
 	fmt.Println("\n✏️  编辑参数:")
-	editedInput := make(map[string]interface{})
+	editedInput := make(map[string]any)
 
 	for key, value := range action.Input {
 		fmt.Printf("\n%s (当前值: %v)\n", key, value)

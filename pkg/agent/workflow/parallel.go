@@ -162,7 +162,7 @@ func (a *ParallelAgent) enrichEvent(event *session.Event, branch string, index i
 
 	// 添加并行执行的元数据
 	if event.Metadata == nil {
-		event.Metadata = make(map[string]interface{})
+		event.Metadata = make(map[string]any)
 	}
 	event.Metadata["parallel_index"] = index
 	event.Metadata["parallel_agent"] = a.name

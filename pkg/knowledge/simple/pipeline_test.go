@@ -22,7 +22,7 @@ func TestPipeline_UpsertAndSearch(t *testing.T) {
 	}
 
 	text := "Go is great for high-performance systems.\n\nIt has built-in concurrency with goroutines."
-	ids, err := pipe.UpsertText(context.Background(), "doc1", text, map[string]interface{}{
+	ids, err := pipe.UpsertText(context.Background(), "doc1", text, map[string]any{
 		"source":    "testdoc",
 		"type":      "note",
 		"namespace": "test",
@@ -34,7 +34,7 @@ func TestPipeline_UpsertAndSearch(t *testing.T) {
 		t.Fatalf("expected 2 chunks, got %d", len(ids))
 	}
 
-	hits, err := pipe.Search(context.Background(), "goroutines", 2, map[string]interface{}{
+	hits, err := pipe.Search(context.Background(), "goroutines", 2, map[string]any{
 		"namespace": "test",
 	})
 	if err != nil {

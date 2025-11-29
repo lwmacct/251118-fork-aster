@@ -46,7 +46,7 @@ type RemoteClientConfig struct {
 }
 
 // Call 调用远程 API
-func (rc *RemoteClient) Call(ctx context.Context, method, path string, body interface{}) (*RemoteResponse, error) {
+func (rc *RemoteClient) Call(ctx context.Context, method, path string, body any) (*RemoteResponse, error) {
 	var reqBody io.Reader
 	if body != nil {
 		jsonData, err := json.Marshal(body)
@@ -106,7 +106,7 @@ type RemoteResponse struct {
 }
 
 // JSON 解析 JSON 响应
-func (rr *RemoteResponse) JSON(v interface{}) error {
+func (rr *RemoteResponse) JSON(v any) error {
 	return json.Unmarshal(rr.Body, v)
 }
 
@@ -122,7 +122,7 @@ type RemoteSandbox struct {
 	sessionID  string
 	workDir    string
 	fs         *RemoteFS
-	properties map[string]interface{}
+	properties map[string]any
 }
 
 // RemoteSandboxConfig 远程沙箱配置
@@ -135,7 +135,7 @@ type RemoteSandboxConfig struct {
 	Region      string            // 区域
 	Timeout     time.Duration     // 超时时间
 	Environment map[string]string // 环境变量
-	Properties  map[string]interface{}
+	Properties  map[string]any
 }
 
 // NewRemoteSandbox 创建远程沙箱

@@ -40,7 +40,7 @@ func main() {
 	factory := func(ctx context.Context, spec middleware.SubAgentSpec) (middleware.SubAgent, error) {
 		// 这里使用 SimpleSubAgent 作为演示
 		// 实际应用中应该创建真正的 Agent 实例
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			return fmt.Sprintf("[%s] 已执行任务: %s\n系统提示: %s\n上下文: %v",
 				spec.Name, description, spec.Prompt, parentContext), nil
 		}
@@ -102,10 +102,10 @@ func main() {
 	if taskTool != nil {
 		// 测试 1: 研究任务
 		fmt.Println("测试 1: 委托研究任务给 'researcher' 子代理")
-		result1, err := taskTool.Execute(context.Background(), map[string]interface{}{
+		result1, err := taskTool.Execute(context.Background(), map[string]any{
 			"description":   "分析 DeepAgents 项目的核心设计模式",
 			"subagent_type": "researcher",
-			"context": map[string]interface{}{
+			"context": map[string]any{
 				"project_path": "/Users/coso/Documents/dev/python/deepagents",
 			},
 		}, nil)
@@ -117,7 +117,7 @@ func main() {
 
 		// 测试 2: 代码任务
 		fmt.Println("测试 2: 委托编码任务给 'coder' 子代理")
-		result2, err := taskTool.Execute(context.Background(), map[string]interface{}{
+		result2, err := taskTool.Execute(context.Background(), map[string]any{
 			"description":   "实现一个简单的 HTTP 服务器",
 			"subagent_type": "coder",
 		}, nil)
@@ -129,7 +129,7 @@ func main() {
 
 		// 测试 3: 审查任务
 		fmt.Println("测试 3: 委托代码审查给 'reviewer' 子代理")
-		result3, err := taskTool.Execute(context.Background(), map[string]interface{}{
+		result3, err := taskTool.Execute(context.Background(), map[string]any{
 			"description":   "审查 pkg/middleware/subagent.go 的代码质量",
 			"subagent_type": "reviewer",
 		}, nil)

@@ -171,7 +171,7 @@ func TestSystem_ParentChild(t *testing.T) {
 
 func TestSystem_SupervisorRestart(t *testing.T) {
 	config := DefaultSystemConfig()
-	config.PanicHandler = func(actor *PID, msg Message, err interface{}) {
+	config.PanicHandler = func(actor *PID, msg Message, err any) {
 		// 静默处理 panic
 	}
 	system := NewSystemWithConfig("test", config)

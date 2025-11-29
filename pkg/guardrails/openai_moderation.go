@@ -113,7 +113,7 @@ func (g *OpenAIModerationGuardrail) Check(ctx context.Context, input *GuardrailI
 	}
 
 	// 构建详细信息
-	details := map[string]interface{}{
+	details := map[string]any{
 		"categories":      result.Categories,
 		"category_scores": result.CategoryScores,
 	}

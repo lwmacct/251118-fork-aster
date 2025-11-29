@@ -132,27 +132,27 @@ func TestFilesystemTools_PathValidationIntegration(t *testing.T) {
 	toolTests := []struct {
 		name          string
 		toolName      string
-		input         map[string]interface{}
+		input         map[string]any
 		expectOk      bool
 		errorContains string
 	}{
 		{
 			name:     "Ls - 允许的路径",
 			toolName: "Ls",
-			input:    map[string]interface{}{"path": "/workspace/"},
+			input:    map[string]any{"path": "/workspace/"},
 			expectOk: true,
 		},
 		{
 			name:          "Ls - 阻止路径遍历",
 			toolName:      "Ls",
-			input:         map[string]interface{}{"path": "../etc/"},
+			input:         map[string]any{"path": "../etc/"},
 			expectOk:      false,
 			errorContains: "path validation failed",
 		},
 		{
 			name:     "Edit - 允许的路径",
 			toolName: "Edit",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"path":        "/workspace/safe.txt",
 				"old_content": "safe",
 				"new_content": "safer",
@@ -162,7 +162,7 @@ func TestFilesystemTools_PathValidationIntegration(t *testing.T) {
 		{
 			name:     "Edit - 阻止非白名单路径",
 			toolName: "Edit",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"path":        "/etc/dangerous.txt",
 				"old_content": "dangerous",
 				"new_content": "safer",
@@ -173,26 +173,26 @@ func TestFilesystemTools_PathValidationIntegration(t *testing.T) {
 		{
 			name:     "Glob - 允许的路径",
 			toolName: "Glob",
-			input:    map[string]interface{}{"pattern": "*.txt", "path": "/workspace/"},
+			input:    map[string]any{"pattern": "*.txt", "path": "/workspace/"},
 			expectOk: true,
 		},
 		{
 			name:          "Glob - 阻止非白名单路径",
 			toolName:      "Glob",
-			input:         map[string]interface{}{"pattern": "*.txt", "path": "/etc/"},
+			input:         map[string]any{"pattern": "*.txt", "path": "/etc/"},
 			expectOk:      false,
 			errorContains: "path validation failed",
 		},
 		{
 			name:     "Grep - 允许的路径",
 			toolName: "Grep",
-			input:    map[string]interface{}{"pattern": "content", "path": "/workspace/"},
+			input:    map[string]any{"pattern": "content", "path": "/workspace/"},
 			expectOk: true,
 		},
 		{
 			name:          "Grep - 阻止非白名单路径",
 			toolName:      "Grep",
-			input:         map[string]interface{}{"pattern": "content", "path": "/etc/"},
+			input:         map[string]any{"pattern": "content", "path": "/etc/"},
 			expectOk:      false,
 			errorContains: "path validation failed",
 		},
@@ -216,7 +216,7 @@ func TestFilesystemTools_PathValidationIntegration(t *testing.T) {
 				t.Fatalf("Execute failed: %v", err)
 			}
 
-			resultMap, ok := result.(map[string]interface{})
+			resultMap, ok := result.(map[string]any)
 			if !ok {
 				t.Fatal("Result is not a map")
 			}

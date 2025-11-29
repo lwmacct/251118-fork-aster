@@ -23,7 +23,7 @@ type TodoItem struct {
 	CreatedAt   time.Time              `json:"createdAt"`
 	UpdatedAt   time.Time              `json:"updatedAt"`
 	CompletedAt *time.Time             `json:"completedAt,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // TodoList 任务列表
@@ -33,11 +33,11 @@ type TodoList struct {
 	Todos     []TodoItem             `json:"todos"`
 	CreatedAt time.Time              `json:"createdAt"`
 	UpdatedAt time.Time              `json:"updatedAt"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // NewTodoWriteTool 创建TodoWrite工具
-func NewTodoWriteTool(config map[string]interface{}) (tools.Tool, error) {
+func NewTodoWriteTool(config map[string]any) (tools.Tool, error) {
 	return &TodoWriteTool{}, nil
 }
 
@@ -49,30 +49,30 @@ func (t *TodoWriteTool) Description() string {
 	return "创建和管理结构化任务列表"
 }
 
-func (t *TodoWriteTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *TodoWriteTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"todos": map[string]interface{}{
+		"properties": map[string]any{
+			"todos": map[string]any{
 				"type":        "array",
 				"description": "任务项数组，包含content、status、activeForm等字段",
-				"items": map[string]interface{}{
+				"items": map[string]any{
 					"type": "object",
-					"properties": map[string]interface{}{
-						"content": map[string]interface{}{
+					"properties": map[string]any{
+						"content": map[string]any{
 							"type":        "string",
 							"description": "任务描述内容",
 						},
-						"status": map[string]interface{}{
+						"status": map[string]any{
 							"type":        "string",
 							"enum":        []string{"pending", "in_progress", "completed"},
 							"description": "任务状态",
 						},
-						"activeForm": map[string]interface{}{
+						"activeForm": map[string]any{
 							"type":        "string",
 							"description": "任务的主动形式描述（进行中的状态描述）",
 						},
-						"priority": map[string]interface{}{
+						"priority": map[string]any{
 							"type":        "integer",
 							"description": "任务优先级（数值越大优先级越高）",
 						},
@@ -80,15 +80,15 @@ func (t *TodoWriteTool) InputSchema() map[string]interface{} {
 					"required": []string{"content", "status", "activeForm"},
 				},
 			},
-			"list_name": map[string]interface{}{
+			"list_name": map[string]any{
 				"type":        "string",
 				"description": "任务列表名称，默认为'default'",
 			},
-			"action": map[string]interface{}{
+			"action": map[string]any{
 				"type":        "string",
 				"description": "操作类型：create, update, delete, clear，默认为create",
 			},
-			"todo_id": map[string]interface{}{
+			"todo_id": map[string]any{
 				"type":        "string",
 				"description": "要更新或删除的任务ID",
 			},
@@ -97,7 +97,7 @@ func (t *TodoWriteTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := ValidateRequired(input, []string{"todos"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -108,7 +108,7 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 	todoID := GetStringParam(input, "todo_id", "")
 
 	// 获取任务项数据
-	todosData, ok := input["todos"].([]interface{})
+	todosData, ok := input["todos"].([]any)
 	if !ok {
 		return NewClaudeErrorResponse(fmt.Errorf("todos must be an array")), nil
 	}
@@ -117,7 +117,7 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 	todos := make([]TodoItem, 0, len(todosData))
 	baseTime := time.Now().UnixNano()
 	for i, todoData := range todosData {
-		todoMap, ok := todoData.(map[string]interface{})
+		todoMap, ok := todoData.(map[string]any)
 		if !ok {
 			return NewClaudeErrorResponse(fmt.Errorf("each todo must be an object")), nil
 		}
@@ -158,7 +158,7 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 			Priority:   priority,
 			CreatedAt:  time.Now(),
 			UpdatedAt:  time.Now(),
-			Metadata:   make(map[string]interface{}),
+			Metadata:   make(map[string]any),
 		}
 
 		// 如果有todo_id，使用它
@@ -197,7 +197,7 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 			Todos:     []TodoItem{},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Metadata:  make(map[string]interface{}),
+			Metadata:  make(map[string]any),
 		}
 	}
 
@@ -210,7 +210,7 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 	}
 
 	// 执行操作
-	var result interface{}
+	var result any
 	var operationErr error
 
 	switch action {
@@ -241,7 +241,7 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 
 	// 检查操作是否成功
 	if operationErr != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":          false,
 			"error":       fmt.Sprintf("failed to save todo list: %v", operationErr),
 			"action":      action,
@@ -253,7 +253,7 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 	duration := time.Since(start)
 
 	// 构建响应
-	response := map[string]interface{}{
+	response := map[string]any{
 		"ok":              true,
 		"action":          action,
 		"list_name":       listName,
@@ -272,7 +272,7 @@ func (t *TodoWriteTool) Execute(ctx context.Context, input map[string]interface{
 	response["completed_count"] = t.countTodosByStatus(todoList.Todos, "completed")
 
 	// 添加操作结果
-	if resultMap, ok := result.(map[string]interface{}); ok {
+	if resultMap, ok := result.(map[string]any); ok {
 		for k, v := range resultMap {
 			response[k] = v
 		}
@@ -302,7 +302,7 @@ func (t *TodoWriteTool) emitTodoUpdateEvent(tc *tools.ToolContext, todos []TodoI
 
 	// 通过 Reporter 发送中间结果
 	if tc != nil && tc.Reporter != nil {
-		tc.Reporter.Intermediate("todo_update", map[string]interface{}{
+		tc.Reporter.Intermediate("todo_update", map[string]any{
 			"todos":      typesTodos,
 			"event_type": "todo_update",
 		})
@@ -362,7 +362,7 @@ func (t *TodoWriteTool) validateSingleInProgress(todoList *TodoList, newTodos []
 }
 
 // createTodos 创建新任务
-func (t *TodoWriteTool) createTodos(todoList *TodoList, todos []TodoItem) map[string]interface{} {
+func (t *TodoWriteTool) createTodos(todoList *TodoList, todos []TodoItem) map[string]any {
 	addedTodos := make([]TodoItem, 0, len(todos))
 
 	for _, todo := range todos {
@@ -383,14 +383,14 @@ func (t *TodoWriteTool) createTodos(todoList *TodoList, todos []TodoItem) map[st
 
 	todoList.UpdatedAt = time.Now()
 
-	return map[string]interface{}{
+	return map[string]any{
 		"added_count": len(addedTodos),
 		"added_todos": addedTodos,
 	}
 }
 
 // updateTodo 更新任务
-func (t *TodoWriteTool) updateTodo(todoList *TodoList, todoID string, updatedTodo TodoItem) map[string]interface{} {
+func (t *TodoWriteTool) updateTodo(todoList *TodoList, todoID string, updatedTodo TodoItem) map[string]any {
 	for i, existing := range todoList.Todos {
 		if existing.ID == todoID {
 			// 保留创建时间
@@ -420,7 +420,7 @@ func (t *TodoWriteTool) updateTodo(todoList *TodoList, todoID string, updatedTod
 			todoList.Todos[i] = updatedTodo
 			todoList.UpdatedAt = time.Now()
 
-			return map[string]interface{}{
+			return map[string]any{
 				"updated":         true,
 				"previous_status": existing.Status,
 				"new_status":      updatedTodo.Status,
@@ -428,40 +428,40 @@ func (t *TodoWriteTool) updateTodo(todoList *TodoList, todoID string, updatedTod
 		}
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"updated": false,
 		"reason":  "todo not found",
 	}
 }
 
 // deleteTodo 删除任务
-func (t *TodoWriteTool) deleteTodo(todoList *TodoList, todoID string) map[string]interface{} {
+func (t *TodoWriteTool) deleteTodo(todoList *TodoList, todoID string) map[string]any {
 	for i, existing := range todoList.Todos {
 		if existing.ID == todoID {
 			// 删除任务
 			todoList.Todos = append(todoList.Todos[:i], todoList.Todos[i+1:]...)
 			todoList.UpdatedAt = time.Now()
 
-			return map[string]interface{}{
+			return map[string]any{
 				"deleted":      true,
 				"deleted_todo": existing,
 			}
 		}
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"deleted": false,
 		"reason":  "todo not found",
 	}
 }
 
 // clearTodos 清空任务列表
-func (t *TodoWriteTool) clearTodos(todoList *TodoList) map[string]interface{} {
+func (t *TodoWriteTool) clearTodos(todoList *TodoList) map[string]any {
 	deletedCount := len(todoList.Todos)
 	todoList.Todos = []TodoItem{}
 	todoList.UpdatedAt = time.Now()
 
-	return map[string]interface{}{
+	return map[string]any{
 		"deleted_count": deletedCount,
 		"action":        "cleared_all_todos",
 	}
@@ -524,8 +524,8 @@ func (t *TodoWriteTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "创建任务列表",
-			Input: map[string]interface{}{
-				"todos": []map[string]interface{}{
+			Input: map[string]any{
+				"todos": []map[string]any{
 					{
 						"content":    "实现用户认证模块",
 						"status":     "pending",
@@ -541,10 +541,10 @@ func (t *TodoWriteTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "更新任务状态为进行中",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"action":  "update",
 				"todo_id": "todo_123456",
-				"todos": []map[string]interface{}{
+				"todos": []map[string]any{
 					{
 						"content":    "实现用户认证模块",
 						"status":     "in_progress",
@@ -555,10 +555,10 @@ func (t *TodoWriteTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "标记任务为已完成",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"action":  "update",
 				"todo_id": "todo_123456",
-				"todos": []map[string]interface{}{
+				"todos": []map[string]any{
 					{
 						"content":    "实现用户认证模块",
 						"status":     "completed",

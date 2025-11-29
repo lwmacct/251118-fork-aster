@@ -24,7 +24,7 @@ type TaskDefinition struct {
 	StartedAt   *time.Time             `json:"startedAt,omitempty"`
 	CompletedAt *time.Time             `json:"completedAt,omitempty"`
 	Status      string                 `json:"status"` // "created", "running", "completed", "failed"
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // TaskExecution 任务执行结果
@@ -33,16 +33,16 @@ type TaskExecution struct {
 	Subagent  string                 `json:"subagent"`
 	Model     string                 `json:"model"`
 	Status    string                 `json:"status"`
-	Result    interface{}            `json:"result,omitempty"`
+	Result    any            `json:"result,omitempty"`
 	Error     string                 `json:"error,omitempty"`
 	StartTime time.Time              `json:"start_time"`
 	EndTime   *time.Time             `json:"end_time,omitempty"`
 	Duration  time.Duration          `json:"duration"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // NewTaskTool 创建Task工具
-func NewTaskTool(config map[string]interface{}) (tools.Tool, error) {
+func NewTaskTool(config map[string]any) (tools.Tool, error) {
 	return &TaskTool{}, nil
 }
 
@@ -54,36 +54,36 @@ func (t *TaskTool) Description() string {
 	return "启动专门的代理来处理复杂的多步骤任务"
 }
 
-func (t *TaskTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *TaskTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"subagent_type": map[string]interface{}{
+		"properties": map[string]any{
+			"subagent_type": map[string]any{
 				"type":        "string",
 				"description": "要启动的代理类型",
 				"enum":        []string{"general-purpose", "statusline-setup", "Explore", "Plan"},
 			},
-			"prompt": map[string]interface{}{
+			"prompt": map[string]any{
 				"type":        "string",
 				"description": "要代理执行的任务描述，必须是详细的",
 			},
-			"model": map[string]interface{}{
+			"model": map[string]any{
 				"type":        "string",
 				"description": "可选模型，如果未指定则继承自父级",
 			},
-			"resume": map[string]interface{}{
+			"resume": map[string]any{
 				"type":        "string",
 				"description": "可选代理ID以继续执行，如果提供则忽略其他参数",
 			},
-			"timeout_minutes": map[string]interface{}{
+			"timeout_minutes": map[string]any{
 				"type":        "integer",
 				"description": "任务超时时间（分钟），默认为30",
 			},
-			"priority": map[string]interface{}{
+			"priority": map[string]any{
 				"type":        "integer",
 				"description": "任务优先级（数值越大优先级越高），默认为100",
 			},
-			"async": map[string]interface{}{
+			"async": map[string]any{
 				"type":        "boolean",
 				"description": "是否异步执行，默认为true",
 			},
@@ -92,7 +92,7 @@ func (t *TaskTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *TaskTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := ValidateRequired(input, []string{"subagent_type", "prompt"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -167,7 +167,7 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	duration := time.Since(start)
 
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":            false,
 			"error":         fmt.Sprintf("failed to start/resume subagent: %v", err),
 			"subagent_type": subagentType,
@@ -181,7 +181,7 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	}
 
 	// 构建响应
-	response := map[string]interface{}{
+	response := map[string]any{
 		"ok":              true,
 		"task_id":         subagent.ID,
 		"subagent_type":   subagentType,
@@ -199,7 +199,7 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	// 添加子代理配置信息
 	if subagent.Config != nil {
-		response["subagent_config"] = map[string]interface{}{
+		response["subagent_config"] = map[string]any{
 			"timeout":     subagent.Config.Timeout.String(),
 			"max_tokens":  subagent.Config.MaxTokens,
 			"temperature": subagent.Config.Temperature,
@@ -271,7 +271,7 @@ func (t *TaskTool) executeTask(ctx context.Context, taskDef *TaskDefinition, tc 
 		Status:    "not_implemented",
 		StartTime: startTime,
 		Duration:  time.Since(startTime),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"note":             "Subagent execution requires integration with agent framework",
 			"task_description": taskDef.Description,
 		},
@@ -300,7 +300,7 @@ func (t *TaskTool) resumeTask(ctx context.Context, taskID string, tc *tools.Tool
 		Status:    "resume_not_implemented",
 		StartTime: startTime,
 		Duration:  time.Since(startTime),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"note":       "Task resumption requires integration with agent framework",
 			"resumed_at": startTime.Unix(),
 		},
@@ -353,14 +353,14 @@ func (t *TaskTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "启动代码探索代理",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"subagent_type": "Explore",
 				"prompt":        "搜索所有与用户认证相关的代码文件",
 			},
 		},
 		{
 			Description: "启动通用代理执行复杂任务",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"subagent_type":   "general-purpose",
 				"prompt":          "分析项目架构并生成文档",
 				"model":           "sonnet",
@@ -369,7 +369,7 @@ func (t *TaskTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "恢复之前暂停的任务",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"subagent_type": "general-purpose",
 				"prompt":        "",
 				"resume":        "task_123456",

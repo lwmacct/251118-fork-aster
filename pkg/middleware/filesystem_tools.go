@@ -27,11 +27,11 @@ func (t *LsTool) Description() string {
 	return "List directory contents with detailed file information"
 }
 
-func (t *LsTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *LsTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"path": map[string]interface{}{
+		"properties": map[string]any{
+			"path": map[string]any{
 				"type":        "string",
 				"description": "Directory path to list (default: current directory)",
 			},
@@ -39,7 +39,7 @@ func (t *LsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *LsTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *LsTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	path := "."
 	if p, ok := input["path"].(string); ok {
 		path = p
@@ -49,7 +49,7 @@ func (t *LsTool) Execute(ctx context.Context, input map[string]interface{}, tc *
 	if t.middleware != nil {
 		validatedPath, err := t.middleware.validatePath(path)
 		if err != nil {
-			return map[string]interface{}{
+			return map[string]any{
 				"ok":    false,
 				"error": fmt.Sprintf("path validation failed: %v", err),
 			}, nil
@@ -59,15 +59,15 @@ func (t *LsTool) Execute(ctx context.Context, input map[string]interface{}, tc *
 
 	results, err := t.backend.ListInfo(ctx, path)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to list directory: %v", err),
 		}, nil
 	}
 
-	items := make([]map[string]interface{}, 0, len(results))
+	items := make([]map[string]any, 0, len(results))
 	for _, info := range results {
-		items = append(items, map[string]interface{}{
+		items = append(items, map[string]any{
 			"path":     info.Path,
 			"is_dir":   info.IsDirectory,
 			"size":     info.Size,
@@ -75,7 +75,7 @@ func (t *LsTool) Execute(ctx context.Context, input map[string]interface{}, tc *
 		})
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":    true,
 		"path":  path,
 		"items": items,
@@ -115,23 +115,23 @@ func (t *EditTool) Description() string {
 	return "Edit files using precise string replacement"
 }
 
-func (t *EditTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *EditTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"path": map[string]interface{}{
+		"properties": map[string]any{
+			"path": map[string]any{
 				"type":        "string",
 				"description": "Path to the file to edit",
 			},
-			"old_string": map[string]interface{}{
+			"old_string": map[string]any{
 				"type":        "string",
 				"description": "String to replace",
 			},
-			"new_string": map[string]interface{}{
+			"new_string": map[string]any{
 				"type":        "string",
 				"description": "Replacement string",
 			},
-			"replace_all": map[string]interface{}{
+			"replace_all": map[string]any{
 				"type":        "boolean",
 				"description": "Replace all occurrences (default: false, replace only first)",
 			},
@@ -140,7 +140,7 @@ func (t *EditTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *EditTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	path, _ := input["path"].(string)
 	oldStr, _ := input["old_string"].(string)
 	newStr, _ := input["new_string"].(string)
@@ -153,7 +153,7 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	if t.middleware != nil {
 		validatedPath, err := t.middleware.validatePath(path)
 		if err != nil {
-			return map[string]interface{}{
+			return map[string]any{
 				"ok":    false,
 				"error": fmt.Sprintf("path validation failed: %v", err),
 			}, nil
@@ -163,7 +163,7 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	result, err := t.backend.Edit(ctx, path, oldStr, newStr, replaceAll)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to edit file: %v", err),
 		}, nil
@@ -171,13 +171,13 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	// 检查 Error 字段判断是否成功
 	if result.Error != "" {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": result.Error,
 		}, nil
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":           true,
 		"path":         path,
 		"replacements": result.ReplacementsMade,
@@ -219,15 +219,15 @@ func (t *GlobTool) Description() string {
 	return "Find files matching glob patterns (e.g., **/*.go, src/**/*.ts)"
 }
 
-func (t *GlobTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *GlobTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"pattern": map[string]interface{}{
+		"properties": map[string]any{
+			"pattern": map[string]any{
 				"type":        "string",
 				"description": "Glob pattern (supports *, **, ?)",
 			},
-			"path": map[string]interface{}{
+			"path": map[string]any{
 				"type":        "string",
 				"description": "Base path to search from (default: .)",
 			},
@@ -236,7 +236,7 @@ func (t *GlobTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *GlobTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	pattern, _ := input["pattern"].(string)
 	path := "."
 	if p, ok := input["path"].(string); ok {
@@ -247,7 +247,7 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	if t.middleware != nil {
 		validatedPath, err := t.middleware.validatePath(path)
 		if err != nil {
-			return map[string]interface{}{
+			return map[string]any{
 				"ok":    false,
 				"error": fmt.Sprintf("path validation failed: %v", err),
 			}, nil
@@ -257,7 +257,7 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	results, err := t.backend.GlobInfo(ctx, pattern, path)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to glob: %v", err),
 		}, nil
@@ -268,7 +268,7 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 		files = append(files, info.Path)
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":      true,
 		"pattern": pattern,
 		"files":   files,
@@ -314,19 +314,19 @@ func (t *GrepTool) Description() string {
 	return "Search for regex patterns in files, similar to grep"
 }
 
-func (t *GrepTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *GrepTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"pattern": map[string]interface{}{
+		"properties": map[string]any{
+			"pattern": map[string]any{
 				"type":        "string",
 				"description": "Regular expression pattern to search for",
 			},
-			"path": map[string]interface{}{
+			"path": map[string]any{
 				"type":        "string",
 				"description": "Path to search in (default: .)",
 			},
-			"glob": map[string]interface{}{
+			"glob": map[string]any{
 				"type":        "string",
 				"description": "File filter pattern (e.g., *.go)",
 			},
@@ -335,7 +335,7 @@ func (t *GrepTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *GrepTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	pattern, _ := input["pattern"].(string)
 	path := "."
 	if p, ok := input["path"].(string); ok {
@@ -350,7 +350,7 @@ func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	if t.middleware != nil {
 		validatedPath, err := t.middleware.validatePath(path)
 		if err != nil {
-			return map[string]interface{}{
+			return map[string]any{
 				"ok":    false,
 				"error": fmt.Sprintf("path validation failed: %v", err),
 			}, nil
@@ -360,15 +360,15 @@ func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	matches, err := t.backend.GrepRaw(ctx, pattern, path, glob)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to grep: %v", err),
 		}, nil
 	}
 
-	results := make([]map[string]interface{}, 0, len(matches))
+	results := make([]map[string]any, 0, len(matches))
 	for _, match := range matches {
-		results = append(results, map[string]interface{}{
+		results = append(results, map[string]any{
 			"path":        match.Path,
 			"line_number": match.LineNumber,
 			"line":        match.Line,
@@ -376,7 +376,7 @@ func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc
 		})
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":      true,
 		"pattern": pattern,
 		"matches": results,

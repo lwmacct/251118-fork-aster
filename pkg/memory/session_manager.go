@@ -30,7 +30,7 @@ const (
 type SharedMemory struct {
 	ID         string                 // 记忆 ID
 	Content    string                 // 内容
-	Metadata   map[string]interface{} // 元数据
+	Metadata   map[string]any // 元数据
 	Scope      MemoryScope            // 作用域
 	OwnerID    string                 // 所有者会话 ID
 	SharedWith map[string]AccessLevel // 共享给哪些会话（会话ID -> 访问级别）
@@ -103,7 +103,7 @@ func (m *SessionMemoryManager) AddMemory(
 	ctx context.Context,
 	sessionID string,
 	content string,
-	metadata map[string]interface{},
+	metadata map[string]any,
 	scope MemoryScope,
 ) (string, error) {
 	m.mu.Lock()
@@ -239,7 +239,7 @@ func (m *SessionMemoryManager) UpdateMemory(
 	memoryID string,
 	sessionID string,
 	content string,
-	metadata map[string]interface{},
+	metadata map[string]any,
 ) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

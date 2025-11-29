@@ -28,7 +28,7 @@ type BranchCondition struct {
 	Agent     *AgentRef              `json:"agent"`     // 分支Agent
 	Weight    int                    `json:"weight"`    // 权重（用于概率选择）
 	Priority  int                    `json:"priority"`  // 优先级
-	Metadata  map[string]interface{} `json:"metadata"`
+	Metadata  map[string]any `json:"metadata"`
 }
 
 // ConditionalConfig 条件Agent配置
@@ -36,7 +36,7 @@ type ConditionalConfig struct {
 	Name        string                 `json:"name"`
 	Conditions  []BranchCondition      `json:"conditions"`
 	Default     *AgentRef              `json:"default,omitempty"`
-	Variables   map[string]interface{} `json:"variables,omitempty"`
+	Variables   map[string]any `json:"variables,omitempty"`
 	EvalTimeout time.Duration          `json:"eval_timeout,omitempty"`
 }
 
@@ -55,7 +55,7 @@ func NewConditionalAgent(config ConditionalConfig) (*ConditionalAgent, error) {
 	copy(conditions, config.Conditions)
 
 	// 简单排序（优先级高的在前）
-	for i := 0; i < len(conditions); i++ {
+	for i := range len(conditions) {
 		for j := i + 1; j < len(conditions); j++ {
 			if conditions[i].Priority < conditions[j].Priority {
 				conditions[i], conditions[j] = conditions[j], conditions[i]
@@ -106,7 +106,7 @@ func (c *ConditionalAgent) Execute(ctx context.Context, message string) *stream.
 					Role:    types.MessageRoleAssistant,
 					Content: fmt.Sprintf("No condition matched, using default branch: %s", c.defaultBranch.ID),
 				},
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"branch_type": "default",
 					"agent_id":    c.defaultBranch.ID,
 				},
@@ -127,7 +127,7 @@ func (c *ConditionalAgent) Execute(ctx context.Context, message string) *stream.
 				Role:    types.MessageRoleAssistant,
 				Content: fmt.Sprintf("Condition matched: %s -> %s", selectedBranch.Condition, selectedBranch.Name),
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"branch_type": "conditional",
 				"branch_name": selectedBranch.Name,
 				"condition":   selectedBranch.Condition,
@@ -146,7 +146,7 @@ func (c *ConditionalAgent) Execute(ctx context.Context, message string) *stream.
 func (c *ConditionalAgent) evaluateConditions(ctx context.Context, message string) (*BranchCondition, error) {
 	// 更新变量
 	if c.evaluator.variables == nil {
-		c.evaluator.variables = make(map[string]interface{})
+		c.evaluator.variables = make(map[string]any)
 	}
 	c.evaluator.variables["input"] = message
 	c.evaluator.variables["message"] = message
@@ -171,7 +171,7 @@ func (c *ConditionalAgent) evaluateConditions(ctx context.Context, message strin
 func (c *ConditionalAgent) executeBranchAgent(ctx context.Context, writer *stream.Writer[*session.Event], agentRef *AgentRef, message string, branchName string) {
 	// TODO: 实现Agent创建和执行
 	// 现在模拟执行
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		event := &session.Event{
 			ID:        generateEventID(),
 			Timestamp: time.Now(),
@@ -181,7 +181,7 @@ func (c *ConditionalAgent) executeBranchAgent(ctx context.Context, writer *strea
 				Role:    types.MessageRoleAssistant,
 				Content: fmt.Sprintf("Branch '%s' execution step %d: %s", branchName, i+1, message),
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"branch_name": branchName,
 				"agent_id":    agentRef.ID,
 				"step":        i + 1,
@@ -215,7 +215,7 @@ type ParallelConditionalConfig struct {
 	Default     *AgentRef              `json:"default,omitempty"`
 	MaxParallel int                    `json:"max_parallel"`
 	Timeout     time.Duration          `json:"timeout"`
-	Variables   map[string]interface{} `json:"variables,omitempty"`
+	Variables   map[string]any `json:"variables,omitempty"`
 	Strategy    ParallelStrategy       `json:"strategy"` // first, all, majority
 }
 
@@ -273,7 +273,7 @@ func (p *ParallelConditionalAgent) Execute(ctx context.Context, message string) 
 
 		// 更新变量
 		if p.evaluator.variables == nil {
-			p.evaluator.variables = make(map[string]interface{})
+			p.evaluator.variables = make(map[string]any)
 		}
 		p.evaluator.variables["input"] = message
 		p.evaluator.variables["message"] = message
@@ -296,7 +296,7 @@ func (p *ParallelConditionalAgent) Execute(ctx context.Context, message string) 
 					Role:    types.MessageRoleAssistant,
 					Content: fmt.Sprintf("No conditions matched, using default branch: %s", p.defaultAgent.ID),
 				},
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"branch_type": "default",
 					"agent_id":    p.defaultAgent.ID,
 				},
@@ -373,7 +373,7 @@ func (p *ParallelConditionalAgent) evaluateConditionsParallel(ctx context.Contex
 					Role:    types.MessageRoleAssistant,
 					Content: fmt.Sprintf("Condition matched: %s -> %s", result.Condition, result.Name),
 				},
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"branch_type": "conditional",
 					"branch_name": result.Name,
 					"condition":   result.Condition,
@@ -413,11 +413,11 @@ type BranchEvaluationResult struct {
 	Matched   bool                   `json:"matched"`
 	Error     error                  `json:"error,omitempty"`
 	Duration  time.Duration          `json:"duration"`
-	Metadata  map[string]interface{} `json:"metadata"`
+	Metadata  map[string]any `json:"metadata"`
 }
 
 // handleBranchResult 处理分支结果
-func (p *ParallelConditionalAgent) handleBranchResult(ctx context.Context, writer *stream.Writer[*session.Event], result interface{}, message string) {
+func (p *ParallelConditionalAgent) handleBranchResult(ctx context.Context, writer *stream.Writer[*session.Event], result any, message string) {
 	var agentRef *AgentRef
 	var branchName string
 
@@ -436,7 +436,7 @@ func (p *ParallelConditionalAgent) handleBranchResult(ctx context.Context, write
 func (p *ParallelConditionalAgent) executeBranchAgent(ctx context.Context, writer *stream.Writer[*session.Event], agentRef *AgentRef, message string, branchName string) {
 	// TODO: 实现Agent创建和执行
 	// 现在模拟执行
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		event := &session.Event{
 			ID:        generateEventID(),
 			Timestamp: time.Now(),
@@ -446,7 +446,7 @@ func (p *ParallelConditionalAgent) executeBranchAgent(ctx context.Context, write
 				Role:    types.MessageRoleAssistant,
 				Content: fmt.Sprintf("Parallel branch '%s' execution step %d: %s", branchName, i+1, message),
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"branch_name": branchName,
 				"agent_id":    agentRef.ID,
 				"step":        i + 1,
@@ -503,7 +503,7 @@ func NewSwitchAgent(config SwitchConfig) (*SwitchAgent, error) {
 		cases:       config.Cases,
 		defaultCase: config.Default,
 		variable:    config.Variable,
-		evaluator:   NewExpressionEvaluator(make(map[string]interface{})),
+		evaluator:   NewExpressionEvaluator(make(map[string]any)),
 	}, nil
 }
 
@@ -538,7 +538,7 @@ func (s *SwitchAgent) Execute(ctx context.Context, message string) *stream.Reade
 						Role:    types.MessageRoleAssistant,
 						Content: fmt.Sprintf("Switch matched: %s == %s -> %s", s.variable, switchValue, caseDef.Name),
 					},
-					Metadata: map[string]interface{}{
+					Metadata: map[string]any{
 						"switch_type": "switch",
 						"variable":    s.variable,
 						"case_value":  caseDef.Value,
@@ -568,7 +568,7 @@ func (s *SwitchAgent) Execute(ctx context.Context, message string) *stream.Reade
 					Role:    types.MessageRoleAssistant,
 					Content: fmt.Sprintf("No case matched for %s = %s, using default: %s", s.variable, switchValue, s.defaultCase.ID),
 				},
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"switch_type": "default",
 					"variable":    s.variable,
 					"value":       switchValue,
@@ -594,7 +594,7 @@ func (s *SwitchAgent) Execute(ctx context.Context, message string) *stream.Reade
 // extractSwitchValue 提取switch变量值
 func (s *SwitchAgent) extractSwitchValue(message string) (string, error) {
 	// 简单实现：尝试从JSON消息中解析
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal([]byte(message), &data); err == nil {
 		if value, exists := data[s.variable]; exists {
 			return fmt.Sprintf("%v", value), nil
@@ -640,7 +640,7 @@ func (s *SwitchAgent) matchCaseValue(switchValue, caseValue string) bool {
 func (s *SwitchAgent) executeSwitchCase(ctx context.Context, writer *stream.Writer[*session.Event], caseDef SwitchCase, message string) {
 	// TODO: 实现Agent创建和执行
 	// 现在模拟执行
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		event := &session.Event{
 			ID:        generateEventID(),
 			Timestamp: time.Now(),
@@ -650,7 +650,7 @@ func (s *SwitchAgent) executeSwitchCase(ctx context.Context, writer *stream.Writ
 				Role:    types.MessageRoleAssistant,
 				Content: fmt.Sprintf("Switch case '%s' execution step %d: %s", caseDef.Name, i+1, message),
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"switch_type": "switch",
 				"case_name":   caseDef.Name,
 				"case_value":  caseDef.Value,
@@ -682,14 +682,14 @@ type ConditionLevel struct {
 	Conditions []BranchCondition      `json:"conditions"`
 	Level      int                    `json:"level"`
 	Else       *ConditionLevel        `json:"else,omitempty"` // else分支
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   map[string]any `json:"metadata"`
 }
 
 // MultiLevelConditionalConfig 多级条件Agent配置
 type MultiLevelConditionalConfig struct {
 	Name      string                 `json:"name"`
 	Levels    []ConditionLevel       `json:"levels"`
-	Variables map[string]interface{} `json:"variables,omitempty"`
+	Variables map[string]any `json:"variables,omitempty"`
 	MaxDepth  int                    `json:"max_depth"`
 }
 
@@ -740,7 +740,7 @@ func (m *MultiLevelConditionalAgent) Execute(ctx context.Context, message string
 func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, writer *stream.Writer[*session.Event], level ConditionLevel, message string) {
 	// 更新变量
 	if m.evaluator.variables == nil {
-		m.evaluator.variables = make(map[string]interface{})
+		m.evaluator.variables = make(map[string]any)
 	}
 	m.evaluator.variables["input"] = message
 	m.evaluator.variables["level"] = level.Level
@@ -755,7 +755,7 @@ func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, writer *
 			Role:    types.MessageRoleAssistant,
 			Content: fmt.Sprintf("Evaluating level %d: %s", level.Level, level.Name),
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"conditional_type": "multi_level",
 			"level":            level.Level,
 			"level_name":       level.Name,
@@ -781,7 +781,7 @@ func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, writer *
 					Role:    types.MessageRoleAssistant,
 					Content: fmt.Sprintf("Condition matched at level %d: %s -> %s", level.Level, condition.Condition, condition.Name),
 				},
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"conditional_type": "multi_level",
 					"level":            level.Level,
 					"condition":        condition.Condition,
@@ -809,7 +809,7 @@ func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, writer *
 				Role:    types.MessageRoleAssistant,
 				Content: fmt.Sprintf("No conditions matched at level %d, using else branch: %s", level.Level, level.Else.Name),
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"conditional_type": "multi_level",
 				"level":            level.Level,
 				"branch_type":      "else",
@@ -841,7 +841,7 @@ func (m *MultiLevelConditionalAgent) evaluateLevel(ctx context.Context, writer *
 func (m *MultiLevelConditionalAgent) executeBranchAgent(ctx context.Context, writer *stream.Writer[*session.Event], agentRef *AgentRef, message string, branchName string) {
 	// TODO: 实现Agent创建和执行
 	// 现在模拟执行
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		event := &session.Event{
 			ID:        generateEventID(),
 			Timestamp: time.Now(),
@@ -851,7 +851,7 @@ func (m *MultiLevelConditionalAgent) executeBranchAgent(ctx context.Context, wri
 				Role:    types.MessageRoleAssistant,
 				Content: fmt.Sprintf("Multi-level branch '%s' execution step %d: %s", branchName, i+1, message),
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"conditional_type": "multi_level",
 				"branch_name":      branchName,
 				"agent_id":         agentRef.ID,

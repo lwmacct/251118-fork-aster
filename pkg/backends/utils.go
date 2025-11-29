@@ -64,12 +64,9 @@ func FormatContentWithLineNumbers(content string, startLine int) string {
 		} else {
 			// 超长行:分块处理
 			numChunks := (len(line) + MaxLineLength - 1) / MaxLineLength
-			for chunkIdx := 0; chunkIdx < numChunks; chunkIdx++ {
+			for chunkIdx := range numChunks {
 				start := chunkIdx * MaxLineLength
-				end := start + MaxLineLength
-				if end > len(line) {
-					end = len(line)
-				}
+				end := min(start+MaxLineLength, len(line))
 				chunk := line[start:end]
 
 				if chunkIdx == 0 {

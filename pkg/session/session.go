@@ -34,7 +34,7 @@ type Session interface {
 	LastUpdateTime() time.Time
 
 	// Metadata 返回会话元数据
-	Metadata() map[string]interface{}
+	Metadata() map[string]any
 }
 
 // State 定义分层的状态管理接口
@@ -42,16 +42,16 @@ type Session interface {
 type State interface {
 	// Get 获取指定 key 的值
 	// 如果 key 不存在，返回 ErrStateKeyNotExist
-	Get(key string) (interface{}, error)
+	Get(key string) (any, error)
 
 	// Set 设置 key-value，覆盖已存在的值
-	Set(key string, value interface{}) error
+	Set(key string, value any) error
 
 	// Delete 删除指定 key
 	Delete(key string) error
 
 	// All 返回所有 key-value 的迭代器
-	All() iter.Seq2[string, interface{}]
+	All() iter.Seq2[string, any]
 
 	// Has 检查 key 是否存在
 	Has(key string) bool
@@ -59,8 +59,8 @@ type State interface {
 
 // ReadonlyState 只读状态接口
 type ReadonlyState interface {
-	Get(key string) (interface{}, error)
-	All() iter.Seq2[string, interface{}]
+	Get(key string) (any, error)
+	All() iter.Seq2[string, any]
 	Has(key string) bool
 }
 
@@ -108,13 +108,13 @@ type Event struct {
 	LongRunningToolIDs []string
 
 	// 元数据
-	Metadata map[string]interface{}
+	Metadata map[string]any
 }
 
 // EventActions 表示事件附带的动作
 type EventActions struct {
 	// StateDelta 状态增量更新
-	StateDelta map[string]interface{}
+	StateDelta map[string]any
 
 	// ArtifactDelta Artifact 版本变化 (filename -> version)
 	ArtifactDelta map[string]int64
@@ -129,7 +129,7 @@ type EventActions struct {
 	Escalate bool
 
 	// CustomActions 自定义动作
-	CustomActions map[string]interface{}
+	CustomActions map[string]any
 }
 
 // IsFinalResponse 判断是否为最终响应
@@ -198,7 +198,7 @@ type Service interface {
 	GetEvents(ctx context.Context, sessionID string, filter *EventFilter) ([]Event, error)
 
 	// UpdateState 更新状态
-	UpdateState(ctx context.Context, sessionID string, delta map[string]interface{}) error
+	UpdateState(ctx context.Context, sessionID string, delta map[string]any) error
 }
 
 // CreateRequest 创建会话请求
@@ -206,7 +206,7 @@ type CreateRequest struct {
 	AppName  string
 	UserID   string
 	AgentID  string
-	Metadata map[string]interface{}
+	Metadata map[string]any
 }
 
 // GetRequest 获取会话请求
@@ -219,7 +219,7 @@ type GetRequest struct {
 // UpdateRequest 更新会话请求
 type UpdateRequest struct {
 	SessionID string
-	Metadata  map[string]interface{}
+	Metadata  map[string]any
 }
 
 // ListRequest 列出会话请求
@@ -264,7 +264,7 @@ type SessionData struct {
 	AgentID        string
 	CreatedAt      time.Time
 	LastUpdateTime time.Time
-	Metadata       map[string]interface{}
+	Metadata       map[string]any
 }
 
 // NewEvent 创建新事件
@@ -274,11 +274,11 @@ func NewEvent(invocationID string) *Event {
 		InvocationID: invocationID,
 		Timestamp:    time.Now(),
 		Actions: EventActions{
-			StateDelta:    make(map[string]interface{}),
+			StateDelta:    make(map[string]any),
 			ArtifactDelta: make(map[string]int64),
-			CustomActions: make(map[string]interface{}),
+			CustomActions: make(map[string]any),
 		},
-		Metadata: make(map[string]interface{}),
+		Metadata: make(map[string]any),
 	}
 }
 

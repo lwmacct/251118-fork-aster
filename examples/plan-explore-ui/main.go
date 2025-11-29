@@ -104,7 +104,7 @@ func main() {
 			"\n" +
 			"Available tools: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, write_todos, Task, ExitPlanMode, Ls.\n" +
 			"Start by calling TodoWrite to create a task list, then use Read/Grep/Glob to explore code.\n",
-		Tools: []interface{}{
+		Tools: []any{
 			"Read", "Write", "Edit", "Glob", "Grep", "Bash", "Ls",
 			"TodoWrite", "write_todos", "Task", "ExitPlanMode",
 		},
@@ -203,7 +203,7 @@ func runCliDemo(ctx context.Context, deps *agent.Dependencies, templateID, provi
 
 // runWebUI 启动一个带简单前端的 HTTP 服务。
 // 默认访问地址: http://localhost:8080
-func runWebUI(ctx context.Context, deps *agent.Dependencies, templateID, providerName, modelName, apiKey, addr string) error {
+func runWebUI(_ context.Context, deps *agent.Dependencies, templateID, providerName, modelName, apiKey, addr string) error {
 	mux := http.NewServeMux()
 
 	// 静态前端资源
@@ -291,7 +291,7 @@ func runWebUI(ctx context.Context, deps *agent.Dependencies, templateID, provide
 					continue
 				}
 
-				payload := map[string]interface{}{}
+				payload := map[string]any{}
 
 				switch e := env.Event.(type) {
 				case *types.ProgressTextChunkStartEvent:
@@ -368,7 +368,7 @@ type uiState struct {
 	current *phase
 }
 
-func handleProgressEvent(state *uiState, event interface{}) {
+func handleProgressEvent(state *uiState, event any) {
 	switch e := event.(type) {
 	case *types.ProgressTextChunkStartEvent:
 		fmt.Print("\nAssistant: ")
@@ -385,7 +385,7 @@ func handleProgressEvent(state *uiState, event interface{}) {
 	}
 }
 
-func handleMonitorEventUI(event interface{}) {
+func handleMonitorEventUI(event any) {
 	switch e := event.(type) {
 	case *types.MonitorStateChangedEvent:
 		fmt.Printf("\n[State] %s\n", e.State)
@@ -439,7 +439,7 @@ func renderToolStart(state *uiState, call *types.ToolCallSnapshot) {
 	}
 }
 
-func extractActiveTaskTitle(args map[string]interface{}) string {
+func extractActiveTaskTitle(args map[string]any) string {
 	if args == nil {
 		return ""
 	}
@@ -449,13 +449,13 @@ func extractActiveTaskTitle(args map[string]interface{}) string {
 		return ""
 	}
 
-	todoSlice, ok := todosRaw.([]interface{})
+	todoSlice, ok := todosRaw.([]any)
 	if !ok {
 		return ""
 	}
 
 	for _, item := range todoSlice {
-		m, ok := item.(map[string]interface{})
+		m, ok := item.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -475,7 +475,7 @@ func extractActiveTaskTitle(args map[string]interface{}) string {
 	return ""
 }
 
-func getStringArg(m map[string]interface{}, key string) string {
+func getStringArg(m map[string]any, key string) string {
 	if m == nil {
 		return ""
 	}
@@ -537,7 +537,7 @@ type uiEvent struct {
 	Cursor  int64                  `json:"cursor"`
 	Channel string                 `json:"channel"`
 	Type    string                 `json:"type"`
-	Payload map[string]interface{} `json:"payload,omitempty"`
+	Payload map[string]any `json:"payload,omitempty"`
 }
 
 func defaultPrompt() string {

@@ -30,11 +30,11 @@ type PlanRecord struct {
 	ApprovedAt           *time.Time             `json:"approved_at,omitempty"`
 	AgentID              string                 `json:"agent_id"`
 	SessionID            string                 `json:"session_id"`
-	Metadata             map[string]interface{} `json:"metadata,omitempty"`
+	Metadata             map[string]any `json:"metadata,omitempty"`
 }
 
 // NewExitPlanModeTool 创建ExitPlanMode工具
-func NewExitPlanModeTool(config map[string]interface{}) (tools.Tool, error) {
+func NewExitPlanModeTool(config map[string]any) (tools.Tool, error) {
 	basePath := ".aster/plans"
 	if bp, ok := config["base_path"].(string); ok && bp != "" {
 		basePath = bp
@@ -53,11 +53,11 @@ func (t *ExitPlanModeTool) Description() string {
 	return "完成规划模式，读取计划文件内容并请求用户审批"
 }
 
-func (t *ExitPlanModeTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *ExitPlanModeTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"plan_file_path": map[string]interface{}{
+		"properties": map[string]any{
+			"plan_file_path": map[string]any{
 				"type":        "string",
 				"description": "计划文件的路径（由 EnterPlanMode 返回），如果不提供则自动查找最新的计划文件",
 			},
@@ -66,7 +66,7 @@ func (t *ExitPlanModeTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ExitPlanModeTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *ExitPlanModeTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	start := time.Now()
 
 	planFilePath := GetStringParam(input, "plan_file_path", "")
@@ -118,7 +118,7 @@ func (t *ExitPlanModeTool) Execute(ctx context.Context, input map[string]interfa
 		Status:               "pending_approval",
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"exit_plan_mode_call": true,
 			"plan_file_path":      planFilePath,
 		},
@@ -134,7 +134,7 @@ func (t *ExitPlanModeTool) Execute(ctx context.Context, input map[string]interfa
 	duration := time.Since(start)
 
 	// 构建响应
-	response := map[string]interface{}{
+	response := map[string]any{
 		"ok":                    true,
 		"plan_id":               planID,
 		"plan_file_path":        planFilePath,

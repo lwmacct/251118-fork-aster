@@ -16,7 +16,7 @@ import (
 type WriteTool struct{}
 
 // NewWriteTool 创建文件写入工具
-func NewWriteTool(config map[string]interface{}) (tools.Tool, error) {
+func NewWriteTool(config map[string]any) (tools.Tool, error) {
 	return &WriteTool{}, nil
 }
 
@@ -28,27 +28,27 @@ func (t *WriteTool) Description() string {
 	return "向本地文件系统写入文件内容"
 }
 
-func (t *WriteTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *WriteTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"file_path": map[string]interface{}{
+		"properties": map[string]any{
+			"file_path": map[string]any{
 				"type":        "string",
 				"description": "要写入的文件路径，必须是绝对路径",
 			},
-			"content": map[string]interface{}{
+			"content": map[string]any{
 				"type":        "string",
 				"description": "要写入文件的内容",
 			},
-			"create_dirs": map[string]interface{}{
+			"create_dirs": map[string]any{
 				"type":        "boolean",
 				"description": "如果目录不存在，是否自动创建父目录，默认为true",
 			},
-			"backup": map[string]interface{}{
+			"backup": map[string]any{
 				"type":        "boolean",
 				"description": "在覆盖现有文件前是否创建备份，默认为false",
 			},
-			"append": map[string]interface{}{
+			"append": map[string]any{
 				"type":        "boolean",
 				"description": "是否以追加模式写入，默认为false（覆盖模式）",
 			},
@@ -57,7 +57,7 @@ func (t *WriteTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *WriteTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *WriteTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := ValidateRequired(input, []string{"file_path", "content"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -124,7 +124,7 @@ func (t *WriteTool) Execute(ctx context.Context, input map[string]interface{}, t
 	duration := time.Since(start)
 
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to write file: %v", err),
 			"recommendations": []string{
@@ -170,7 +170,7 @@ func (t *WriteTool) Execute(ctx context.Context, input map[string]interface{}, t
 	}
 
 	// 构建响应
-	response := map[string]interface{}{
+	response := map[string]any{
 		"ok":           true,
 		"file_path":    filePath,
 		"content":      content,
@@ -264,14 +264,14 @@ func (t *WriteTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "创建新的配置文件",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path": "/app/config.yaml",
 				"content":   "server:\n  port: 8080\n  host: localhost",
 			},
 		},
 		{
 			Description: "追加日志到文件",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path": "/var/log/app.log",
 				"content":   "2024-01-15 10:30:00 INFO Application started",
 				"append":    true,
@@ -279,7 +279,7 @@ func (t *WriteTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "创建文件并备份已存在的版本",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path": "/app/src/main.go",
 				"content":   "package main\n\nfunc main() {\n\tprintln(\"Hello\")\n}",
 				"backup":    true,

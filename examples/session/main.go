@@ -20,7 +20,7 @@ func main() {
 		AppName: "my-app",
 		UserID:  "user-123",
 		AgentID: "agent-001",
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"source": "web",
 			"region": "us-west",
 		},
@@ -60,7 +60,7 @@ func demonstrateStateManagement(ctx context.Context, service *session.InMemorySe
 	state := sess.State()
 
 	// 设置不同作用域的状态
-	states := map[string]interface{}{
+	states := map[string]any{
 		"app:version":           "1.0.0",                            // 应用级
 		"user:preferences":      map[string]string{"theme": "dark"}, // 用户级
 		"temp:current_task":     "processing",                       // 临时
@@ -138,7 +138,7 @@ func demonstrateEventManagement(ctx context.Context, service *session.InMemorySe
 					{
 						ID:   "call-001",
 						Name: "search",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"query": "golang best practices",
 						},
 					},

@@ -19,7 +19,7 @@ type BashTool struct {
 }
 
 // NewBashTool 创建Bash执行工具
-func NewBashTool(config map[string]interface{}) (tools.Tool, error) {
+func NewBashTool(config map[string]any) (tools.Tool, error) {
 	tool := &BashTool{
 		defaultTimeout: 2 * time.Minute,
 	}
@@ -53,42 +53,42 @@ func (t *BashTool) Description() string {
 	return "执行bash命令在持久化shell会话中"
 }
 
-func (t *BashTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *BashTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"command": map[string]interface{}{
+		"properties": map[string]any{
+			"command": map[string]any{
 				"type":        "string",
 				"description": "要执行的bash命令",
 			},
-			"timeout": map[string]interface{}{
+			"timeout": map[string]any{
 				"type":        "integer",
 				"description": "超时时间（毫秒），默认为120000（2分钟）",
 			},
-			"working_dir": map[string]interface{}{
+			"working_dir": map[string]any{
 				"type":        "string",
 				"description": "命令执行的工作目录，默认为当前目录",
 			},
-			"shell_id": map[string]interface{}{
+			"shell_id": map[string]any{
 				"type":        "string",
 				"description": "在指定的shell会话中执行命令，如果未提供则创建新会话",
 			},
-			"background": map[string]interface{}{
+			"background": map[string]any{
 				"type":        "boolean",
 				"description": "是否在后台运行命令，默认为false",
 			},
-			"capture_output": map[string]interface{}{
+			"capture_output": map[string]any{
 				"type":        "boolean",
 				"description": "是否捕获命令输出，默认为true",
 			},
-			"environment": map[string]interface{}{
+			"environment": map[string]any{
 				"type":        "object",
 				"description": "设置环境变量",
-				"additionalProperties": map[string]interface{}{
+				"additionalProperties": map[string]any{
 					"type": "string",
 				},
 			},
-			"shell": map[string]interface{}{
+			"shell": map[string]any{
 				"type":        "string",
 				"description": "使用的shell类型，如bash, sh, zsh，默认为bash",
 			},
@@ -97,7 +97,7 @@ func (t *BashTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *BashTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := ValidateRequired(input, []string{"command"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -119,7 +119,7 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	gitCheck := GetGlobalGitSafetyValidator().Check(command)
 	if gitCheck.IsGitCommand {
 		if gitCheck.Blocked {
-			return map[string]interface{}{
+			return map[string]any{
 				"ok":              false,
 				"blocked":         true,
 				"is_git_command":  true,
@@ -133,7 +133,7 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 		}
 
 		if gitCheck.RequiresApproval {
-			return map[string]interface{}{
+			return map[string]any{
 				"ok":                false,
 				"requires_approval": true,
 				"is_git_command":    true,
@@ -159,7 +159,7 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	// 获取环境变量
 	environment := make(map[string]string)
 	if envData, exists := input["environment"]; exists {
-		if envMap, ok := envData.(map[string]interface{}); ok {
+		if envMap, ok := envData.(map[string]any); ok {
 			for k, v := range envMap {
 				if str, ok := v.(string); ok {
 					environment[k] = str
@@ -197,7 +197,7 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 		taskInfo, taskErr := taskManager.StartTask(ctx, command, taskOpts)
 		if taskErr != nil {
-			return map[string]interface{}{
+			return map[string]any{
 				"ok":    false,
 				"error": fmt.Sprintf("failed to start background task: %v", taskErr),
 				"recommendations": []string{
@@ -230,7 +230,7 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	duration := time.Since(start)
 
 	if err != nil && !background {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("command execution failed: %v", err),
 			"recommendations": []string{
@@ -246,7 +246,7 @@ func (t *BashTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	}
 
 	// 构建响应
-	response := map[string]interface{}{
+	response := map[string]any{
 		"ok":          true,
 		"command":     command,
 		"exit_code":   result.Code,
@@ -415,19 +415,19 @@ func (t *BashTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "列出当前目录文件",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"command": "ls -la",
 			},
 		},
 		{
 			Description: "查找所有 Go 源文件",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"command": "find . -name '*.go' -type f",
 			},
 		},
 		{
 			Description: "在后台运行构建命令",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"command":    "go build -v ./...",
 				"background": true,
 				"timeout":    300000,
@@ -435,7 +435,7 @@ func (t *BashTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "设置环境变量执行命令",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"command": "echo $MY_VAR && env | grep MY",
 				"environment": map[string]string{
 					"MY_VAR": "hello_world",
@@ -444,7 +444,7 @@ func (t *BashTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "在指定目录运行 npm 安装",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"command":     "npm install",
 				"working_dir": "/app/frontend",
 				"timeout":     600000,

@@ -51,11 +51,11 @@ func (t *DocsGetTool) Description() string {
 	return "Read a documentation file from the configured base directory."
 }
 
-func (t *DocsGetTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *DocsGetTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"path": map[string]interface{}{
+		"properties": map[string]any{
+			"path": map[string]any{
 				"type":        "string",
 				"description": "Relative path to the doc file, e.g. \"README.md\" or \"docs/content/index.md\".",
 			},
@@ -64,7 +64,7 @@ func (t *DocsGetTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *DocsGetTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *DocsGetTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	relPath, _ := input["path"].(string)
 	if relPath == "" {
 		return nil, fmt.Errorf("path is required")
@@ -90,7 +90,7 @@ func (t *DocsGetTool) Execute(ctx context.Context, input map[string]interface{},
 		return nil, fmt.Errorf("read file: %w", err)
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"path":    relPath,
 		"content": string(data),
 	}, nil
@@ -122,23 +122,23 @@ func (t *DocsSearchTool) Description() string {
 	return "Search documentation files for a query string (case-insensitive)."
 }
 
-func (t *DocsSearchTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *DocsSearchTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"query": map[string]interface{}{
+		"properties": map[string]any{
+			"query": map[string]any{
 				"type":        "string",
 				"description": "Query string to search for (case-insensitive).",
 			},
-			"subdir": map[string]interface{}{
+			"subdir": map[string]any{
 				"type":        "string",
 				"description": "Optional subdirectory under the base docs dir to limit the search.",
 			},
-			"glob": map[string]interface{}{
+			"glob": map[string]any{
 				"type":        "string",
 				"description": "Optional glob pattern, e.g. \"*.md\".",
 			},
-			"max_results": map[string]interface{}{
+			"max_results": map[string]any{
 				"type":        "integer",
 				"description": "Maximum number of matches to return (default 50).",
 			},
@@ -147,7 +147,7 @@ func (t *DocsSearchTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *DocsSearchTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *DocsSearchTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	query, _ := input["query"].(string)
 	if strings.TrimSpace(query) == "" {
 		return nil, fmt.Errorf("query cannot be empty")
@@ -237,7 +237,7 @@ func (t *DocsSearchTool) Execute(ctx context.Context, input map[string]interface
 		log.Printf("[SearchFilesTool] Walk error: %v", walkErr)
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"query":       query,
 		"base_dir":    t.baseDir,
 		"subdir":      subdir,

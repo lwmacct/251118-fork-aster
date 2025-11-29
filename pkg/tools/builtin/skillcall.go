@@ -15,7 +15,7 @@ import (
 type SkillTool struct{}
 
 // NewSkillTool 创建 SkillTool 实例
-func NewSkillTool(config map[string]interface{}) (tools.Tool, error) {
+func NewSkillTool(config map[string]any) (tools.Tool, error) {
 	return &SkillTool{}, nil
 }
 
@@ -27,18 +27,18 @@ func (t *SkillTool) Description() string {
 	return "Execute an executable Skill by name using the Skills Runtime"
 }
 
-func (t *SkillTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *SkillTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"skill": map[string]interface{}{
+		"properties": map[string]any{
+			"skill": map[string]any{
 				"type":        "string",
 				"description": "Skill 的名称（例如 \"pdf-to-markdown\"）",
 			},
-			"params": map[string]interface{}{
+			"params": map[string]any{
 				"type":        "object",
 				"description": "传递给 Skill 的参数键值对，将作为环境变量注入脚本。",
-				"additionalProperties": map[string]interface{}{
+				"additionalProperties": map[string]any{
 					"type": "string",
 				},
 			},
@@ -47,7 +47,7 @@ func (t *SkillTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *SkillTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *SkillTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 获取 Runtime
 	if tc == nil || tc.Services == nil {
 		return nil, fmt.Errorf("skill_call: ToolContext.Services is nil; skills runtime not available")
@@ -69,9 +69,9 @@ func (t *SkillTool) Execute(ctx context.Context, input map[string]interface{}, t
 		return nil, fmt.Errorf("skill_call: \"skill\" must be a non-empty string")
 	}
 
-	// params 期望为 map[string]string，但 JSON 反序列化会是 map[string]interface{}
+	// params 期望为 map[string]string，但 JSON 反序列化会是 map[string]any
 	params := make(map[string]string)
-	if rawParams, ok := input["params"].(map[string]interface{}); ok {
+	if rawParams, ok := input["params"].(map[string]any); ok {
 		for k, v := range rawParams {
 			if s, ok := v.(string); ok {
 				params[k] = s
@@ -82,13 +82,13 @@ func (t *SkillTool) Execute(ctx context.Context, input map[string]interface{}, t
 	// 执行 Skill
 	res, err := rt.Execute(ctx, skillName, params)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": err.Error(),
 		}, nil
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":        res.ExitCode == 0,
 		"skill":     res.SkillName,
 		"command":   res.Command,

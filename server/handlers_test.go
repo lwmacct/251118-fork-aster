@@ -39,12 +39,12 @@ func TestToolHandlers(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 		assert.True(t, resp["success"].(bool))
 
-		data := resp["data"].(map[string]interface{})
+		data := resp["data"].(map[string]any)
 		toolID = data["id"].(string)
 		assert.NotEmpty(t, toolID)
 	})
@@ -125,11 +125,11 @@ func TestMiddlewareHandlers(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		data := resp["data"].(map[string]interface{})
+		data := resp["data"].(map[string]any)
 		middlewareID = data["id"].(string)
 		assert.NotEmpty(t, middlewareID)
 	})
@@ -323,11 +323,11 @@ func TestMCPHandlers(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		data := resp["data"].(map[string]interface{})
+		data := resp["data"].(map[string]any)
 		serverID = data["id"].(string)
 		assert.NotEmpty(t, serverID)
 	})
@@ -513,7 +513,7 @@ func TestResponseFormat(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
@@ -530,7 +530,7 @@ func TestResponseFormat(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
@@ -538,7 +538,7 @@ func TestResponseFormat(t *testing.T) {
 		assert.False(t, resp["success"].(bool))
 		assert.Contains(t, resp, "error")
 
-		errorObj := resp["error"].(map[string]interface{})
+		errorObj := resp["error"].(map[string]any)
 		assert.Contains(t, errorObj, "code")
 		assert.Contains(t, errorObj, "message")
 	})

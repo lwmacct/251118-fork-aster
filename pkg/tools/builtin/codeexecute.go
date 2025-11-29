@@ -17,7 +17,7 @@ type CodeExecuteTool struct {
 }
 
 // NewCodeExecuteTool 创建代码执行工具
-func NewCodeExecuteTool(config map[string]interface{}) (tools.Tool, error) {
+func NewCodeExecuteTool(config map[string]any) (tools.Tool, error) {
 	runtimeConfig := bridge.DefaultRuntimeConfig()
 
 	// 解析配置
@@ -49,20 +49,20 @@ func (t *CodeExecuteTool) Description() string {
 	return "Execute code in Python, Node.js, or Bash to perform complex operations or call tools programmatically"
 }
 
-func (t *CodeExecuteTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *CodeExecuteTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"language": map[string]interface{}{
+		"properties": map[string]any{
+			"language": map[string]any{
 				"type":        "string",
 				"enum":        []string{"python", "nodejs", "bash"},
 				"description": "Programming language to use",
 			},
-			"code": map[string]interface{}{
+			"code": map[string]any{
 				"type":        "string",
 				"description": "Code to execute. Use _input variable to access input data.",
 			},
-			"input": map[string]interface{}{
+			"input": map[string]any{
 				"type":        "object",
 				"description": "Input data passed to the code as _input variable (Python/Node.js) or INPUT_JSON (Bash)",
 			},
@@ -71,7 +71,7 @@ func (t *CodeExecuteTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *CodeExecuteTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *CodeExecuteTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 解析参数
 	langStr, ok := input["language"].(string)
 	if !ok {
@@ -93,28 +93,28 @@ func (t *CodeExecuteTool) Execute(ctx context.Context, input map[string]interfac
 	case "bash":
 		lang = bridge.LangBash
 	default:
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"error":   fmt.Sprintf("unsupported language: %s", langStr),
 		}, nil
 	}
 
 	// 获取输入数据
-	codeInput := make(map[string]interface{})
-	if inputData, ok := input["input"].(map[string]interface{}); ok {
+	codeInput := make(map[string]any)
+	if inputData, ok := input["input"].(map[string]any); ok {
 		codeInput = inputData
 	}
 
 	// 执行代码
 	result, err := t.runtimeManager.Execute(ctx, lang, code, codeInput)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"error":   err.Error(),
 		}, nil
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"success":     result.Success,
 		"output":      result.Output,
 		"stdout":      result.Stdout,
@@ -180,21 +180,21 @@ func (t *CodeExecuteTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "使用 Python 计算数据",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"language": "python",
 				"code":     "import json\nresult = {'sum': sum(_input['numbers']), 'avg': sum(_input['numbers'])/len(_input['numbers'])}\nprint(json.dumps(result))",
-				"input": map[string]interface{}{
+				"input": map[string]any{
 					"numbers": []int{10, 20, 30, 40, 50},
 				},
 			},
 		},
 		{
 			Description: "使用 Node.js 处理 JSON",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"language": "nodejs",
 				"code":     "const filtered = _input.users.filter(u => u.age >= 18);\nconsole.log(JSON.stringify({adults: filtered}));",
-				"input": map[string]interface{}{
-					"users": []map[string]interface{}{
+				"input": map[string]any{
+					"users": []map[string]any{
 						{"name": "Alice", "age": 25},
 						{"name": "Bob", "age": 15},
 						{"name": "Charlie", "age": 30},
@@ -204,10 +204,10 @@ func (t *CodeExecuteTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "使用 Bash 执行系统命令",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"language": "bash",
 				"code":     "echo \"Current directory: $(pwd)\"\necho \"Files: $(ls -la | wc -l)\"",
-				"input":    map[string]interface{}{},
+				"input":    map[string]any{},
 			},
 		},
 	}

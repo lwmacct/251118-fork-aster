@@ -18,7 +18,7 @@ type MetricRecord struct {
 	Value     float64                `json:"value"`
 	Tags      map[string]string      `json:"tags,omitempty"`
 	Timestamp time.Time              `json:"timestamp"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // TraceRecord 追踪记录
@@ -31,7 +31,7 @@ type TraceRecord struct {
 	EndTime    *time.Time             `json:"end_time,omitempty"`
 	Duration   int64                  `json:"duration,omitempty"` // microseconds
 	Status     string                 `json:"status"`             // ok, error
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes map[string]any `json:"attributes,omitempty"`
 }
 
 // LogRecord 日志记录
@@ -41,7 +41,7 @@ type LogRecord struct {
 	Message   string                 `json:"message"`
 	Source    string                 `json:"source,omitempty"`
 	Timestamp time.Time              `json:"timestamp"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // TelemetryHandler handles telemetry-related requests
@@ -61,7 +61,7 @@ func (h *TelemetryHandler) RecordMetric(c *gin.Context) {
 		Type     string                 `json:"type" binding:"required"`
 		Value    float64                `json:"value" binding:"required"`
 		Tags     map[string]string      `json:"tags"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -97,7 +97,7 @@ func (h *TelemetryHandler) RecordMetric(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "telemetry.metric.recorded", map[string]interface{}{
+	logging.Info(ctx, "telemetry.metric.recorded", map[string]any{
 		"name":  req.Name,
 		"value": req.Value,
 	})
@@ -149,7 +149,7 @@ func (h *TelemetryHandler) RecordTrace(c *gin.Context) {
 		EndTime    *time.Time             `json:"end_time"`
 		Duration   int64                  `json:"duration"`
 		Status     string                 `json:"status"`
-		Attributes map[string]interface{} `json:"attributes"`
+		Attributes map[string]any `json:"attributes"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -187,7 +187,7 @@ func (h *TelemetryHandler) RecordTrace(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "telemetry.trace.recorded", map[string]interface{}{
+	logging.Info(ctx, "telemetry.trace.recorded", map[string]any{
 		"trace_id": trace.ID,
 		"name":     req.Name,
 	})
@@ -265,7 +265,7 @@ func (h *TelemetryHandler) RecordLog(c *gin.Context) {
 		Level    string                 `json:"level" binding:"required"`
 		Message  string                 `json:"message" binding:"required"`
 		Source   string                 `json:"source"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -300,7 +300,7 @@ func (h *TelemetryHandler) RecordLog(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "telemetry.log.recorded", map[string]interface{}{
+	logging.Info(ctx, "telemetry.log.recorded", map[string]any{
 		"level":   req.Level,
 		"message": req.Message,
 	})

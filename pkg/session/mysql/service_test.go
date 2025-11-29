@@ -181,7 +181,7 @@ func TestMySQLService_AppendEvent(t *testing.T) {
 				Content: "Testing MySQL JSON columns",
 			},
 			Actions: session.EventActions{
-				StateDelta: map[string]interface{}{
+				StateDelta: map[string]any{
 					"session:counter": 42,
 					"session:name":    "test",
 				},
@@ -213,7 +213,7 @@ func TestMySQLService_AppendEvent(t *testing.T) {
 					{
 						ID:   "call-1",
 						Name: "search",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"query": "MySQL JSON",
 						},
 					},
@@ -470,9 +470,9 @@ func TestMySQLService_JSONColumns(t *testing.T) {
 			Role:    types.RoleAssistant,
 			Content: "Complex JSON test",
 		},
-		Metadata: map[string]interface{}{
-			"nested": map[string]interface{}{
-				"level1": map[string]interface{}{
+		Metadata: map[string]any{
+			"nested": map[string]any{
+				"level1": map[string]any{
 					"level2": "deep_value",
 				},
 			},
@@ -494,7 +494,7 @@ func TestMySQLService_JSONColumns(t *testing.T) {
 	assert.Equal(t, "测试中文", metadata["chinese"])
 	assert.Equal(t, "😀🎉", metadata["emoji"])
 
-	nested := metadata["nested"].(map[string]interface{})
-	level1 := nested["level1"].(map[string]interface{})
+	nested := metadata["nested"].(map[string]any)
+	level1 := nested["level1"].(map[string]any)
 	assert.Equal(t, "deep_value", level1["level2"])
 }
