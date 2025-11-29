@@ -40,7 +40,7 @@ func NewExecutor(config ExecutorConfig) *Executor {
 // ExecuteRequest 执行请求
 type ExecuteRequest struct {
 	Tool    Tool
-	Input   map[string]interface{}
+	Input   map[string]any
 	Context *ToolContext
 	Timeout time.Duration
 }
@@ -48,7 +48,7 @@ type ExecuteRequest struct {
 // ExecuteResult 执行结果
 type ExecuteResult struct {
 	Success    bool
-	Output     interface{}
+	Output     any
 	Error      error
 	DurationMs int64
 	StartedAt  time.Time
@@ -120,7 +120,7 @@ func (e *Executor) Wait() {
 }
 
 // ValidateInput 验证工具输入
-func ValidateInput(tool Tool, input map[string]interface{}) error {
+func ValidateInput(tool Tool, input map[string]any) error {
 	schema := tool.InputSchema()
 	if schema == nil {
 		return nil // 没有schema,跳过验证
@@ -128,7 +128,7 @@ func ValidateInput(tool Tool, input map[string]interface{}) error {
 
 	// TODO: 使用jsonschema库进行验证
 	// 这里先做简单的required字段检查
-	if required, ok := schema["required"].([]interface{}); ok {
+	if required, ok := schema["required"].([]any); ok {
 		for _, field := range required {
 			fieldName := field.(string)
 			if _, exists := input[fieldName]; !exists {
@@ -146,7 +146,7 @@ type ToolCallRecordBuilder struct {
 }
 
 // NewToolCallRecord 创建工具调用记录
-func NewToolCallRecord(id, name string, input map[string]interface{}) *ToolCallRecordBuilder {
+func NewToolCallRecord(id, name string, input map[string]any) *ToolCallRecordBuilder {
 	now := time.Now()
 	return &ToolCallRecordBuilder{
 		record: &types.ToolCallRecord{
@@ -189,7 +189,7 @@ func (b *ToolCallRecordBuilder) SetApproval(approval types.ToolCallApproval) *To
 }
 
 // SetResult 设置结果
-func (b *ToolCallRecordBuilder) SetResult(result interface{}, err error) *ToolCallRecordBuilder {
+func (b *ToolCallRecordBuilder) SetResult(result any, err error) *ToolCallRecordBuilder {
 	if err != nil {
 		b.record.Error = err.Error()
 		b.record.IsError = true

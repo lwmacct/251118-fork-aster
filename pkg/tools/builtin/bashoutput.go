@@ -22,7 +22,7 @@ type ResourceUsage struct {
 }
 
 // NewBashOutputTool 创建BashOutput工具
-func NewBashOutputTool(config map[string]interface{}) (tools.Tool, error) {
+func NewBashOutputTool(config map[string]any) (tools.Tool, error) {
 	return &BashOutputTool{}, nil
 }
 
@@ -34,39 +34,39 @@ func (t *BashOutputTool) Description() string {
 	return "获取后台运行shell的输出和状态信息"
 }
 
-func (t *BashOutputTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *BashOutputTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"bash_id": map[string]interface{}{
+		"properties": map[string]any{
+			"bash_id": map[string]any{
 				"type":        "string",
 				"description": "要获取输出的后台shell的ID",
 			},
-			"filter": map[string]interface{}{
+			"filter": map[string]any{
 				"type":        "string",
 				"description": "可选的正则表达式过滤器，只返回匹配的输出行",
 			},
-			"lines": map[string]interface{}{
+			"lines": map[string]any{
 				"type":        "integer",
 				"description": "返回的最大行数，默认为100，0表示返回全部",
 			},
-			"follow": map[string]interface{}{
+			"follow": map[string]any{
 				"type":        "boolean",
 				"description": "是否持续跟随输出（类似tail -f），默认为false",
 			},
-			"include_stderr": map[string]interface{}{
+			"include_stderr": map[string]any{
 				"type":        "boolean",
 				"description": "是否包含stderr输出，默认为true",
 			},
-			"since": map[string]interface{}{
+			"since": map[string]any{
 				"type":        "string",
 				"description": "只返回指定时间之后的输出，格式如'2023-01-01T00:00:00Z'",
 			},
-			"resource_info": map[string]interface{}{
+			"resource_info": map[string]any{
 				"type":        "boolean",
 				"description": "是否包含进程资源使用信息，默认为false",
 			},
-			"clear_cache": map[string]interface{}{
+			"clear_cache": map[string]any{
 				"type":        "boolean",
 				"description": "是否清除已缓存的输出，默认为false",
 			},
@@ -75,7 +75,7 @@ func (t *BashOutputTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *BashOutputTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := ValidateRequired(input, []string{"bash_id"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -102,7 +102,7 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 	// 获取任务信息
 	task, err := taskManager.GetTask(bashID)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("background task not found: %s", bashID),
 			"recommendations": []string{
@@ -118,7 +118,7 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 	// 获取任务输出
 	stdout, stderr, err := taskManager.GetTaskOutput(bashID, filter, lines)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":          false,
 			"error":       fmt.Sprintf("failed to get task output: %v", err),
 			"bash_id":     bashID,
@@ -162,7 +162,7 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]interface
 	}
 
 	// 构建响应 - 确保输出格式正确保持换行
-	response := map[string]interface{}{
+	response := map[string]any{
 		"ok":             true,
 		"bash_id":        bashID,
 		"command":        task.Command,
@@ -396,13 +396,13 @@ func (t *BashOutputTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "获取后台任务的输出",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"bash_id": "task_123456",
 			},
 		},
 		{
 			Description: "获取输出并过滤错误信息",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"bash_id": "task_123456",
 				"filter":  "error|ERROR|Error",
 				"lines":   50,
@@ -410,7 +410,7 @@ func (t *BashOutputTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "获取资源使用信息",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"bash_id":       "task_123456",
 				"resource_info": true,
 			},

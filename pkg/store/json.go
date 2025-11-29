@@ -68,7 +68,7 @@ func (js *JSONStore) ensureAgentDir(agentID string) error {
 }
 
 // saveJSON 保存JSON文件
-func (js *JSONStore) saveJSON(path string, data interface{}) error {
+func (js *JSONStore) saveJSON(path string, data any) error {
 	// 确保目录存在
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -90,7 +90,7 @@ func (js *JSONStore) saveJSON(path string, data interface{}) error {
 }
 
 // loadJSON 加载JSON文件
-func (js *JSONStore) loadJSON(path string, dest interface{}) error {
+func (js *JSONStore) loadJSON(path string, dest any) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -261,7 +261,7 @@ func (js *JSONStore) LoadInfo(ctx context.Context, agentID string) (*types.Agent
 }
 
 // SaveTodos 保存Todo列表
-func (js *JSONStore) SaveTodos(ctx context.Context, agentID string, todos interface{}) error {
+func (js *JSONStore) SaveTodos(ctx context.Context, agentID string, todos any) error {
 	js.mu.Lock()
 	defer js.mu.Unlock()
 
@@ -274,11 +274,11 @@ func (js *JSONStore) SaveTodos(ctx context.Context, agentID string, todos interf
 }
 
 // LoadTodos 加载Todo列表
-func (js *JSONStore) LoadTodos(ctx context.Context, agentID string) (interface{}, error) {
+func (js *JSONStore) LoadTodos(ctx context.Context, agentID string) (any, error) {
 	js.mu.RLock()
 	defer js.mu.RUnlock()
 
-	var todos interface{}
+	var todos any
 	path := filepath.Join(js.agentDir(agentID), "todos.json")
 	if err := js.loadJSON(path, &todos); err != nil {
 		return nil, err
@@ -340,7 +340,7 @@ func (js *JSONStore) ensureCollectionDir(collection string) error {
 }
 
 // Get 获取单个资源
-func (js *JSONStore) Get(ctx context.Context, collection, key string, dest interface{}) error {
+func (js *JSONStore) Get(ctx context.Context, collection, key string, dest any) error {
 	js.mu.RLock()
 	defer js.mu.RUnlock()
 
@@ -361,7 +361,7 @@ func (js *JSONStore) Get(ctx context.Context, collection, key string, dest inter
 }
 
 // Set 设置资源
-func (js *JSONStore) Set(ctx context.Context, collection, key string, value interface{}) error {
+func (js *JSONStore) Set(ctx context.Context, collection, key string, value any) error {
 	js.mu.Lock()
 	defer js.mu.Unlock()
 
@@ -390,7 +390,7 @@ func (js *JSONStore) Delete(ctx context.Context, collection, key string) error {
 }
 
 // List 列出资源
-func (js *JSONStore) List(ctx context.Context, collection string) ([]interface{}, error) {
+func (js *JSONStore) List(ctx context.Context, collection string) ([]any, error) {
 	js.mu.RLock()
 	defer js.mu.RUnlock()
 
@@ -398,18 +398,18 @@ func (js *JSONStore) List(ctx context.Context, collection string) ([]interface{}
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return []interface{}{}, nil
+			return []any{}, nil
 		}
 		return nil, fmt.Errorf("read directory: %w", err)
 	}
 
-	items := make([]interface{}, 0, len(entries))
+	items := make([]any, 0, len(entries))
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
 			continue
 		}
 
-		var item interface{}
+		var item any
 		path := filepath.Join(dir, entry.Name())
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -443,8 +443,8 @@ func (js *JSONStore) Exists(ctx context.Context, collection, key string) (bool, 
 	return true, nil
 }
 
-// DecodeValue 将 interface{} 解码为具体类型
-func DecodeValue(src interface{}, dest interface{}) error {
+// DecodeValue 将 any 解码为具体类型
+func DecodeValue(src any, dest any) error {
 	// 先序列化为 JSON，再反序列化到目标类型
 	data, err := json.Marshal(src)
 	if err != nil {

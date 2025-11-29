@@ -41,8 +41,8 @@ func (h *PoolHandler) CreateAgent(c *gin.Context) {
 		ModelConfig   *types.ModelConfig                `json:"model_config"`
 		Sandbox       *types.SandboxConfig              `json:"sandbox"`
 		Middlewares   []string                          `json:"middlewares"`
-		MiddlewareCfg map[string]map[string]interface{} `json:"middleware_config"`
-		Metadata      map[string]interface{}            `json:"metadata"`
+		MiddlewareCfg map[string]map[string]any `json:"middleware_config"`
+		Metadata      map[string]any            `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -72,7 +72,7 @@ func (h *PoolHandler) CreateAgent(c *gin.Context) {
 	// Create agent in pool
 	ag, err := h.pool.Create(ctx, config)
 	if err != nil {
-		logging.Error(ctx, "pool.create.error", map[string]interface{}{
+		logging.Error(ctx, "pool.create.error", map[string]any{
 			"error": err.Error(),
 		})
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -85,7 +85,7 @@ func (h *PoolHandler) CreateAgent(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "pool.agent.created", map[string]interface{}{
+	logging.Info(ctx, "pool.agent.created", map[string]any{
 		"agent_id": ag.ID(),
 	})
 
@@ -156,7 +156,7 @@ func (h *PoolHandler) ResumeAgent(c *gin.Context) {
 		ModelConfig   *types.ModelConfig                `json:"model_config"`
 		Sandbox       *types.SandboxConfig              `json:"sandbox"`
 		Middlewares   []string                          `json:"middlewares"`
-		MiddlewareCfg map[string]map[string]interface{} `json:"middleware_config"`
+		MiddlewareCfg map[string]map[string]any `json:"middleware_config"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -184,7 +184,7 @@ func (h *PoolHandler) ResumeAgent(c *gin.Context) {
 	// Resume agent
 	ag, err := h.pool.Resume(ctx, id, config)
 	if err != nil {
-		logging.Error(ctx, "pool.resume.error", map[string]interface{}{
+		logging.Error(ctx, "pool.resume.error", map[string]any{
 			"agent_id": id,
 			"error":    err.Error(),
 		})
@@ -198,7 +198,7 @@ func (h *PoolHandler) ResumeAgent(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "pool.agent.resumed", map[string]interface{}{
+	logging.Info(ctx, "pool.agent.resumed", map[string]any{
 		"agent_id": ag.ID(),
 	})
 
@@ -217,7 +217,7 @@ func (h *PoolHandler) RemoveAgent(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	if err := h.pool.Remove(id); err != nil {
-		logging.Error(ctx, "pool.remove.error", map[string]interface{}{
+		logging.Error(ctx, "pool.remove.error", map[string]any{
 			"agent_id": id,
 			"error":    err.Error(),
 		})
@@ -231,7 +231,7 @@ func (h *PoolHandler) RemoveAgent(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "pool.agent.removed", map[string]interface{}{
+	logging.Info(ctx, "pool.agent.removed", map[string]any{
 		"agent_id": id,
 	})
 

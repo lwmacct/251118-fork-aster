@@ -40,9 +40,7 @@ func NewCompositeBackend(defaultBackend BackendProtocol, routes []RouteConfig) *
 // 返回后端和剥离前缀后的路径
 func (b *CompositeBackend) selectBackend(path string) (BackendProtocol, string) {
 	for _, route := range b.routes {
-		if strings.HasPrefix(path, route.Prefix) {
-			// 剥离匹配的前缀
-			strippedPath := strings.TrimPrefix(path, route.Prefix)
+		if strippedPath, found := strings.CutPrefix(path, route.Prefix); found {
 			// 确保路径以 / 开头
 			if strippedPath == "" {
 				strippedPath = "/"

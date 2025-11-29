@@ -35,7 +35,7 @@ func TestBashOutputTool_GetOutput(t *testing.T) {
 	}
 
 	// 启动一个长时间运行的后台任务
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "for i in {1..5}; do echo 'Line $i'; sleep 0.1; done",
 		"background": true,
 	}
@@ -56,7 +56,7 @@ func TestBashOutputTool_GetOutput(t *testing.T) {
 		t.Fatalf("Failed to create BashOutput tool: %v", err)
 	}
 
-	outputInput := map[string]interface{}{
+	outputInput := map[string]any{
 		"bash_id": taskID,
 	}
 
@@ -99,7 +99,7 @@ func TestBashOutputTool_WithFilter(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "echo 'ERROR: Something went wrong'; echo 'INFO: Processing complete'; echo 'WARNING: Low disk space'",
 		"background": true,
 	}
@@ -120,7 +120,7 @@ func TestBashOutputTool_WithFilter(t *testing.T) {
 		t.Fatalf("Failed to create BashOutput tool: %v", err)
 	}
 
-	outputInput := map[string]interface{}{
+	outputInput := map[string]any{
 		"bash_id": taskID,
 		"filter":  "ERROR|WARNING", // 只显示包含ERROR或WARNING的行
 	}
@@ -152,7 +152,7 @@ func TestBashOutputTool_NonExistentTask(t *testing.T) {
 		t.Fatalf("Failed to create BashOutput tool: %v", err)
 	}
 
-	outputInput := map[string]interface{}{
+	outputInput := map[string]any{
 		"bash_id": "non_existent_task_id",
 	}
 
@@ -178,7 +178,7 @@ func TestBashOutputTool_LinesLimit(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "for i in {1..20}; do echo 'Line $i'; done",
 		"background": true,
 	}
@@ -199,7 +199,7 @@ func TestBashOutputTool_LinesLimit(t *testing.T) {
 		t.Fatalf("Failed to create BashOutput tool: %v", err)
 	}
 
-	outputInput := map[string]interface{}{
+	outputInput := map[string]any{
 		"bash_id": taskID,
 		"lines":   5, // 只返回前5行
 	}
@@ -235,7 +235,7 @@ func TestBashOutputTool_ResourceInfo(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "i=0; while [ $i -lt 1000 ]; do i=$((i+1)); done",
 		"background": true,
 	}
@@ -256,7 +256,7 @@ func TestBashOutputTool_ResourceInfo(t *testing.T) {
 		t.Fatalf("Failed to create BashOutput tool: %v", err)
 	}
 
-	outputInput := map[string]interface{}{
+	outputInput := map[string]any{
 		"bash_id":       taskID,
 		"resource_info": true,
 	}
@@ -290,7 +290,7 @@ func TestBashOutputTool_FollowMode(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "for i in {1..10}; do echo 'Line $i'; sleep 0.2; done",
 		"background": true,
 	}
@@ -308,7 +308,7 @@ func TestBashOutputTool_FollowMode(t *testing.T) {
 		t.Fatalf("Failed to create BashOutput tool: %v", err)
 	}
 
-	outputInput := map[string]interface{}{
+	outputInput := map[string]any{
 		"bash_id": taskID,
 		"follow":  true,
 	}
@@ -336,7 +336,7 @@ func TestBashOutputTool_IncludeStderr(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "echo 'stdout message'; echo 'stderr message' >&2",
 		"background": true,
 	}
@@ -357,7 +357,7 @@ func TestBashOutputTool_IncludeStderr(t *testing.T) {
 		t.Fatalf("Failed to create BashOutput tool: %v", err)
 	}
 
-	outputInput := map[string]interface{}{
+	outputInput := map[string]any{
 		"bash_id":        taskID,
 		"include_stderr": true,
 	}
@@ -396,7 +396,7 @@ func TestBashOutputTool_ClearCache(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "echo 'Test output'",
 		"background": true,
 	}
@@ -417,7 +417,7 @@ func TestBashOutputTool_ClearCache(t *testing.T) {
 		t.Fatalf("Failed to create BashOutput tool: %v", err)
 	}
 
-	outputInput1 := map[string]interface{}{
+	outputInput1 := map[string]any{
 		"bash_id": taskID,
 	}
 
@@ -425,7 +425,7 @@ func TestBashOutputTool_ClearCache(t *testing.T) {
 	_ = AssertToolSuccess(t, result1)
 
 	// 第二次获取输出并清除缓存
-	outputInput2 := map[string]interface{}{
+	outputInput2 := map[string]any{
 		"bash_id":     taskID,
 		"clear_cache": true,
 	}
@@ -446,7 +446,7 @@ func BenchmarkBashOutputTool_GetOutput(b *testing.B) {
 		b.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "echo 'Benchmark test'",
 		"background": true,
 	}
@@ -467,7 +467,7 @@ func BenchmarkBashOutputTool_GetOutput(b *testing.B) {
 		b.Fatalf("Failed to create BashOutput tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"bash_id": taskID,
 	}
 

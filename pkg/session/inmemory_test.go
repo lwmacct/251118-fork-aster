@@ -285,7 +285,7 @@ func TestInMemoryService_AppendEvent(t *testing.T) {
 				Content: "State update",
 			},
 			Actions: EventActions{
-				StateDelta: map[string]interface{}{
+				StateDelta: map[string]any{
 					"session:count": 1,
 					"user:theme":    "dark",
 				},
@@ -455,7 +455,7 @@ func TestInMemoryService_GetState(t *testing.T) {
 				Content: "State setup",
 			},
 			Actions: EventActions{
-				StateDelta: map[string]interface{}{
+				StateDelta: map[string]any{
 					"app:version":    "1.0.0",
 					"user:language":  "zh-CN",
 					"session:page":   1,
@@ -500,7 +500,7 @@ func TestInMemoryService_GetState(t *testing.T) {
 				Content: "State setup",
 			},
 			Actions: EventActions{
-				StateDelta: map[string]interface{}{
+				StateDelta: map[string]any{
 					"app:version":    "1.0.0",
 					"user:language":  "zh-CN",
 					"session:page":   1,
@@ -605,7 +605,7 @@ func TestInMemoryService_StateScopes(t *testing.T) {
 			Branch:       "root",
 			Author:       "system",
 			Actions: EventActions{
-				StateDelta: map[string]interface{}{
+				StateDelta: map[string]any{
 					"app:feature_enabled": true,
 				},
 			},
@@ -622,7 +622,7 @@ func TestInMemoryService_StateScopes(t *testing.T) {
 			Branch:       "root",
 			Author:       "system",
 			Actions: EventActions{
-				StateDelta: map[string]interface{}{
+				StateDelta: map[string]any{
 					"user:preference": "value",
 				},
 			},
@@ -639,7 +639,7 @@ func TestInMemoryService_StateScopes(t *testing.T) {
 			Branch:       "root",
 			Author:       "system",
 			Actions: EventActions{
-				StateDelta: map[string]interface{}{
+				StateDelta: map[string]any{
 					"session:data": "session-specific",
 				},
 			},

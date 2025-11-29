@@ -15,7 +15,7 @@ import (
 type GrepTool struct{}
 
 // NewGrepTool 创建Grep工具
-func NewGrepTool(config map[string]interface{}) (tools.Tool, error) {
+func NewGrepTool(config map[string]any) (tools.Tool, error) {
 	return &GrepTool{}, nil
 }
 
@@ -27,63 +27,63 @@ func (t *GrepTool) Description() string {
 	return "在文件内容中搜索正则表达式模式"
 }
 
-func (t *GrepTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *GrepTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"pattern": map[string]interface{}{
+		"properties": map[string]any{
+			"pattern": map[string]any{
 				"type":        "string",
 				"description": "要搜索的正则表达式模式",
 			},
-			"path": map[string]interface{}{
+			"path": map[string]any{
 				"type":        "string",
 				"description": "搜索的文件或目录路径，默认为当前目录",
 			},
-			"glob": map[string]interface{}{
+			"glob": map[string]any{
 				"type":        "string",
 				"description": "文件模式过滤器，如 *.go, **/*.js",
 			},
-			"file_type": map[string]interface{}{
+			"file_type": map[string]any{
 				"type":        "string",
 				"description": "文件类型过滤器，如 go, js, python",
 			},
-			"output_mode": map[string]interface{}{
+			"output_mode": map[string]any{
 				"type":        "string",
 				"description": "输出模式：content, files_with_matches, count，默认为content",
 			},
-			"max_results": map[string]interface{}{
+			"max_results": map[string]any{
 				"type":        "integer",
 				"description": "返回的最大结果数量，默认为50",
 			},
-			"context_lines": map[string]interface{}{
+			"context_lines": map[string]any{
 				"type":        "integer",
 				"description": "显示匹配行前后的上下文行数，默认为0",
 			},
-			"case_insensitive": map[string]interface{}{
+			"case_insensitive": map[string]any{
 				"type":        "boolean",
 				"description": "是否忽略大小写，默认为false",
 			},
-			"whole_word": map[string]interface{}{
+			"whole_word": map[string]any{
 				"type":        "boolean",
 				"description": "是否匹配完整单词，默认为false",
 			},
-			"line_numbers": map[string]interface{}{
+			"line_numbers": map[string]any{
 				"type":        "boolean",
 				"description": "是否显示行号，默认为true",
 			},
-			"no_heading": map[string]interface{}{
+			"no_heading": map[string]any{
 				"type":        "boolean",
 				"description": "是否禁用文件标题，默认为false",
 			},
-			"hidden": map[string]interface{}{
+			"hidden": map[string]any{
 				"type":        "boolean",
 				"description": "是否搜索隐藏文件，默认为false",
 			},
-			"follow": map[string]interface{}{
+			"follow": map[string]any{
 				"type":        "boolean",
 				"description": "是否跟随符号链接，默认为false",
 			},
-			"multiline": map[string]interface{}{
+			"multiline": map[string]any{
 				"type":        "boolean",
 				"description": "是否允许跨行匹配，默认为false",
 			},
@@ -92,7 +92,7 @@ func (t *GrepTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *GrepTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := t.validateRequired(input, []string{"pattern"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -156,7 +156,7 @@ func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	duration := time.Since(start)
 
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("search failed: %v", err),
 			"recommendations": []string{
@@ -176,7 +176,7 @@ func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	parsedResult := t.parseGrepOutput(result.Stdout, outputMode, lineNumbers, !noHeading)
 
 	// 添加元数据
-	response := map[string]interface{}{
+	response := map[string]any{
 		"ok":          true,
 		"pattern":     pattern,
 		"path":        path,
@@ -226,7 +226,7 @@ func (t *GrepTool) Execute(ctx context.Context, input map[string]interface{}, tc
 }
 
 // 辅助方法实现
-func (t *GrepTool) validateRequired(input map[string]interface{}, required []string) error {
+func (t *GrepTool) validateRequired(input map[string]any, required []string) error {
 	for _, key := range required {
 		if _, exists := input[key]; !exists {
 			return fmt.Errorf("missing required parameter: %s", key)
@@ -235,7 +235,7 @@ func (t *GrepTool) validateRequired(input map[string]interface{}, required []str
 	return nil
 }
 
-func (t *GrepTool) getStringParam(input map[string]interface{}, key string, defaultValue string) string {
+func (t *GrepTool) getStringParam(input map[string]any, key string, defaultValue string) string {
 	if value, exists := input[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -244,7 +244,7 @@ func (t *GrepTool) getStringParam(input map[string]interface{}, key string, defa
 	return defaultValue
 }
 
-func (t *GrepTool) getIntParam(input map[string]interface{}, key string, defaultValue int) int {
+func (t *GrepTool) getIntParam(input map[string]any, key string, defaultValue int) int {
 	if value, exists := input[key]; exists {
 		if num, ok := value.(float64); ok {
 			return int(num)
@@ -253,7 +253,7 @@ func (t *GrepTool) getIntParam(input map[string]interface{}, key string, default
 	return defaultValue
 }
 
-func (t *GrepTool) getBoolParam(input map[string]interface{}, key string, defaultValue bool) bool {
+func (t *GrepTool) getBoolParam(input map[string]any, key string, defaultValue bool) bool {
 	if value, exists := input[key]; exists {
 		if b, ok := value.(bool); ok {
 			return b
@@ -502,14 +502,14 @@ func (t *GrepTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "搜索所有包含 TODO 的文件",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"pattern":     "TODO",
 				"output_mode": "files_with_matches",
 			},
 		},
 		{
 			Description: "搜索函数定义并显示上下文",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"pattern":          "func\\s+\\w+\\(",
 				"path":             "/app/src",
 				"output_mode":      "content",
@@ -519,7 +519,7 @@ func (t *GrepTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "统计每个文件中 error 出现的次数",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"pattern":          "error",
 				"output_mode":      "count",
 				"case_insensitive": true,
@@ -527,7 +527,7 @@ func (t *GrepTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "在指定类型文件中搜索",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"pattern":     "import\\s+\"",
 				"path":        "/app",
 				"file_types":  []string{"go"},

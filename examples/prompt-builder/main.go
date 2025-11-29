@@ -24,7 +24,7 @@ func main() {
 	fmt.Println("=== 创建代码助手 Agent ===")
 	codeAgent, err := agent.Create(ctx, &types.AgentConfig{
 		TemplateID: "code-assistant",
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"agent_type": "code_assistant",
 		},
 		Tools: []string{"Read", "Write"},
@@ -43,7 +43,7 @@ func main() {
 	fmt.Println("\n=== 创建研究助手 Agent ===")
 	researchAgent, err := agent.Create(ctx, &types.AgentConfig{
 		TemplateID: "research-assistant",
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"agent_type": "researcher",
 		},
 		Tools: []string{"Read"},
@@ -89,21 +89,21 @@ func createDependencies() *agent.Dependencies {
 	templateRegistry.Register(&types.AgentTemplateDefinition{
 		ID:           "code-assistant",
 		SystemPrompt: "You are a professional code assistant. Help users with software development tasks.",
-		Tools:        []interface{}{"Read", "Write"},
+		Tools:        []any{"Read", "Write"},
 	})
 
 	// 注册研究助手模板
 	templateRegistry.Register(&types.AgentTemplateDefinition{
 		ID:           "research-assistant",
 		SystemPrompt: "You are a research assistant. Help users gather and analyze information.",
-		Tools:        []interface{}{"Read"},
+		Tools:        []any{"Read"},
 	})
 
 	// 注册带 Todo 提醒的模板
 	templateRegistry.Register(&types.AgentTemplateDefinition{
 		ID:           "todo-assistant",
 		SystemPrompt: "You are a task management assistant.",
-		Tools:        []interface{}{"Read", "Write"},
+		Tools:        []any{"Read", "Write"},
 		Runtime: &types.AgentTemplateRuntime{
 			Todo: &types.TodoConfig{
 				Enabled:         true,

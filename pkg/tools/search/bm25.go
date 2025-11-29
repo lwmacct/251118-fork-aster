@@ -27,7 +27,7 @@ type BM25 struct {
 type Document struct {
 	ID       string                 // 文档唯一标识
 	Content  string                 // 文档内容
-	Metadata map[string]interface{} // 附加元数据
+	Metadata map[string]any // 附加元数据
 }
 
 // SearchResult 搜索结果

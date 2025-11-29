@@ -87,7 +87,7 @@ func (rm *ReasoningMiddleware) WrapModelCall(ctx context.Context, req *ModelRequ
 		if rm.containsReasoningMarkersInResponse(response) {
 			log.Printf("[ReasoningMiddleware] Detected reasoning content in response")
 			if response.Metadata == nil {
-				response.Metadata = make(map[string]interface{})
+				response.Metadata = make(map[string]any)
 			}
 			response.Metadata["has_reasoning"] = true
 		}
@@ -185,19 +185,19 @@ func (rt *ReasoningTool) Description() string {
 }
 
 // InputSchema 返回输入 Schema
-func (rt *ReasoningTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (rt *ReasoningTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"query": map[string]interface{}{
+		"properties": map[string]any{
+			"query": map[string]any{
 				"type":        "string",
 				"description": "The problem or question to reason about",
 			},
-			"min_steps": map[string]interface{}{
+			"min_steps": map[string]any{
 				"type":        "integer",
 				"description": "Minimum number of reasoning steps (optional)",
 			},
-			"max_steps": map[string]interface{}{
+			"max_steps": map[string]any{
 				"type":        "integer",
 				"description": "Maximum number of reasoning steps (optional)",
 			},
@@ -207,10 +207,10 @@ func (rt *ReasoningTool) InputSchema() map[string]interface{} {
 }
 
 // Execute 执行工具
-func (rt *ReasoningTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (rt *ReasoningTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	query, ok := input["query"].(string)
 	if !ok || query == "" {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": "query is required",
 		}, nil
@@ -219,7 +219,7 @@ func (rt *ReasoningTool) Execute(ctx context.Context, input map[string]interface
 	// 执行推理
 	chain, err := rt.engine.Reason(ctx, query, "")
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("reasoning failed: %v", err),
 		}, nil
@@ -228,10 +228,10 @@ func (rt *ReasoningTool) Execute(ctx context.Context, input map[string]interface
 	// 生成摘要
 	summary := chain.Summary()
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":     true,
 		"output": summary,
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"chain_id":   chain.ID,
 			"step_count": len(chain.Steps),
 			"status":     chain.Status,

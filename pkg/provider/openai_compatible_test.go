@@ -361,7 +361,7 @@ func TestMessageConversion(t *testing.T) {
 		t.Errorf("Expected 1 message, got %d", len(converted))
 	}
 
-	content, ok := converted[0]["content"].([]map[string]interface{})
+	content, ok := converted[0]["content"].([]map[string]any)
 	if !ok {
 		t.Fatal("Expected content to be array")
 	}
@@ -429,10 +429,10 @@ func TestToolConversion(t *testing.T) {
 		{
 			Name:        "get_weather",
 			Description: "Get the current weather",
-			InputSchema: map[string]interface{}{
+			InputSchema: map[string]any{
 				"type": "object",
-				"properties": map[string]interface{}{
-					"location": map[string]interface{}{
+				"properties": map[string]any{
+					"location": map[string]any{
 						"type":        "string",
 						"description": "The city name",
 					},
@@ -451,7 +451,7 @@ func TestToolConversion(t *testing.T) {
 		t.Errorf("Expected type=function, got %s", converted[0]["type"])
 	}
 
-	function := converted[0]["function"].(map[string]interface{})
+	function := converted[0]["function"].(map[string]any)
 	if function["name"] != "get_weather" {
 		t.Errorf("Expected name=get_weather, got %s", function["name"])
 	}

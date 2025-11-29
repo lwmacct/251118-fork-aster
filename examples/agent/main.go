@@ -51,7 +51,7 @@ func main() {
 		ID:           "simple-assistant",
 		Model:        "claude-sonnet-4-5",
 		SystemPrompt: "You are a helpful assistant that can read and write files. When users ask you to read or write files, use the available tools.",
-		Tools:        []interface{}{"Read", "Write", "Bash"},
+		Tools:        []any{"Read", "Write", "Bash"},
 	})
 
 	// 6. 创建依赖
@@ -143,7 +143,7 @@ func main() {
 	fmt.Printf("  Cursor: %d\n", status.Cursor)
 }
 
-func handleProgressEvent(event interface{}) {
+func handleProgressEvent(event any) {
 	switch e := event.(type) {
 	case *types.ProgressTextChunkEvent:
 		fmt.Print(e.Delta)
@@ -162,7 +162,7 @@ func handleProgressEvent(event interface{}) {
 	}
 }
 
-func handleMonitorEvent(event interface{}) {
+func handleMonitorEvent(event any) {
 	switch e := event.(type) {
 	case *types.MonitorStateChangedEvent:
 		fmt.Printf("[State Changed] %s\n", e.State)

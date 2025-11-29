@@ -33,7 +33,7 @@ func TestTaskTool_InputSchema(t *testing.T) {
 		t.Fatal("Input schema should not be nil")
 	}
 
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -47,12 +47,12 @@ func TestTaskTool_InputSchema(t *testing.T) {
 	}
 
 	required := schema["required"]
-	var requiredArray []interface{}
+	var requiredArray []any
 	switch v := required.(type) {
-	case []interface{}:
+	case []any:
 		requiredArray = v
 	case []string:
-		requiredArray = make([]interface{}, len(v))
+		requiredArray = make([]any, len(v))
 		for i, s := range v {
 			requiredArray[i] = s
 		}
@@ -71,7 +71,7 @@ func TestTaskTool_LaunchGeneralPurposeSubagent(t *testing.T) {
 		t.Fatalf("Failed to create Task tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"subagent_type": "general-purpose",
 		"prompt":        "Analyze the current project structure and provide a summary",
 		"model":         "gpt-3.5-turbo",
@@ -104,7 +104,7 @@ func TestTaskTool_InvalidSubagentType(t *testing.T) {
 		t.Fatalf("Failed to create Task tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"subagent_type": "invalid_agent",
 		"prompt":        "Test prompt",
 	}
@@ -132,7 +132,7 @@ func TestTaskTool_MissingPrompt(t *testing.T) {
 		t.Fatalf("Failed to create Task tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"subagent_type": "general-purpose",
 		// 缺少prompt字段
 	}
@@ -152,7 +152,7 @@ func TestTaskTool_EmptyPrompt(t *testing.T) {
 		t.Fatalf("Failed to create Task tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"subagent_type": "general-purpose",
 		"prompt":        "", // 空提示
 	}
@@ -181,7 +181,7 @@ func TestTaskTool_AllSubagentTypes(t *testing.T) {
 
 	for _, subagentType := range subagentTypes {
 		t.Run("Subagent_"+subagentType, func(t *testing.T) {
-			input := map[string]interface{}{
+			input := map[string]any{
 				"subagent_type": subagentType,
 				"prompt":        fmt.Sprintf("Test prompt for %s subagent", subagentType),
 			}
@@ -207,7 +207,7 @@ func TestTaskTool_WithOptions(t *testing.T) {
 		t.Fatalf("Failed to create Task tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"subagent_type":   "general-purpose",
 		"prompt":          "Test with options",
 		"model":           "gpt-4",
@@ -244,7 +244,7 @@ func TestTaskTool_ResumeTask(t *testing.T) {
 	}
 
 	// 首先启动一个任务
-	initialInput := map[string]interface{}{
+	initialInput := map[string]any{
 		"subagent_type": "general-purpose",
 		"prompt":        "Initial task for resume testing",
 	}
@@ -258,7 +258,7 @@ func TestTaskTool_ResumeTask(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// 尝试恢复任务（注意：这需要实际的子代理框架支持）
-	resumeInput := map[string]interface{}{
+	resumeInput := map[string]any{
 		"subagent_type": "general-purpose",
 		"prompt":        "Resumed task",
 		"resume":        taskID,
@@ -288,7 +288,7 @@ func TestTaskTool_ConcurrentSubagentLaunch(t *testing.T) {
 
 	concurrency := 3
 	result := RunConcurrentTest(concurrency, func() error {
-		input := map[string]interface{}{
+		input := map[string]any{
 			"subagent_type":   "general-purpose",
 			"prompt":          "Concurrent test task",
 			"timeout_minutes": 1,
@@ -323,7 +323,7 @@ func TestTaskTool_PerformanceInfo(t *testing.T) {
 		t.Fatalf("Failed to create Task tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"subagent_type": "general-purpose",
 		"prompt":        "Performance test task",
 	}
@@ -356,7 +356,7 @@ func TestTaskTool_Metadata(t *testing.T) {
 		t.Fatalf("Failed to create Task tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"subagent_type": "general-purpose",
 		"prompt":        "Task with metadata",
 		"model":         "gpt-3.5-turbo",
@@ -368,7 +368,7 @@ func TestTaskTool_Metadata(t *testing.T) {
 	// 验证subagent配置信息
 	if subagentConfig, exists := result["subagent_config"]; !exists {
 		t.Error("Result should contain 'subagent_config' field")
-	} else if configMap, ok := subagentConfig.(map[string]interface{}); !ok {
+	} else if configMap, ok := subagentConfig.(map[string]any); !ok {
 		t.Error("subagent_config should be a map")
 	} else {
 		// 验证配置字段
@@ -392,7 +392,7 @@ func BenchmarkTaskTool_LaunchSubagent(b *testing.B) {
 		b.Fatalf("Failed to create Task tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"subagent_type": "general-purpose",
 		"prompt":        "Benchmark task",
 	}
@@ -410,7 +410,7 @@ func BenchmarkTaskTool_LaunchWithFullOptions(b *testing.B) {
 		b.Fatalf("Failed to create Task tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"subagent_type":   "general-purpose",
 		"prompt":          "Complex benchmark task with detailed requirements",
 		"model":           "gpt-4",

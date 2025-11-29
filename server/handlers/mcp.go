@@ -17,11 +17,11 @@ type MCPServerRecord struct {
 	Type      string                 `json:"type"` // stdio, sse, http
 	Command   string                 `json:"command,omitempty"`
 	Args      []string               `json:"args,omitempty"`
-	Config    map[string]interface{} `json:"config,omitempty"`
+	Config    map[string]any `json:"config,omitempty"`
 	Status    string                 `json:"status"` // stopped, running, error
 	CreatedAt time.Time              `json:"created_at"`
 	UpdatedAt time.Time              `json:"updated_at"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // MCPHandler handles MCP-related requests
@@ -41,8 +41,8 @@ func (h *MCPHandler) Create(c *gin.Context) {
 		Type     string                 `json:"type" binding:"required"`
 		Command  string                 `json:"command"`
 		Args     []string               `json:"args"`
-		Config   map[string]interface{} `json:"config"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Config   map[string]any `json:"config"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -81,7 +81,7 @@ func (h *MCPHandler) Create(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "mcp.server.created", map[string]interface{}{
+	logging.Info(ctx, "mcp.server.created", map[string]any{
 		"id":   server.ID,
 		"name": req.Name,
 	})
@@ -176,8 +176,8 @@ func (h *MCPHandler) Update(c *gin.Context) {
 		Name     *string                `json:"name"`
 		Command  *string                `json:"command"`
 		Args     []string               `json:"args"`
-		Config   map[string]interface{} `json:"config"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Config   map[string]any `json:"config"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -242,7 +242,7 @@ func (h *MCPHandler) Update(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "mcp.server.updated", map[string]interface{}{
+	logging.Info(ctx, "mcp.server.updated", map[string]any{
 		"id": id,
 	})
 
@@ -278,7 +278,7 @@ func (h *MCPHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "mcp.server.deleted", map[string]interface{}{
+	logging.Info(ctx, "mcp.server.deleted", map[string]any{
 		"id": id,
 	})
 
@@ -327,7 +327,7 @@ func (h *MCPHandler) Connect(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "mcp.server.connected", map[string]interface{}{
+	logging.Info(ctx, "mcp.server.connected", map[string]any{
 		"id": id,
 	})
 
@@ -379,7 +379,7 @@ func (h *MCPHandler) Disconnect(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "mcp.server.disconnected", map[string]interface{}{
+	logging.Info(ctx, "mcp.server.disconnected", map[string]any{
 		"id": id,
 	})
 

@@ -59,7 +59,7 @@ func (wa *WorkflowAgent) CreateWorkflowTool(
 	executionInput *WorkflowInput,
 	stream bool,
 ) WorkflowToolFunc {
-	return func(ctx context.Context, query string) (interface{}, error) {
+	return func(ctx context.Context, query string) (any, error) {
 		if wa.workflow == nil {
 			return nil, fmt.Errorf("no workflow attached to agent")
 		}
@@ -84,8 +84,8 @@ func (wa *WorkflowAgent) CreateWorkflowTool(
 }
 
 // executeWorkflow 执行 workflow（非流式）
-func (wa *WorkflowAgent) executeWorkflow(ctx context.Context, input *WorkflowInput) (interface{}, error) {
-	var finalOutput interface{}
+func (wa *WorkflowAgent) executeWorkflow(ctx context.Context, input *WorkflowInput) (any, error) {
+	var finalOutput any
 	var finalError error
 
 	reader := wa.workflow.Execute(ctx, input)
@@ -100,7 +100,7 @@ func (wa *WorkflowAgent) executeWorkflow(ctx context.Context, input *WorkflowInp
 		}
 
 		if event.Type == EventWorkflowCompleted {
-			if data, ok := event.Data.(map[string]interface{}); ok {
+			if data, ok := event.Data.(map[string]any); ok {
 				finalOutput = data["output"]
 			}
 		}
@@ -114,8 +114,8 @@ func (wa *WorkflowAgent) executeWorkflow(ctx context.Context, input *WorkflowInp
 }
 
 // executeStreamingWorkflow 执行 workflow（流式）
-func (wa *WorkflowAgent) executeStreamingWorkflow(ctx context.Context, input *WorkflowInput) (interface{}, error) {
-	resultChan := make(chan interface{}, 100)
+func (wa *WorkflowAgent) executeStreamingWorkflow(ctx context.Context, input *WorkflowInput) (any, error) {
+	resultChan := make(chan any, 100)
 
 	go func() {
 		defer close(resultChan)
@@ -127,7 +127,7 @@ func (wa *WorkflowAgent) executeStreamingWorkflow(ctx context.Context, input *Wo
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				resultChan <- map[string]interface{}{"error": err.Error()}
+				resultChan <- map[string]any{"error": err.Error()}
 				continue
 			}
 			resultChan <- event
@@ -138,7 +138,7 @@ func (wa *WorkflowAgent) executeStreamingWorkflow(ctx context.Context, input *Wo
 }
 
 // formatOutput 格式化输出为字符串
-func (wa *WorkflowAgent) formatOutput(output interface{}) string {
+func (wa *WorkflowAgent) formatOutput(output any) string {
 	if output == nil {
 		return ""
 	}
@@ -167,10 +167,7 @@ func (wa *WorkflowAgent) GetWorkflowHistory() []WorkflowHistoryItem {
 	}
 
 	runs := wa.workflow.workflowSession.History
-	numRuns := len(runs)
-	if numRuns > wa.NumHistoryRuns {
-		numRuns = wa.NumHistoryRuns
-	}
+	numRuns := min(len(runs), wa.NumHistoryRuns)
 
 	history := make([]WorkflowHistoryItem, numRuns)
 	for i := 0; i < numRuns; i++ {
@@ -222,7 +219,7 @@ func (wa *WorkflowAgent) RunStream(ctx context.Context, input string) <-chan Age
 		eventChan <- AgentStreamEvent{
 			Type:      AgentEventStart,
 			Timestamp: time.Now(),
-			Data:      map[string]interface{}{"input": input},
+			Data:      map[string]any{"input": input},
 		}
 
 		workflowInput := &WorkflowInput{Input: input}
@@ -244,16 +241,16 @@ func (wa *WorkflowAgent) RunStream(ctx context.Context, input string) <-chan Age
 			eventChan <- AgentStreamEvent{
 				Type:      AgentEventWorkflowEvent,
 				Timestamp: time.Now(),
-				Data:      map[string]interface{}{"workflow_event": event},
+				Data:      map[string]any{"workflow_event": event},
 			}
 
 			if event.Type == EventWorkflowCompleted {
-				if data, ok := event.Data.(map[string]interface{}); ok {
+				if data, ok := event.Data.(map[string]any); ok {
 					if output, ok := data["output"]; ok {
 						eventChan <- AgentStreamEvent{
 							Type:      AgentEventResponse,
 							Timestamp: time.Now(),
-							Data:      map[string]interface{}{"response": output},
+							Data:      map[string]any{"response": output},
 						}
 					}
 				}
@@ -272,13 +269,13 @@ func (wa *WorkflowAgent) RunStream(ctx context.Context, input string) <-chan Age
 // ===== Types =====
 
 // WorkflowToolFunc Workflow 工具函数类型
-type WorkflowToolFunc func(ctx context.Context, query string) (interface{}, error)
+type WorkflowToolFunc func(ctx context.Context, query string) (any, error)
 
 // WorkflowHistoryItem Workflow 历史项
 type WorkflowHistoryItem struct {
 	RunID     string
-	Input     interface{}
-	Output    interface{}
+	Input     any
+	Output    any
 	Status    string
 	StartTime time.Time
 	EndTime   time.Time
@@ -290,7 +287,7 @@ type WorkflowHistoryItem struct {
 type AgentStreamEvent struct {
 	Type      AgentEventType
 	Timestamp time.Time
-	Data      map[string]interface{}
+	Data      map[string]any
 	Error     error
 }
 

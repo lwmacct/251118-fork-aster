@@ -24,7 +24,7 @@ const (
 // CodeRuntime 代码运行时接口
 type CodeRuntime interface {
 	// Execute 执行代码
-	Execute(ctx context.Context, code string, input map[string]interface{}) (*ExecutionResult, error)
+	Execute(ctx context.Context, code string, input map[string]any) (*ExecutionResult, error)
 	// Language 返回支持的语言
 	Language() Language
 	// IsAvailable 检查运行时是否可用
@@ -34,7 +34,7 @@ type CodeRuntime interface {
 // ExecutionResult 代码执行结果
 type ExecutionResult struct {
 	Success  bool        `json:"success"`
-	Output   interface{} `json:"output,omitempty"`
+	Output   any `json:"output,omitempty"`
 	Stdout   string      `json:"stdout,omitempty"`
 	Stderr   string      `json:"stderr,omitempty"`
 	Error    string      `json:"error,omitempty"`
@@ -95,7 +95,7 @@ func (r *PythonRuntime) IsAvailable() bool {
 	return err == nil
 }
 
-func (r *PythonRuntime) Execute(ctx context.Context, code string, input map[string]interface{}) (*ExecutionResult, error) {
+func (r *PythonRuntime) Execute(ctx context.Context, code string, input map[string]any) (*ExecutionResult, error) {
 	start := time.Now()
 
 	// 创建临时文件
@@ -159,7 +159,7 @@ func (r *PythonRuntime) Execute(ctx context.Context, code string, input map[stri
 	// 尝试解析 JSON 输出
 	output := strings.TrimSpace(stdout.String())
 	if strings.HasPrefix(output, "{") || strings.HasPrefix(output, "[") {
-		var jsonOutput interface{}
+		var jsonOutput any
 		if err := json.Unmarshal([]byte(output), &jsonOutput); err == nil {
 			result.Output = jsonOutput
 		} else {
@@ -172,7 +172,7 @@ func (r *PythonRuntime) Execute(ctx context.Context, code string, input map[stri
 	return result, nil
 }
 
-func (r *PythonRuntime) wrapCode(code string, input map[string]interface{}) string {
+func (r *PythonRuntime) wrapCode(code string, input map[string]any) string {
 	inputJSON, _ := json.Marshal(input)
 	return fmt.Sprintf(`import json
 import sys
@@ -217,7 +217,7 @@ func (r *NodeJSRuntime) IsAvailable() bool {
 	return err == nil
 }
 
-func (r *NodeJSRuntime) Execute(ctx context.Context, code string, input map[string]interface{}) (*ExecutionResult, error) {
+func (r *NodeJSRuntime) Execute(ctx context.Context, code string, input map[string]any) (*ExecutionResult, error) {
 	start := time.Now()
 
 	// 创建临时文件
@@ -281,7 +281,7 @@ func (r *NodeJSRuntime) Execute(ctx context.Context, code string, input map[stri
 	// 尝试解析 JSON 输出
 	output := strings.TrimSpace(stdout.String())
 	if strings.HasPrefix(output, "{") || strings.HasPrefix(output, "[") {
-		var jsonOutput interface{}
+		var jsonOutput any
 		if err := json.Unmarshal([]byte(output), &jsonOutput); err == nil {
 			result.Output = jsonOutput
 		} else {
@@ -294,7 +294,7 @@ func (r *NodeJSRuntime) Execute(ctx context.Context, code string, input map[stri
 	return result, nil
 }
 
-func (r *NodeJSRuntime) wrapCode(code string, input map[string]interface{}) string {
+func (r *NodeJSRuntime) wrapCode(code string, input map[string]any) string {
 	inputJSON, _ := json.Marshal(input)
 	return fmt.Sprintf(`// Input data
 const _input = %s;
@@ -336,7 +336,7 @@ func (r *BashRuntime) IsAvailable() bool {
 	return err == nil
 }
 
-func (r *BashRuntime) Execute(ctx context.Context, code string, input map[string]interface{}) (*ExecutionResult, error) {
+func (r *BashRuntime) Execute(ctx context.Context, code string, input map[string]any) (*ExecutionResult, error) {
 	start := time.Now()
 
 	// 创建临时文件
@@ -412,7 +412,7 @@ func (r *BashRuntime) Execute(ctx context.Context, code string, input map[string
 	return result, nil
 }
 
-func (r *BashRuntime) wrapCode(code string, input map[string]interface{}) string {
+func (r *BashRuntime) wrapCode(code string, input map[string]any) string {
 	inputJSON, _ := json.Marshal(input)
 	return fmt.Sprintf(`#!/bin/bash
 set -e
@@ -452,7 +452,7 @@ func (m *RuntimeManager) GetRuntime(lang Language) (CodeRuntime, bool) {
 }
 
 // Execute 执行代码
-func (m *RuntimeManager) Execute(ctx context.Context, lang Language, code string, input map[string]interface{}) (*ExecutionResult, error) {
+func (m *RuntimeManager) Execute(ctx context.Context, lang Language, code string, input map[string]any) (*ExecutionResult, error) {
 	runtime, exists := m.runtimes[lang]
 	if !exists {
 		return nil, fmt.Errorf("unsupported language: %s", lang)

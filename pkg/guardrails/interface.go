@@ -26,7 +26,7 @@ type GuardrailInput struct {
 	Images []string
 
 	// Metadata 额外元数据
-	Metadata map[string]interface{}
+	Metadata map[string]any
 
 	// UserID 用户 ID（可选）
 	UserID string
@@ -47,7 +47,7 @@ type GuardrailError struct {
 	Message string
 
 	// Details 详细信息
-	Details map[string]interface{}
+	Details map[string]any
 
 	// ShouldMask 是否应该掩码而不是拒绝
 	ShouldMask bool

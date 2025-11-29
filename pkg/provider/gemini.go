@@ -59,13 +59,13 @@ type GeminiBlob struct {
 // GeminiFunctionCall 函数调用
 type GeminiFunctionCall struct {
 	Name string                 `json:"name"`
-	Args map[string]interface{} `json:"args"`
+	Args map[string]any `json:"args"`
 }
 
 // GeminiFunctionResponse 函数响应
 type GeminiFunctionResponse struct {
 	Name     string                 `json:"name"`
-	Response map[string]interface{} `json:"response"`
+	Response map[string]any `json:"response"`
 }
 
 // GeminiTool Gemini 工具定义
@@ -77,7 +77,7 @@ type GeminiTool struct {
 type GeminiFunctionDeclaration struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Parameters  map[string]any `json:"parameters"`
 }
 
 // NewGeminiProvider 创建 Gemini 提供商
@@ -190,7 +190,7 @@ func (p *GeminiProvider) Complete(
 	}
 
 	// 解析响应
-	var apiResp map[string]interface{}
+	var apiResp map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
@@ -215,8 +215,8 @@ func (p *GeminiProvider) buildRequest(
 	messages []types.Message,
 	opts *StreamOptions,
 	stream bool,
-) map[string]interface{} {
-	requestBody := make(map[string]interface{})
+) map[string]any {
+	requestBody := make(map[string]any)
 
 	// 转换消息为 Gemini 格式
 	contents := p.convertMessages(messages)
@@ -228,15 +228,15 @@ func (p *GeminiProvider) buildRequest(
 		if opts != nil && opts.System != "" {
 			systemInstruction = opts.System
 		}
-		requestBody["systemInstruction"] = map[string]interface{}{
-			"parts": []map[string]interface{}{
+		requestBody["systemInstruction"] = map[string]any{
+			"parts": []map[string]any{
 				{"text": systemInstruction},
 			},
 		}
 	}
 
 	// 生成配置
-	generationConfig := make(map[string]interface{})
+	generationConfig := make(map[string]any)
 	if opts != nil {
 		if opts.MaxTokens > 0 {
 			generationConfig["maxOutputTokens"] = opts.MaxTokens
@@ -343,7 +343,7 @@ func (p *GeminiProvider) convertMessages(messages []types.Message) []GeminiConte
 					content.Parts = append(content.Parts, GeminiPart{
 						FunctionResponse: &GeminiFunctionResponse{
 							Name: b.ToolUseID, // 使用 ID 作为名称
-							Response: map[string]interface{}{
+							Response: map[string]any{
 								"content": b.Content,
 							},
 						},
@@ -403,7 +403,7 @@ func (p *GeminiProvider) parseSSEStream(body io.ReadCloser, chunks chan<- Stream
 		data = strings.TrimSpace(data)
 
 		// 解析 JSON
-		var chunk map[string]interface{}
+		var chunk map[string]any
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			continue
 		}
@@ -427,19 +427,19 @@ func (p *GeminiProvider) parseSSEStream(body io.ReadCloser, chunks chan<- Stream
 }
 
 // parseStreamChunk 解析单个流式 chunk
-func (p *GeminiProvider) parseStreamChunk(chunk map[string]interface{}) []StreamChunk {
+func (p *GeminiProvider) parseStreamChunk(chunk map[string]any) []StreamChunk {
 	result := make([]StreamChunk, 0)
 
 	// 获取 candidates
-	candidates, ok := chunk["candidates"].([]interface{})
+	candidates, ok := chunk["candidates"].([]any)
 	if !ok || len(candidates) == 0 {
 		return result
 	}
 
-	candidate := candidates[0].(map[string]interface{})
+	candidate := candidates[0].(map[string]any)
 
 	// 获取 content
-	content, ok := candidate["content"].(map[string]interface{})
+	content, ok := candidate["content"].(map[string]any)
 	if !ok {
 		// 检查是否完成
 		if finishReason, ok := candidate["finishReason"].(string); ok {
@@ -452,14 +452,14 @@ func (p *GeminiProvider) parseStreamChunk(chunk map[string]interface{}) []Stream
 	}
 
 	// 获取 parts
-	parts, ok := content["parts"].([]interface{})
+	parts, ok := content["parts"].([]any)
 	if !ok {
 		return result
 	}
 
 	// 解析每个 part
 	for _, partData := range parts {
-		part := partData.(map[string]interface{})
+		part := partData.(map[string]any)
 
 		// 文本内容
 		if text, ok := part["text"].(string); ok && text != "" {
@@ -471,9 +471,9 @@ func (p *GeminiProvider) parseStreamChunk(chunk map[string]interface{}) []Stream
 		}
 
 		// 函数调用
-		if functionCall, ok := part["functionCall"].(map[string]interface{}); ok {
+		if functionCall, ok := part["functionCall"].(map[string]any); ok {
 			name := functionCall["name"].(string)
-			args := functionCall["args"].(map[string]interface{})
+			args := functionCall["args"].(map[string]any)
 
 			// 序列化参数
 			argsJSON, _ := json.Marshal(args)
@@ -490,7 +490,7 @@ func (p *GeminiProvider) parseStreamChunk(chunk map[string]interface{}) []Stream
 	}
 
 	// 解析 usage（如果有）
-	if usageData, ok := chunk["usageMetadata"].(map[string]interface{}); ok {
+	if usageData, ok := chunk["usageMetadata"].(map[string]any); ok {
 		usage := p.parseUsageFromMap(usageData)
 		result = append(result, StreamChunk{
 			Type:  string(ChunkTypeUsage),
@@ -502,19 +502,19 @@ func (p *GeminiProvider) parseStreamChunk(chunk map[string]interface{}) []Stream
 }
 
 // parseCompleteResponse 解析完整响应
-func (p *GeminiProvider) parseCompleteResponse(apiResp map[string]interface{}) (types.Message, error) {
-	candidates, ok := apiResp["candidates"].([]interface{})
+func (p *GeminiProvider) parseCompleteResponse(apiResp map[string]any) (types.Message, error) {
+	candidates, ok := apiResp["candidates"].([]any)
 	if !ok || len(candidates) == 0 {
 		return types.Message{}, fmt.Errorf("no candidates in response")
 	}
 
-	candidate := candidates[0].(map[string]interface{})
-	content, ok := candidate["content"].(map[string]interface{})
+	candidate := candidates[0].(map[string]any)
+	content, ok := candidate["content"].(map[string]any)
 	if !ok {
 		return types.Message{}, fmt.Errorf("no content in candidate")
 	}
 
-	parts, ok := content["parts"].([]interface{})
+	parts, ok := content["parts"].([]any)
 	if !ok {
 		return types.Message{}, fmt.Errorf("no parts in content")
 	}
@@ -528,7 +528,7 @@ func (p *GeminiProvider) parseCompleteResponse(apiResp map[string]interface{}) (
 	textParts := make([]string, 0)
 
 	for _, partData := range parts {
-		part := partData.(map[string]interface{})
+		part := partData.(map[string]any)
 
 		// 文本内容
 		if text, ok := part["text"].(string); ok {
@@ -536,9 +536,9 @@ func (p *GeminiProvider) parseCompleteResponse(apiResp map[string]interface{}) (
 		}
 
 		// 函数调用
-		if functionCall, ok := part["functionCall"].(map[string]interface{}); ok {
+		if functionCall, ok := part["functionCall"].(map[string]any); ok {
 			name := functionCall["name"].(string)
-			args := functionCall["args"].(map[string]interface{})
+			args := functionCall["args"].(map[string]any)
 
 			blocks = append(blocks, &types.ToolUseBlock{
 				ID:    name, // Gemini 不返回 ID，使用名称
@@ -566,8 +566,8 @@ func (p *GeminiProvider) parseCompleteResponse(apiResp map[string]interface{}) (
 }
 
 // parseUsage 解析 usage 信息
-func (p *GeminiProvider) parseUsage(apiResp map[string]interface{}) *TokenUsage {
-	usageData, ok := apiResp["usageMetadata"].(map[string]interface{})
+func (p *GeminiProvider) parseUsage(apiResp map[string]any) *TokenUsage {
+	usageData, ok := apiResp["usageMetadata"].(map[string]any)
 	if !ok {
 		return nil
 	}
@@ -575,7 +575,7 @@ func (p *GeminiProvider) parseUsage(apiResp map[string]interface{}) *TokenUsage 
 }
 
 // parseUsageFromMap 从 map 解析 usage
-func (p *GeminiProvider) parseUsageFromMap(usageData map[string]interface{}) *TokenUsage {
+func (p *GeminiProvider) parseUsageFromMap(usageData map[string]any) *TokenUsage {
 	usage := &TokenUsage{}
 
 	if promptTokens, ok := usageData["promptTokenCount"].(float64); ok {

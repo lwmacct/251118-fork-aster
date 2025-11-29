@@ -21,7 +21,7 @@ type EventType interface {
 type AgentEventEnvelope struct {
 	Cursor   int64       `json:"cursor"`
 	Bookmark Bookmark    `json:"bookmark"`
-	Event    interface{} `json:"event"`
+	Event    any `json:"event"`
 }
 
 // ===================
@@ -102,7 +102,7 @@ type ProgressToolProgressEvent struct {
 	Message  string                 `json:"message,omitempty"`  // 进度描述
 	Step     int                    `json:"step,omitempty"`     // 当前步骤
 	Total    int                    `json:"total,omitempty"`    // 总步骤
-	Metadata map[string]interface{} `json:"metadata,omitempty"` // 额外元数据
+	Metadata map[string]any `json:"metadata,omitempty"` // 额外元数据
 	ETA      int64                  `json:"eta_ms,omitempty"`   // 预估剩余时间(ms)
 }
 
@@ -113,7 +113,7 @@ func (e *ProgressToolProgressEvent) EventType() string     { return "tool:progre
 type ProgressToolIntermediateEvent struct {
 	Call  ToolCallSnapshot `json:"call"`
 	Label string           `json:"label,omitempty"`
-	Data  interface{}      `json:"data,omitempty"`
+	Data  any      `json:"data,omitempty"`
 }
 
 func (e *ProgressToolIntermediateEvent) Channel() AgentChannel { return ChannelProgress }
@@ -220,7 +220,7 @@ type MonitorErrorEvent struct {
 	Severity string                 `json:"severity"` // "info", "warn", "error"
 	Phase    string                 `json:"phase"`    // "model", "tool", "system", "lifecycle"
 	Message  string                 `json:"message"`
-	Detail   map[string]interface{} `json:"detail,omitempty"`
+	Detail   map[string]any `json:"detail,omitempty"`
 }
 
 func (e *MonitorErrorEvent) Channel() AgentChannel { return ChannelMonitor }
@@ -333,7 +333,7 @@ type Question struct {
 type ControlAskUserEvent struct {
 	RequestID string                                     `json:"request_id"`
 	Questions []Question                                 `json:"questions"`
-	Respond   func(answers map[string]interface{}) error `json:"-"` // 响应回调
+	Respond   func(answers map[string]any) error `json:"-"` // 响应回调
 }
 
 func (e *ControlAskUserEvent) Channel() AgentChannel { return ChannelControl }
@@ -342,7 +342,7 @@ func (e *ControlAskUserEvent) EventType() string     { return "ask_user" }
 // ControlUserAnswerEvent 用户回答事件
 type ControlUserAnswerEvent struct {
 	RequestID string                 `json:"request_id"`
-	Answers   map[string]interface{} `json:"answers"` // question_index -> answer(s)
+	Answers   map[string]any `json:"answers"` // question_index -> answer(s)
 }
 
 func (e *ControlUserAnswerEvent) Channel() AgentChannel { return ChannelControl }

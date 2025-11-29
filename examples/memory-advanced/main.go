@@ -34,11 +34,11 @@ func (t *userPreferenceTool) Description() string {
 	return "Store long-term user preferences in a dedicated memory file."
 }
 
-func (t *userPreferenceTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *userPreferenceTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"preference": map[string]interface{}{
+		"properties": map[string]any{
+			"preference": map[string]any{
 				"type":        "string",
 				"description": "Plain-language description of the user preference.",
 			},
@@ -47,7 +47,7 @@ func (t *userPreferenceTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *userPreferenceTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *userPreferenceTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	rawPref, _ := input["preference"].(string)
 	if rawPref == "" {
 		return nil, fmt.Errorf("preference is required")
@@ -59,7 +59,7 @@ func (t *userPreferenceTool) Execute(ctx context.Context, input map[string]inter
 	}
 	ns := scope.Namespace() // "" => 由 BaseNamespace(users/<user-id>) 控制
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"file":      "profile/prefs.md",
 		"namespace": ns,
 		"mode":      "append",
@@ -94,11 +94,11 @@ func (t *projectFactTool) Description() string {
 	return "Store stable project-level facts and conventions in long-term memory."
 }
 
-func (t *projectFactTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *projectFactTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"fact": map[string]interface{}{
+		"properties": map[string]any{
+			"fact": map[string]any{
 				"type":        "string",
 				"description": "Project-level fact or convention to remember.",
 			},
@@ -107,7 +107,7 @@ func (t *projectFactTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *projectFactTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *projectFactTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	fact, _ := input["fact"].(string)
 	if fact == "" {
 		return nil, fmt.Errorf("fact is required")
@@ -120,7 +120,7 @@ func (t *projectFactTool) Execute(ctx context.Context, input map[string]interfac
 	}
 	ns := scope.Namespace()
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"file":      "facts.md",
 		"namespace": ns,
 		"mode":      "append",
@@ -156,11 +156,11 @@ func (t *resourceNoteTool) Description() string {
 	return "Store notes for a specific resource (article, novel, song, PPT, etc.) in long-term memory."
 }
 
-func (t *resourceNoteTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *resourceNoteTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"note": map[string]interface{}{
+		"properties": map[string]any{
+			"note": map[string]any{
 				"type":        "string",
 				"description": "Free-form note about the resource.",
 			},
@@ -169,7 +169,7 @@ func (t *resourceNoteTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *resourceNoteTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *resourceNoteTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	note, _ := input["note"].(string)
 	if note == "" {
 		return nil, fmt.Errorf("note is required")
@@ -184,7 +184,7 @@ func (t *resourceNoteTool) Execute(ctx context.Context, input map[string]interfa
 	}
 	ns := scope.Namespace()
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"file":      "notes.md",
 		"namespace": ns,
 		"mode":      "append",
@@ -266,14 +266,14 @@ func main() {
 	}
 
 	toolCtx := &tools.ToolContext{
-		Services: map[string]interface{}{
+		Services: map[string]any{
 			"memory_write": memoryWriteTool,
 		},
 	}
 
 	// 5. 依次执行三个封装工具
 	fmt.Println("=== user_preference_write 示例 ===")
-	prefResult, err := userPrefTool.Execute(ctx, map[string]interface{}{
+	prefResult, err := userPrefTool.Execute(ctx, map[string]any{
 		"preference": "Alice 喜欢 grep 风格的搜索和简洁的代码 diff。",
 	}, toolCtx)
 	if err != nil {
@@ -282,7 +282,7 @@ func main() {
 	fmt.Printf("user_preference_write 结果: %+v\n\n", prefResult)
 
 	fmt.Println("=== project_fact_write 示例 ===")
-	factResult, err := projectFact.Execute(ctx, map[string]interface{}{
+	factResult, err := projectFact.Execute(ctx, map[string]any{
 		"fact": "demo 项目在生产环境只允许使用只读数据库连接。",
 	}, toolCtx)
 	if err != nil {
@@ -291,7 +291,7 @@ func main() {
 	fmt.Printf("project_fact_write 结果: %+v\n\n", factResult)
 
 	fmt.Println("=== resource_note_write 示例 ===")
-	noteResult, err := resourceNote.Execute(ctx, map[string]interface{}{
+	noteResult, err := resourceNote.Execute(ctx, map[string]any{
 		"note": "文章 abc123 主要介绍了如何用文件+grep 替代向量RAG。",
 	}, toolCtx)
 	if err != nil {

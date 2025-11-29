@@ -18,15 +18,15 @@ const (
 
 // StepInput 步骤输入
 type StepInput struct {
-	Input               interface{}
-	PreviousStepContent interface{}
+	Input               any
+	PreviousStepContent any
 	PreviousStepOutputs map[string]*StepOutput
-	AdditionalData      map[string]interface{}
-	SessionState        map[string]interface{}
-	Images              []interface{}
-	Videos              []interface{}
-	Audio               []interface{}
-	Files               []interface{}
+	AdditionalData      map[string]any
+	SessionState        map[string]any
+	Images              []any
+	Videos              []any
+	Audio               []any
+	Files               []any
 	WorkflowSession     *WorkflowSession
 }
 
@@ -47,7 +47,7 @@ func (si *StepInput) GetStepOutput(stepName string) *StepOutput {
 	return si.PreviousStepOutputs[stepName]
 }
 
-func (si *StepInput) GetStepContent(stepName string) interface{} {
+func (si *StepInput) GetStepContent(stepName string) any {
 	output := si.GetStepOutput(stepName)
 	if output == nil {
 		return nil
@@ -60,9 +60,9 @@ type StepOutput struct {
 	StepID      string
 	StepName    string
 	StepType    StepType
-	Content     interface{}
+	Content     any
 	Error       error
-	Metadata    map[string]interface{}
+	Metadata    map[string]any
 	Metrics     *StepMetrics
 	NestedSteps []*StepOutput
 	StartTime   time.Time
@@ -77,20 +77,20 @@ type StepMetrics struct {
 	OutputTokens  int
 	TotalTokens   int
 	RetryCount    int
-	Custom        map[string]interface{}
+	Custom        map[string]any
 }
 
 // WorkflowInput Workflow 输入
 type WorkflowInput struct {
-	Input          interface{}
-	AdditionalData map[string]interface{}
-	Images         []interface{}
-	Videos         []interface{}
-	Audio          []interface{}
-	Files          []interface{}
+	Input          any
+	AdditionalData map[string]any
+	Images         []any
+	Videos         []any
+	Audio          []any
+	Files          []any
 	SessionID      string
 	UserID         string
-	SessionState   map[string]interface{}
+	SessionState   map[string]any
 }
 
 // WorkflowOutput Workflow 输出
@@ -98,11 +98,11 @@ type WorkflowOutput struct {
 	RunID        string
 	WorkflowID   string
 	WorkflowName string
-	Content      interface{}
+	Content      any
 	Error        error
 	StepOutputs  map[string]*StepOutput
 	SessionID    string
-	SessionState map[string]interface{}
+	SessionState map[string]any
 	Metrics      *RunMetrics
 	Status       RunStatus
 	StartTime    time.Time
@@ -138,7 +138,7 @@ const (
 type WorkflowSession struct {
 	ID         string
 	WorkflowID string
-	State      map[string]interface{}
+	State      map[string]any
 	History    []*WorkflowRun
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
@@ -149,8 +149,8 @@ type WorkflowRun struct {
 	RunID       string
 	SessionID   string
 	WorkflowID  string
-	Input       interface{}
-	Output      interface{}
+	Input       any
+	Output      any
 	StepOutputs map[string]*StepOutput
 	Status      RunStatus
 	Error       string
@@ -184,9 +184,9 @@ type RunEvent struct {
 	RunID        string
 	StepID       string
 	StepName     string
-	Data         interface{}
+	Data         any
 	Timestamp    time.Time
-	Metadata     map[string]interface{}
+	Metadata     map[string]any
 }
 
 // StepConfig 步骤配置
@@ -199,5 +199,5 @@ type StepConfig struct {
 	Timeout               time.Duration
 	SkipOnError           bool
 	StrictInputValidation bool
-	Metadata              map[string]interface{}
+	Metadata              map[string]any
 }

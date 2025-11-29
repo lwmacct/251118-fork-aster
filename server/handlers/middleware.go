@@ -15,12 +15,12 @@ type MiddlewareRecord struct {
 	Name        string                 `json:"name"`
 	Type        string                 `json:"type"` // builtin, custom
 	Description string                 `json:"description,omitempty"`
-	Config      map[string]interface{} `json:"config,omitempty"`
+	Config      map[string]any `json:"config,omitempty"`
 	Enabled     bool                   `json:"enabled"`
 	Priority    int                    `json:"priority"` // 执行顺序
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // MiddlewareHandler 中间件处理器
@@ -39,9 +39,9 @@ func (h *MiddlewareHandler) Create(c *gin.Context) {
 		Name        string                 `json:"name" binding:"required"`
 		Type        string                 `json:"type"`
 		Description string                 `json:"description"`
-		Config      map[string]interface{} `json:"config"`
+		Config      map[string]any `json:"config"`
 		Priority    int                    `json:"priority"`
-		Metadata    map[string]interface{} `json:"metadata"`
+		Metadata    map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -68,7 +68,7 @@ func (h *MiddlewareHandler) Create(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "middleware.created", map[string]interface{}{"id": mw.ID, "name": req.Name})
+	logging.Info(ctx, "middleware.created", map[string]any{"id": mw.ID, "name": req.Name})
 	c.JSON(201, gin.H{"success": true, "data": mw})
 }
 
@@ -119,9 +119,9 @@ func (h *MiddlewareHandler) Update(c *gin.Context) {
 	var req struct {
 		Name        *string                `json:"name"`
 		Description *string                `json:"description"`
-		Config      map[string]interface{} `json:"config"`
+		Config      map[string]any `json:"config"`
 		Priority    *int                   `json:"priority"`
-		Metadata    map[string]interface{} `json:"metadata"`
+		Metadata    map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -148,7 +148,7 @@ func (h *MiddlewareHandler) Update(c *gin.Context) {
 	if req.Config != nil {
 		for k, v := range req.Config {
 			if mw.Config == nil {
-				mw.Config = make(map[string]interface{})
+				mw.Config = make(map[string]any)
 			}
 			mw.Config[k] = v
 		}
@@ -163,7 +163,7 @@ func (h *MiddlewareHandler) Update(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "middleware.updated", map[string]interface{}{"id": id})
+	logging.Info(ctx, "middleware.updated", map[string]any{"id": id})
 	c.JSON(200, gin.H{"success": true, "data": &mw})
 }
 
@@ -181,7 +181,7 @@ func (h *MiddlewareHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "middleware.deleted", map[string]interface{}{"id": id})
+	logging.Info(ctx, "middleware.deleted", map[string]any{"id": id})
 	c.Status(204)
 }
 
@@ -208,7 +208,7 @@ func (h *MiddlewareHandler) Enable(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "middleware.enabled", map[string]interface{}{"id": id})
+	logging.Info(ctx, "middleware.enabled", map[string]any{"id": id})
 	c.JSON(200, gin.H{"success": true, "data": &mw})
 }
 
@@ -235,14 +235,14 @@ func (h *MiddlewareHandler) Disable(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "middleware.disabled", map[string]interface{}{"id": id})
+	logging.Info(ctx, "middleware.disabled", map[string]any{"id": id})
 	c.JSON(200, gin.H{"success": true, "data": &mw})
 }
 
 // Reload 重新加载中间件
 func (h *MiddlewareHandler) Reload(c *gin.Context) {
 	id := c.Param("id")
-	logging.Info(c.Request.Context(), "middleware.reloaded", map[string]interface{}{"id": id})
+	logging.Info(c.Request.Context(), "middleware.reloaded", map[string]any{"id": id})
 	c.JSON(200, gin.H{"success": true, "data": gin.H{"reloaded": true, "middleware_id": id}})
 }
 
@@ -269,14 +269,14 @@ func (h *MiddlewareHandler) ListRegistry(c *gin.Context) {
 // Install 安装中间件
 func (h *MiddlewareHandler) Install(c *gin.Context) {
 	id := c.Param("id")
-	logging.Info(c.Request.Context(), "middleware.installed", map[string]interface{}{"id": id})
+	logging.Info(c.Request.Context(), "middleware.installed", map[string]any{"id": id})
 	c.JSON(200, gin.H{"success": true, "data": gin.H{"installed": true, "middleware_id": id}})
 }
 
 // Uninstall 卸载中间件
 func (h *MiddlewareHandler) Uninstall(c *gin.Context) {
 	id := c.Param("id")
-	logging.Info(c.Request.Context(), "middleware.uninstalled", map[string]interface{}{"id": id})
+	logging.Info(c.Request.Context(), "middleware.uninstalled", map[string]any{"id": id})
 	c.JSON(200, gin.H{"success": true, "data": gin.H{"uninstalled": true, "middleware_id": id}})
 }
 

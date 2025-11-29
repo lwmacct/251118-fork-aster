@@ -69,7 +69,7 @@ type WorkingMemoryConfig struct {
 	Scope    string                 `yaml:"scope"`     // "thread" | "resource"
 	BasePath string                 `yaml:"base_path"` // 存储根路径，默认 "/working_memory/"
 	TTL      int                    `yaml:"ttl"`       // 过期时间（秒），0表示不过期
-	Schema   map[string]interface{} `yaml:"schema"`    // 可选的 JSON Schema
+	Schema   map[string]any `yaml:"schema"`    // 可选的 JSON Schema
 	Template string                 `yaml:"template"`  // 可选的 Markdown 模板
 }
 

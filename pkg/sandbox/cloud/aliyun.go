@@ -67,7 +67,7 @@ func NewAliyunSandbox(config *AliyunConfig) (*AliyunSandbox, error) {
 		APISecret: config.AccessKeySecret,
 		WorkDir:   config.WorkDir,
 		Timeout:   config.Timeout,
-		Properties: map[string]interface{}{
+		Properties: map[string]any{
 			"region":         config.Region,
 			"security_token": config.SecurityToken,
 		},
@@ -116,7 +116,7 @@ func (as *AliyunSandbox) Exec(ctx context.Context, cmd string, opts *sandbox.Exe
 	}
 
 	// 调用 MCP Shell 工具
-	result, err := as.mcpClient.CallTool(ctx, "shell", map[string]interface{}{
+	result, err := as.mcpClient.CallTool(ctx, "shell", map[string]any{
 		"command":    cmd,
 		"timeout_ms": timeout,
 	})
@@ -164,7 +164,7 @@ func (as *AliyunSandbox) initOSS(ctx context.Context) error {
 		endpoint = "https://oss-cn-hangzhou.aliyuncs.com"
 	}
 
-	_, err := as.mcpClient.CallTool(ctx, "oss_env_init", map[string]interface{}{
+	_, err := as.mcpClient.CallTool(ctx, "oss_env_init", map[string]any{
 		"access_key_id":     as.config.AccessKeyID,
 		"access_key_secret": as.config.AccessKeySecret,
 		"security_token":    as.config.SecurityToken,
@@ -196,7 +196,7 @@ func (afs *AliyunFS) IsInside(path string) bool {
 func (afs *AliyunFS) Read(ctx context.Context, path string) (string, error) {
 	absPath := afs.absPath(path)
 
-	result, err := afs.mcpClient.CallTool(ctx, "read_file", map[string]interface{}{
+	result, err := afs.mcpClient.CallTool(ctx, "read_file", map[string]any{
 		"path": absPath,
 	})
 	if err != nil {
@@ -218,7 +218,7 @@ func (afs *AliyunFS) Read(ctx context.Context, path string) (string, error) {
 func (afs *AliyunFS) Write(ctx context.Context, path string, content string) error {
 	absPath := afs.absPath(path)
 
-	_, err := afs.mcpClient.CallTool(ctx, "write_file", map[string]interface{}{
+	_, err := afs.mcpClient.CallTool(ctx, "write_file", map[string]any{
 		"path":    absPath,
 		"content": content,
 	})
@@ -238,7 +238,7 @@ func (afs *AliyunFS) Temp(name string) string {
 func (afs *AliyunFS) Stat(ctx context.Context, path string) (sandbox.FileInfo, error) {
 	absPath := afs.absPath(path)
 
-	result, err := afs.mcpClient.CallTool(ctx, "get_file_info", map[string]interface{}{
+	result, err := afs.mcpClient.CallTool(ctx, "get_file_info", map[string]any{
 		"path": absPath,
 	})
 	if err != nil {
@@ -268,7 +268,7 @@ func (afs *AliyunFS) Stat(ctx context.Context, path string) (sandbox.FileInfo, e
 func (afs *AliyunFS) Glob(ctx context.Context, pattern string, opts *sandbox.GlobOptions) ([]string, error) {
 	absPattern := afs.absPath(pattern)
 
-	result, err := afs.mcpClient.CallTool(ctx, "search_files", map[string]interface{}{
+	result, err := afs.mcpClient.CallTool(ctx, "search_files", map[string]any{
 		"path":    filepath.Dir(absPattern),
 		"pattern": filepath.Base(absPattern),
 	})

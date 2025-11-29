@@ -32,7 +32,7 @@ type EnhancedTool interface {
 	RetryPolicy() *RetryPolicy
 
 	// Metadata 工具元数据
-	Metadata() map[string]interface{}
+	Metadata() map[string]any
 }
 
 // RetryPolicy 重试策略
@@ -80,10 +80,10 @@ type EnhancedContext interface {
 	SearchMemory(ctx context.Context, query string) ([]MemoryResult, error)
 
 	// GetArtifact 获取 Artifact
-	GetArtifact(ctx context.Context, name string) (interface{}, error)
+	GetArtifact(ctx context.Context, name string) (any, error)
 
 	// SaveArtifact 保存 Artifact
-	SaveArtifact(ctx context.Context, name string, data interface{}) error
+	SaveArtifact(ctx context.Context, name string, data any) error
 
 	// EmitEvent 发送自定义事件
 	EmitEvent(event *types.Event) error
@@ -103,7 +103,7 @@ type MemoryResult struct {
 	Content   string
 	Score     float64
 	Timestamp time.Time
-	Metadata  map[string]interface{}
+	Metadata  map[string]any
 }
 
 // Logger 日志接口
@@ -117,7 +117,7 @@ type Logger interface {
 // Field 日志字段
 type Field struct {
 	Key   string
-	Value interface{}
+	Value any
 }
 
 // Tracer 追踪接口 (简化版)
@@ -128,7 +128,7 @@ type Tracer interface {
 // Span 追踪 span 接口
 type Span interface {
 	End()
-	SetAttribute(key string, value interface{})
+	SetAttribute(key string, value any)
 	RecordError(err error)
 }
 
@@ -231,7 +231,7 @@ type BaseEnhancedTool struct {
 	requireApproval bool
 	priority        int
 	retryPolicy     *RetryPolicy
-	metadata        map[string]interface{}
+	metadata        map[string]any
 }
 
 func NewBaseEnhancedTool(name, description string) *BaseEnhancedTool {
@@ -240,7 +240,7 @@ func NewBaseEnhancedTool(name, description string) *BaseEnhancedTool {
 		description: description,
 		timeout:     30 * time.Second, // 默认 30 秒
 		priority:    100,              // 默认优先级
-		metadata:    make(map[string]interface{}),
+		metadata:    make(map[string]any),
 	}
 }
 
@@ -252,7 +252,7 @@ func (t *BaseEnhancedTool) Timeout() time.Duration           { return t.timeout 
 func (t *BaseEnhancedTool) RequiresApproval() bool           { return t.requireApproval }
 func (t *BaseEnhancedTool) Priority() int                    { return t.priority }
 func (t *BaseEnhancedTool) RetryPolicy() *RetryPolicy        { return t.retryPolicy }
-func (t *BaseEnhancedTool) Metadata() map[string]interface{} { return t.metadata }
+func (t *BaseEnhancedTool) Metadata() map[string]any { return t.metadata }
 
 // Setter 方法
 func (t *BaseEnhancedTool) SetSchema(schema *types.ToolSchema) { t.schema = schema }
@@ -261,12 +261,12 @@ func (t *BaseEnhancedTool) SetTimeout(d time.Duration)         { t.timeout = d }
 func (t *BaseEnhancedTool) SetRequireApproval(v bool)          { t.requireApproval = v }
 func (t *BaseEnhancedTool) SetPriority(p int)                  { t.priority = p }
 func (t *BaseEnhancedTool) SetRetryPolicy(policy *RetryPolicy) { t.retryPolicy = policy }
-func (t *BaseEnhancedTool) SetMetadata(key string, value interface{}) {
+func (t *BaseEnhancedTool) SetMetadata(key string, value any) {
 	t.metadata[key] = value
 }
 
 // Execute 需要由具体工具实现
-func (t *BaseEnhancedTool) Execute(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+func (t *BaseEnhancedTool) Execute(ctx context.Context, args map[string]any) (any, error) {
 	panic("Execute must be implemented by concrete tool")
 }
 

@@ -25,7 +25,7 @@ type LongRunningTool interface {
 
 	// StartAsync 异步启动工具执行
 	// 返回任务 ID，可用于查询状态或取消
-	StartAsync(ctx context.Context, args map[string]interface{}) (string, error)
+	StartAsync(ctx context.Context, args map[string]any) (string, error)
 
 	// GetStatus 获取任务执行状态
 	GetStatus(ctx context.Context, taskID string) (*TaskStatus, error)
@@ -39,11 +39,11 @@ type TaskStatus struct {
 	TaskID    string                 // 任务 ID
 	State     TaskState              // 当前状态
 	Progress  float64                // 进度 0.0 - 1.0
-	Result    interface{}            // 执行结果（完成时）
+	Result    any            // 执行结果（完成时）
 	Error     error                  // 错误信息（失败时）
 	StartTime time.Time              // 开始时间
 	EndTime   *time.Time             // 结束时间（完成/失败/取消时）
-	Metadata  map[string]interface{} // 额外元数据
+	Metadata  map[string]any // 额外元数据
 }
 
 // TaskState 任务状态枚举
@@ -96,7 +96,7 @@ func NewLongRunningExecutor() *LongRunningExecutor {
 func (e *LongRunningExecutor) StartAsync(
 	ctx context.Context,
 	tool Tool,
-	args map[string]interface{},
+	args map[string]any,
 ) (string, error) {
 	// 1. 生成任务 ID
 	taskID := generateTaskID()
@@ -107,7 +107,7 @@ func (e *LongRunningExecutor) StartAsync(
 		State:     TaskStatePending,
 		Progress:  0.0,
 		StartTime: time.Now(),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 	}
 	e.tasks.Store(taskID, status)
 
@@ -207,7 +207,7 @@ func (e *LongRunningExecutor) Cancel(ctx context.Context, taskID string) error {
 func (e *LongRunningExecutor) ListTasks(filter func(*TaskStatus) bool) []*TaskStatus {
 	var tasks []*TaskStatus
 
-	e.tasks.Range(func(key, value interface{}) bool {
+	e.tasks.Range(func(key, value any) bool {
 		status := value.(*TaskStatus)
 		if filter == nil || filter(status) {
 			tasks = append(tasks, &TaskStatus{
@@ -232,7 +232,7 @@ func (e *LongRunningExecutor) ListTasks(filter func(*TaskStatus) bool) []*TaskSt
 func (e *LongRunningExecutor) Cleanup(before time.Time) int {
 	var deleted int
 
-	e.tasks.Range(func(key, value interface{}) bool {
+	e.tasks.Range(func(key, value any) bool {
 		status := value.(*TaskStatus)
 
 		// 只清理终态任务
@@ -250,7 +250,7 @@ func (e *LongRunningExecutor) Cleanup(before time.Time) int {
 }
 
 // UpdateProgress 更新任务进度（供工具内部调用）
-func (e *LongRunningExecutor) UpdateProgress(taskID string, progress float64, metadata map[string]interface{}) error {
+func (e *LongRunningExecutor) UpdateProgress(taskID string, progress float64, metadata map[string]any) error {
 	return e.updateStatus(taskID, func(s *TaskStatus) {
 		s.Progress = progress
 		for k, v := range metadata {
@@ -283,12 +283,12 @@ func (e *LongRunningExecutor) updateStatus(taskID string, updater func(*TaskStat
 }
 
 // copyMetadata 复制元数据
-func copyMetadata(src map[string]interface{}) map[string]interface{} {
+func copyMetadata(src map[string]any) map[string]any {
 	if src == nil {
 		return nil
 	}
 
-	dst := make(map[string]interface{}, len(src))
+	dst := make(map[string]any, len(src))
 	for k, v := range src {
 		dst[k] = v
 	}
@@ -324,7 +324,7 @@ func (t *BaseLongRunningTool) IsLongRunning() bool {
 }
 
 // StartAsync 实现 LongRunningTool 接口
-func (t *BaseLongRunningTool) StartAsync(ctx context.Context, args map[string]interface{}) (string, error) {
+func (t *BaseLongRunningTool) StartAsync(ctx context.Context, args map[string]any) (string, error) {
 	return t.executor.StartAsync(ctx, t, args)
 }
 
@@ -339,7 +339,7 @@ func (t *BaseLongRunningTool) Cancel(ctx context.Context, taskID string) error {
 }
 
 // Execute 需要由具体工具实现
-func (t *BaseLongRunningTool) Execute(ctx context.Context, args map[string]interface{}, tc *ToolContext) (interface{}, error) {
+func (t *BaseLongRunningTool) Execute(ctx context.Context, args map[string]any, tc *ToolContext) (any, error) {
 	return nil, fmt.Errorf("Execute() must be implemented by concrete tool")
 }
 

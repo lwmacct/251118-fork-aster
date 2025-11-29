@@ -17,7 +17,7 @@ type Event interface {
 	Timestamp() time.Time
 
 	// ToMap 转换为 map
-	ToMap() map[string]interface{}
+	ToMap() map[string]any
 
 	// ToJSON 转换为 JSON
 	ToJSON() ([]byte, error)
@@ -60,7 +60,7 @@ type BaseEvent struct {
 	ID        string                 `json:"run_id"`
 	Time      time.Time              `json:"timestamp"`
 	SessionID string                 `json:"session_id,omitempty"`
-	Data      map[string]interface{} `json:"data,omitempty"`
+	Data      map[string]any `json:"data,omitempty"`
 }
 
 // EventType 实现 Event 接口
@@ -79,8 +79,8 @@ func (e *BaseEvent) Timestamp() time.Time {
 }
 
 // ToMap 实现 Event 接口
-func (e *BaseEvent) ToMap() map[string]interface{} {
-	m := map[string]interface{}{
+func (e *BaseEvent) ToMap() map[string]any {
+	m := map[string]any{
 		"type":      string(e.Type),
 		"run_id":    e.ID,
 		"timestamp": e.Time,
@@ -105,7 +105,7 @@ func NewBaseEvent(eventType EventType, runID string) *BaseEvent {
 		Type: eventType,
 		ID:   runID,
 		Time: time.Now(),
-		Data: make(map[string]interface{}),
+		Data: make(map[string]any),
 	}
 }
 
@@ -115,7 +115,7 @@ type AgentEvent struct {
 	AgentID string                 `json:"agent_id,omitempty"`
 	Content string                 `json:"content,omitempty"`
 	Delta   string                 `json:"delta,omitempty"`
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics map[string]any `json:"metrics,omitempty"`
 }
 
 // WorkflowEvent Workflow 事件
@@ -126,7 +126,7 @@ type WorkflowEvent struct {
 	StepName   string                 `json:"step_name,omitempty"`
 	StepType   string                 `json:"step_type,omitempty"`
 	Progress   float64                `json:"progress,omitempty"`
-	Metrics    map[string]interface{} `json:"metrics,omitempty"`
+	Metrics    map[string]any `json:"metrics,omitempty"`
 }
 
 // TeamEvent Team 事件
@@ -135,7 +135,7 @@ type TeamEvent struct {
 	TeamID   string                 `json:"team_id,omitempty"`
 	MemberID string                 `json:"member_id,omitempty"`
 	Role     string                 `json:"role,omitempty"`
-	Metrics  map[string]interface{} `json:"metrics,omitempty"`
+	Metrics  map[string]any `json:"metrics,omitempty"`
 }
 
 // StatusChangeEvent 状态变更事件

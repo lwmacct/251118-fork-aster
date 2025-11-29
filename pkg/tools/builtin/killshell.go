@@ -13,7 +13,7 @@ import (
 type KillShellTool struct{}
 
 // NewKillShellTool 创建KillShell工具
-func NewKillShellTool(config map[string]interface{}) (tools.Tool, error) {
+func NewKillShellTool(config map[string]any) (tools.Tool, error) {
 	return &KillShellTool{}, nil
 }
 
@@ -25,31 +25,31 @@ func (t *KillShellTool) Description() string {
 	return "终止后台运行的shell进程"
 }
 
-func (t *KillShellTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *KillShellTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"shell_id": map[string]interface{}{
+		"properties": map[string]any{
+			"shell_id": map[string]any{
 				"type":        "string",
 				"description": "要终止的后台shell的ID",
 			},
-			"signal": map[string]interface{}{
+			"signal": map[string]any{
 				"type":        "string",
 				"description": "发送的信号，默认为SIGTERM（15），可选：SIGTERM, SIGKILL, SIGINT",
 			},
-			"force": map[string]interface{}{
+			"force": map[string]any{
 				"type":        "boolean",
 				"description": "是否强制终止（等同于SIGKILL），默认为false",
 			},
-			"wait": map[string]interface{}{
+			"wait": map[string]any{
 				"type":        "boolean",
 				"description": "是否等待进程完全退出，默认为true",
 			},
-			"timeout": map[string]interface{}{
+			"timeout": map[string]any{
 				"type":        "integer",
 				"description": "等待进程退出的超时时间（秒），默认为10秒",
 			},
-			"cleanup": map[string]interface{}{
+			"cleanup": map[string]any{
 				"type":        "boolean",
 				"description": "是否清理相关的临时文件，默认为true",
 			},
@@ -58,7 +58,7 @@ func (t *KillShellTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *KillShellTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *KillShellTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := ValidateRequired(input, []string{"shell_id"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -83,7 +83,7 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]interface{
 	// 获取任务信息以验证存在
 	task, err := taskManager.GetTask(shellID)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("background shell not found: %s", shellID),
 			"recommendations": []string{
@@ -98,7 +98,7 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]interface{
 
 	// 检查任务状态
 	if task.Status != "running" {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":          false,
 			"error":       fmt.Sprintf("task is not running, current status: %s", task.Status),
 			"shell_id":    shellID,
@@ -166,7 +166,7 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]interface{
 	}
 
 	// 构建响应
-	response := map[string]interface{}{
+	response := map[string]any{
 		"ok":          success,
 		"shell_id":    shellID,
 		"command":     task.Command,
@@ -292,15 +292,15 @@ func (t *KillShellTool) waitForProcessExit(ctx context.Context, pid int, timeout
 }
 
 // getCleanupInfo 获取清理信息
-func (t *KillShellTool) getCleanupInfo(task *TaskInfo) map[string]interface{} {
+func (t *KillShellTool) getCleanupInfo(task *TaskInfo) map[string]any {
 	if task == nil || task.Options == nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"files_cleared":  0,
 			"cleanup_method": "not_available",
 		}
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"output_file":       fmt.Sprintf("%s/%s.stdout", task.Options.OutputDir, task.ID),
 		"error_file":        fmt.Sprintf("%s/%s.stderr", task.Options.OutputDir, task.ID),
 		"task_file":         fmt.Sprintf("%s/%s.json", "/tmp/agentsdk_tasks", task.ID),
@@ -352,20 +352,20 @@ func (t *KillShellTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "优雅终止后台进程",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"shell_id": "task_123456",
 			},
 		},
 		{
 			Description: "强制终止进程",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"shell_id": "task_123456",
 				"force":    true,
 			},
 		},
 		{
 			Description: "发送特定信号并等待退出",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"shell_id": "task_123456",
 				"signal":   "SIGINT",
 				"wait":     true,

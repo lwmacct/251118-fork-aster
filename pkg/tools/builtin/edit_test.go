@@ -31,7 +31,7 @@ func TestEditTool_InputSchema(t *testing.T) {
 		t.Fatal("Input schema should not be nil")
 	}
 
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -54,12 +54,12 @@ func TestEditTool_InputSchema(t *testing.T) {
 
 	// 验证required字段
 	required := schema["required"]
-	var requiredArray []interface{}
+	var requiredArray []any
 	switch v := required.(type) {
-	case []interface{}:
+	case []any:
 		requiredArray = v
 	case []string:
-		requiredArray = make([]interface{}, len(v))
+		requiredArray = make([]any, len(v))
 		for i, s := range v {
 			requiredArray[i] = s
 		}
@@ -87,7 +87,7 @@ func TestEditTool_SimpleEdit(t *testing.T) {
 	testFile := helper.CreateTempFile("test.txt", "Hello World\nThis is a test\nGoodbye")
 	defer helper.CleanupAll()
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path":  testFile,
 		"old_string": "Hello World",
 		"new_string": "Hello Universe",
@@ -130,7 +130,7 @@ func TestEditTool_MultipleEdit(t *testing.T) {
 	testFile := helper.CreateTempFile("test.txt", "Hello World\nHello World\nHello World")
 	defer helper.CleanupAll()
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path":   testFile,
 		"old_string":  "Hello World",
 		"new_string":  "Hello Universe",
@@ -161,7 +161,7 @@ func TestEditTool_MissingString(t *testing.T) {
 		t.Fatalf("Failed to create Edit tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": "/tmp/test.txt",
 		// 缺少 old_string
 		"new_string": "new content",
@@ -182,7 +182,7 @@ func TestEditTool_NonExistentFile(t *testing.T) {
 		t.Fatalf("Failed to create Edit tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path":  "/nonexistent/file.txt",
 		"old_string": "old content",
 		"new_string": "new content",
@@ -214,7 +214,7 @@ func TestEditTool_SameString(t *testing.T) {
 	testFile := helper.CreateTempFile("test.txt", "Hello World")
 	defer helper.CleanupAll()
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path":  testFile,
 		"old_string": "Hello World",
 		"new_string": "Hello World", // 相同的内容
@@ -243,7 +243,7 @@ func BenchmarkEditTool_SimpleEdit(b *testing.B) {
 	testFile := helper.CreateTempFile("benchmark.txt", "old content line\nold content line\nold content line")
 	defer helper.CleanupAll()
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path":  testFile,
 		"old_string": "old content",
 		"new_string": "new content",

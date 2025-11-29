@@ -164,7 +164,7 @@ func (s *Server) handleToolsCall(w http.ResponseWriter, ctx context.Context, req
 	writeJSON(w, http.StatusOK, mcpResp)
 }
 
-func writeJSON(w http.ResponseWriter, status int, v interface{}) {
+func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)

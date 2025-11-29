@@ -185,7 +185,7 @@ func createAgent(apiKey, baseURL, model string, streaming bool) (*agent.Agent, e
 	templateRegistry.Register(&types.AgentTemplateDefinition{
 		ID:           "simple-assistant",
 		SystemPrompt: "你是一个有用的助手，可以读取和写入文件。当用户要求你读取或写入文件时，请使用可用的工具。",
-		Tools:        []interface{}{"Read", "Write", "Bash"},
+		Tools:        []any{"Read", "Write", "Bash"},
 	})
 
 	// 依赖注入

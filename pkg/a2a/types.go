@@ -81,7 +81,7 @@ type Artifact struct {
 }
 
 // Metadata 任务元数据
-type Metadata map[string]interface{}
+type Metadata map[string]any
 
 // ============== Message ==============
 
@@ -101,7 +101,7 @@ type Message struct {
 type Part struct {
 	Kind string      `json:"kind"` // "text", "file", "data"
 	Text string      `json:"text,omitempty"`
-	Data interface{} `json:"data,omitempty"`
+	Data any `json:"data,omitempty"`
 	// File 相关字段
 	Name     string `json:"name,omitempty"`
 	MimeType string `json:"mimeType,omitempty"`
@@ -113,16 +113,16 @@ type Part struct {
 // JSONRPCRequest JSON-RPC 2.0 请求
 type JSONRPCRequest struct {
 	JSONRPC string      `json:"jsonrpc"` // 固定为 "2.0"
-	ID      interface{} `json:"id"`      // 字符串或数字
+	ID      any `json:"id"`      // 字符串或数字
 	Method  string      `json:"method"`
-	Params  interface{} `json:"params,omitempty"`
+	Params  any `json:"params,omitempty"`
 }
 
 // JSONRPCResponse JSON-RPC 2.0 响应
 type JSONRPCResponse struct {
 	JSONRPC string      `json:"jsonrpc"` // 固定为 "2.0"
-	ID      interface{} `json:"id"`
-	Result  interface{} `json:"result,omitempty"`
+	ID      any `json:"id"`
+	Result  any `json:"result,omitempty"`
 	Error   *RPCError   `json:"error,omitempty"`
 }
 
@@ -130,7 +130,7 @@ type JSONRPCResponse struct {
 type RPCError struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Data    any `json:"data,omitempty"`
 }
 
 // 标准 JSON-RPC 错误码
@@ -251,7 +251,7 @@ func NewTextMessage(messageID, role, text string) Message {
 }
 
 // NewSuccessResponse 创建成功响应
-func NewSuccessResponse(id interface{}, result interface{}) *JSONRPCResponse {
+func NewSuccessResponse(id any, result any) *JSONRPCResponse {
 	return &JSONRPCResponse{
 		JSONRPC: "2.0",
 		ID:      id,
@@ -260,7 +260,7 @@ func NewSuccessResponse(id interface{}, result interface{}) *JSONRPCResponse {
 }
 
 // NewErrorResponse 创建错误响应
-func NewErrorResponse(id interface{}, code int, message string, data interface{}) *JSONRPCResponse {
+func NewErrorResponse(id any, code int, message string, data any) *JSONRPCResponse {
 	return &JSONRPCResponse{
 		JSONRPC: "2.0",
 		ID:      id,

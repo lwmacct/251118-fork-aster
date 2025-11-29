@@ -18,7 +18,7 @@ type SubAgentSpec struct {
 	Description         string                 // 子代理描述
 	Prompt              string                 // 子代理专用提示词
 	Tools               []string               // 工具名称列表(可选,默认继承父代理)
-	Config              map[string]interface{} // 自定义配置
+	Config              map[string]any // 自定义配置
 	InheritMiddlewares  bool                   // 是否继承父代理的中间件栈(默认 false)
 	MiddlewareOverrides []Middleware           // 子代理专用中间件(覆盖或追加)
 }
@@ -35,7 +35,7 @@ type SubAgent interface {
 	// Execute 执行任务
 	// description: 任务描述
 	// context: 父代理上下文(可选)
-	Execute(ctx context.Context, description string, parentContext map[string]interface{}) (string, error)
+	Execute(ctx context.Context, description string, parentContext map[string]any) (string, error)
 
 	// Close 关闭子代理
 	Close() error
@@ -210,23 +210,23 @@ func (t *TaskTool) Description() string {
 	return "Delegate a task to a specialized sub-agent for isolated, focused execution"
 }
 
-func (t *TaskTool) InputSchema() map[string]interface{} {
+func (t *TaskTool) InputSchema() map[string]any {
 	// 构建子代理类型枚举
 	subagentTypes := t.middleware.ListSubAgents()
 
-	schema := map[string]interface{}{
+	schema := map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"description": map[string]interface{}{
+		"properties": map[string]any{
+			"description": map[string]any{
 				"type":        "string",
 				"description": "Clear, detailed description of the task to delegate",
 			},
-			"subagent_type": map[string]interface{}{
+			"subagent_type": map[string]any{
 				"type":        "string",
 				"description": fmt.Sprintf("Type of sub-agent to use. Available: %v", subagentTypes),
 				"enum":        subagentTypes,
 			},
-			"context": map[string]interface{}{
+			"context": map[string]any{
 				"type":        "object",
 				"description": "Optional context to pass to the sub-agent",
 			},
@@ -236,12 +236,12 @@ func (t *TaskTool) InputSchema() map[string]interface{} {
 
 	// 如果启用异步执行，添加 async 参数
 	if t.middleware.enableAsync {
-		schema["properties"].(map[string]interface{})["async"] = map[string]interface{}{
+		schema["properties"].(map[string]any)["async"] = map[string]any{
 			"type":        "boolean",
 			"description": "Run asynchronously in background (default: false). If true, returns task_id immediately.",
 			"default":     false,
 		}
-		schema["properties"].(map[string]interface{})["timeout"] = map[string]interface{}{
+		schema["properties"].(map[string]any)["timeout"] = map[string]any{
 			"type":        "number",
 			"description": "Timeout in seconds (default: 3600)",
 			"default":     3600,
@@ -251,7 +251,7 @@ func (t *TaskTool) InputSchema() map[string]interface{} {
 	return schema
 }
 
-func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *TaskTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	description, ok := input["description"].(string)
 	if !ok {
 		return nil, fmt.Errorf("description must be a string")
@@ -263,8 +263,8 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	}
 
 	// 获取上下文(可选)
-	parentContext := make(map[string]interface{})
-	if contextData, ok := input["context"].(map[string]interface{}); ok {
+	parentContext := make(map[string]any)
+	if contextData, ok := input["context"].(map[string]any); ok {
 		parentContext = contextData
 	}
 
@@ -290,11 +290,11 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]interface{}, tc
 }
 
 // executeSync 同步执行子代理
-func (t *TaskTool) executeSync(ctx context.Context, subagentType, description string, parentContext map[string]interface{}) (interface{}, error) {
+func (t *TaskTool) executeSync(ctx context.Context, subagentType, description string, parentContext map[string]any) (any, error) {
 	// 获取子代理
 	subagent, err := t.middleware.GetSubAgent(subagentType)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to get subagent: %v", err),
 		}, nil
@@ -305,7 +305,7 @@ func (t *TaskTool) executeSync(ctx context.Context, subagentType, description st
 	// 执行任务
 	result, err := subagent.Execute(ctx, description, parentContext)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":            false,
 			"error":         fmt.Sprintf("subagent execution failed: %v", err),
 			"subagent_type": subagentType,
@@ -314,7 +314,7 @@ func (t *TaskTool) executeSync(ctx context.Context, subagentType, description st
 
 	log.Printf("[TaskTool] Subagent '%s' completed task successfully", subagentType)
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":            true,
 		"subagent_type": subagentType,
 		"result":        result,
@@ -322,7 +322,7 @@ func (t *TaskTool) executeSync(ctx context.Context, subagentType, description st
 }
 
 // executeAsync 异步执行子代理
-func (t *TaskTool) executeAsync(ctx context.Context, subagentType, description string, parentContext map[string]interface{}, timeout time.Duration) (interface{}, error) {
+func (t *TaskTool) executeAsync(ctx context.Context, subagentType, description string, parentContext map[string]any, timeout time.Duration) (any, error) {
 	// 构建子代理配置
 	config := &builtin.SubagentConfig{
 		Type:          subagentType,
@@ -338,7 +338,7 @@ func (t *TaskTool) executeAsync(ctx context.Context, subagentType, description s
 	// 启动子代理
 	instance, err := t.middleware.manager.StartSubagent(ctx, config)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to start subagent: %v", err),
 		}, nil
@@ -346,7 +346,7 @@ func (t *TaskTool) executeAsync(ctx context.Context, subagentType, description s
 
 	log.Printf("[TaskTool] Started async subagent '%s' with task_id: %s", subagentType, instance.ID)
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":            true,
 		"task_id":       instance.ID,
 		"subagent_type": subagentType,
@@ -488,10 +488,10 @@ func (t *TaskTool) Prompt() string {
 type SimpleSubAgent struct {
 	name   string
 	prompt string
-	execFn func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error)
+	execFn func(ctx context.Context, description string, parentContext map[string]any) (string, error)
 }
 
-func NewSimpleSubAgent(name, prompt string, execFn func(context.Context, string, map[string]interface{}) (string, error)) *SimpleSubAgent {
+func NewSimpleSubAgent(name, prompt string, execFn func(context.Context, string, map[string]any) (string, error)) *SimpleSubAgent {
 	return &SimpleSubAgent{
 		name:   name,
 		prompt: prompt,
@@ -503,7 +503,7 @@ func (a *SimpleSubAgent) Name() string {
 	return a.name
 }
 
-func (a *SimpleSubAgent) Execute(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+func (a *SimpleSubAgent) Execute(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 	if a.execFn != nil {
 		return a.execFn(ctx, description, parentContext)
 	}
@@ -520,7 +520,7 @@ type SubAgentResult struct {
 	SubAgentType string                 `json:"subagent_type"`
 	Result       string                 `json:"result"`
 	Error        string                 `json:"error,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     map[string]any `json:"metadata,omitempty"`
 }
 
 // ExtractMessages 从父代理状态提取消息
@@ -534,8 +534,8 @@ func ExtractMessages(messages []types.Message, limit int) []types.Message {
 
 // IsolateContext 隔离上下文
 // 从父代理状态中提取必要信息,创建干净的子代理上下文
-func IsolateContext(parentState map[string]interface{}, includeKeys []string) map[string]interface{} {
-	isolated := make(map[string]interface{})
+func IsolateContext(parentState map[string]any, includeKeys []string) map[string]any {
+	isolated := make(map[string]any)
 
 	for _, key := range includeKeys {
 		if val, exists := parentState[key]; exists {
@@ -604,11 +604,11 @@ func (t *QuerySubagentTool) Description() string {
 	return "Query the status and output of a running or completed sub-agent task"
 }
 
-func (t *QuerySubagentTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *QuerySubagentTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"task_id": map[string]interface{}{
+		"properties": map[string]any{
+			"task_id": map[string]any{
 				"type":        "string",
 				"description": "The task ID returned by async task execution",
 			},
@@ -617,7 +617,7 @@ func (t *QuerySubagentTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *QuerySubagentTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *QuerySubagentTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	taskID, ok := input["task_id"].(string)
 	if !ok {
 		return nil, fmt.Errorf("task_id must be a string")
@@ -626,14 +626,14 @@ func (t *QuerySubagentTool) Execute(ctx context.Context, input map[string]interf
 	// 获取子代理实例
 	instance, err := t.middleware.manager.GetSubagent(taskID)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to get subagent: %v", err),
 		}, nil
 	}
 
 	// 构建响应
-	response := map[string]interface{}{
+	response := map[string]any{
 		"ok":            true,
 		"task_id":       instance.ID,
 		"subagent_type": instance.Type,
@@ -660,7 +660,7 @@ func (t *QuerySubagentTool) Execute(ctx context.Context, input map[string]interf
 
 	// 添加资源使用情况（如果有）
 	if instance.ResourceUsage != nil {
-		response["resource_usage"] = map[string]interface{}{
+		response["resource_usage"] = map[string]any{
 			"memory_mb":   instance.ResourceUsage.MemoryMB,
 			"cpu_percent": instance.ResourceUsage.CPUPercent,
 		}
@@ -703,11 +703,11 @@ func (t *StopSubagentTool) Description() string {
 	return "Stop a running sub-agent task"
 }
 
-func (t *StopSubagentTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *StopSubagentTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"task_id": map[string]interface{}{
+		"properties": map[string]any{
+			"task_id": map[string]any{
 				"type":        "string",
 				"description": "The task ID of the sub-agent to stop",
 			},
@@ -716,7 +716,7 @@ func (t *StopSubagentTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *StopSubagentTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *StopSubagentTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	taskID, ok := input["task_id"].(string)
 	if !ok {
 		return nil, fmt.Errorf("task_id must be a string")
@@ -725,7 +725,7 @@ func (t *StopSubagentTool) Execute(ctx context.Context, input map[string]interfa
 	// 停止子代理
 	err := t.middleware.manager.StopSubagent(taskID)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to stop subagent: %v", err),
 		}, nil
@@ -733,7 +733,7 @@ func (t *StopSubagentTool) Execute(ctx context.Context, input map[string]interfa
 
 	log.Printf("[StopSubagentTool] Stopped subagent: %s", taskID)
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":      true,
 		"task_id": taskID,
 		"message": "SubAgent stopped successfully",
@@ -770,11 +770,11 @@ func (t *ResumeSubagentTool) Description() string {
 	return "Resume a stopped or failed sub-agent task"
 }
 
-func (t *ResumeSubagentTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *ResumeSubagentTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"task_id": map[string]interface{}{
+		"properties": map[string]any{
+			"task_id": map[string]any{
 				"type":        "string",
 				"description": "The task ID of the sub-agent to resume",
 			},
@@ -783,7 +783,7 @@ func (t *ResumeSubagentTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ResumeSubagentTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *ResumeSubagentTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	taskID, ok := input["task_id"].(string)
 	if !ok {
 		return nil, fmt.Errorf("task_id must be a string")
@@ -792,7 +792,7 @@ func (t *ResumeSubagentTool) Execute(ctx context.Context, input map[string]inter
 	// 恢复子代理
 	instance, err := t.middleware.manager.ResumeSubagent(taskID)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to resume subagent: %v", err),
 		}, nil
@@ -800,7 +800,7 @@ func (t *ResumeSubagentTool) Execute(ctx context.Context, input map[string]inter
 
 	log.Printf("[ResumeSubagentTool] Resumed subagent: %s (new task_id: %s)", taskID, instance.ID)
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":            true,
 		"old_task_id":   taskID,
 		"new_task_id":   instance.ID,
@@ -841,11 +841,11 @@ func (t *ListSubagentsTool) Description() string {
 	return "List all sub-agent tasks (running, completed, or failed)"
 }
 
-func (t *ListSubagentsTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *ListSubagentsTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"status_filter": map[string]interface{}{
+		"properties": map[string]any{
+			"status_filter": map[string]any{
 				"type":        "string",
 				"description": "Filter by status (optional): running, completed, failed, stopped",
 			},
@@ -853,7 +853,7 @@ func (t *ListSubagentsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListSubagentsTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *ListSubagentsTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 获取状态过滤器（可选）
 	statusFilter := ""
 	if filter, ok := input["status_filter"].(string); ok {
@@ -863,21 +863,21 @@ func (t *ListSubagentsTool) Execute(ctx context.Context, input map[string]interf
 	// 列出所有子代理
 	instances, err := t.middleware.manager.ListSubagents()
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to list subagents: %v", err),
 		}, nil
 	}
 
 	// 构建响应
-	subagents := make([]map[string]interface{}, 0)
+	subagents := make([]map[string]any, 0)
 	for _, instance := range instances {
 		// 应用状态过滤
 		if statusFilter != "" && instance.Status != statusFilter {
 			continue
 		}
 
-		item := map[string]interface{}{
+		item := map[string]any{
 			"task_id":       instance.ID,
 			"subagent_type": instance.Type,
 			"status":        instance.Status,
@@ -896,7 +896,7 @@ func (t *ListSubagentsTool) Execute(ctx context.Context, input map[string]interf
 		subagents = append(subagents, item)
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":        true,
 		"count":     len(subagents),
 		"subagents": subagents,

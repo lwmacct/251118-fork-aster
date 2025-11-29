@@ -31,22 +31,22 @@ func main() {
 	docs := []struct {
 		id   string
 		text string
-		meta map[string]interface{}
+		meta map[string]any
 	}{
 		{
 			id:   "doc-1",
 			text: "Paris is the capital of France.",
-			meta: map[string]interface{}{"user_id": "alice", "resource_id": "europe-notes"},
+			meta: map[string]any{"user_id": "alice", "resource_id": "europe-notes"},
 		},
 		{
 			id:   "doc-2",
 			text: "Berlin is the capital of Germany.",
-			meta: map[string]interface{}{"user_id": "alice", "resource_id": "europe-notes"},
+			meta: map[string]any{"user_id": "alice", "resource_id": "europe-notes"},
 		},
 		{
 			id:   "doc-3",
 			text: "Tokyo is the capital of Japan.",
-			meta: map[string]interface{}{"user_id": "bob", "resource_id": "asia-notes"},
+			meta: map[string]any{"user_id": "bob", "resource_id": "asia-notes"},
 		},
 	}
 
@@ -58,7 +58,7 @@ func main() {
 
 	// 4. 在 Alice 的 europe-notes 命名空间内进行语义检索
 	query := "What is the capital of France?"
-	meta := map[string]interface{}{"user_id": "alice", "resource_id": "europe-notes"}
+	meta := map[string]any{"user_id": "alice", "resource_id": "europe-notes"}
 
 	hits, err := semMem.Search(ctx, query, meta, 3)
 	if err != nil {

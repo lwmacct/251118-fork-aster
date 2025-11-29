@@ -45,7 +45,7 @@ type SkillContext struct {
 	UserMessage string                 // 用户输入
 	Command     string                 // 当前命令（如 "/write"）
 	Files       []string               // 涉及的文件
-	Metadata    map[string]interface{} // 额外元数据
+	Metadata    map[string]any // 额外元数据
 }
 
 // ParamSpec 参数定义

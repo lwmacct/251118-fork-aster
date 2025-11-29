@@ -52,7 +52,7 @@ func (s *RedundancyStrategy) Consolidate(ctx context.Context, memories []MemoryW
 	prompt := s.buildPrompt(memories)
 
 	// 调用 LLM 合并
-	mergedText, err := llm.Complete(ctx, prompt, map[string]interface{}{
+	mergedText, err := llm.Complete(ctx, prompt, map[string]any{
 		"model":       "gpt-4",
 		"temperature": 0.3, // 较低温度保证一致性
 		"max_tokens":  500,
@@ -108,8 +108,8 @@ func (s *RedundancyStrategy) buildPrompt(memories []MemoryWithScore) string {
 }
 
 // mergeMetadata 合并元数据。
-func (s *RedundancyStrategy) mergeMetadata(memories []MemoryWithScore) map[string]interface{} {
-	merged := make(map[string]interface{})
+func (s *RedundancyStrategy) mergeMetadata(memories []MemoryWithScore) map[string]any {
+	merged := make(map[string]any)
 
 	// 收集所有标签
 	allTags := make(map[string]bool)
@@ -250,7 +250,7 @@ func (s *ConflictResolutionStrategy) Consolidate(ctx context.Context, memories [
 	prompt := s.buildConflictResolutionPrompt(memories)
 
 	// 调用 LLM 解决冲突
-	resolvedText, err := llm.Complete(ctx, prompt, map[string]interface{}{
+	resolvedText, err := llm.Complete(ctx, prompt, map[string]any{
 		"model":       "gpt-4",
 		"temperature": 0.2, // 低温度保证客观性
 		"max_tokens":  600,
@@ -270,7 +270,7 @@ func (s *ConflictResolutionStrategy) Consolidate(ctx context.Context, memories [
 
 	return &ConsolidatedMemory{
 		Text:           strings.TrimSpace(resolvedText),
-		Metadata:       map[string]interface{}{"consolidation_strategy": "conflict-resolution"},
+		Metadata:       map[string]any{"consolidation_strategy": "conflict-resolution"},
 		Provenance:     bestProvenance,
 		SourceMemories: sourceIDs,
 		Reason:         ReasonConflict,
@@ -378,7 +378,7 @@ func (s *SummarizationStrategy) Consolidate(ctx context.Context, memories []Memo
 	prompt := s.buildSummarizationPrompt(memories)
 
 	// 调用 LLM 总结
-	summary, err := llm.Complete(ctx, prompt, map[string]interface{}{
+	summary, err := llm.Complete(ctx, prompt, map[string]any{
 		"model":       "gpt-4",
 		"temperature": 0.4, // 中等温度允许一定的创造性总结
 		"max_tokens":  400,
@@ -398,7 +398,7 @@ func (s *SummarizationStrategy) Consolidate(ctx context.Context, memories []Memo
 
 	return &ConsolidatedMemory{
 		Text:           strings.TrimSpace(summary),
-		Metadata:       map[string]interface{}{"consolidation_strategy": "summarization"},
+		Metadata:       map[string]any{"consolidation_strategy": "summarization"},
 		Provenance:     mergedProvenance,
 		SourceMemories: sourceIDs,
 		Reason:         ReasonSummary,

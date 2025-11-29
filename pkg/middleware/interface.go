@@ -12,29 +12,29 @@ type ModelRequest struct {
 	Messages     []types.Message
 	SystemPrompt string
 	Tools        []tools.Tool
-	Metadata     map[string]interface{}
+	Metadata     map[string]any
 }
 
 // ModelResponse 模型响应
 type ModelResponse struct {
 	Message  types.Message
-	Metadata map[string]interface{}
+	Metadata map[string]any
 }
 
 // ToolCallRequest 工具调用请求
 type ToolCallRequest struct {
 	ToolCallID string
 	ToolName   string
-	ToolInput  map[string]interface{}
+	ToolInput  map[string]any
 	Tool       tools.Tool
 	Context    *tools.ToolContext
-	Metadata   map[string]interface{}
+	Metadata   map[string]any
 }
 
 // ToolCallResponse 工具调用响应
 type ToolCallResponse struct {
-	Result   interface{}
-	Metadata map[string]interface{}
+	Result   any
+	Metadata map[string]any
 }
 
 // ModelCallHandler 模型调用处理器

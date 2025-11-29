@@ -46,22 +46,22 @@ func main() {
 	docs := []struct {
 		id   string
 		text string
-		meta map[string]interface{}
+		meta map[string]any
 	}{
 		{
 			id:   "doc-paris",
 			text: "Paris is the capital and most populous city of France.",
-			meta: map[string]interface{}{"user_id": "alice", "resource_id": "world-facts"},
+			meta: map[string]any{"user_id": "alice", "resource_id": "world-facts"},
 		},
 		{
 			id:   "doc-berlin",
 			text: "Berlin is the capital city of Germany.",
-			meta: map[string]interface{}{"user_id": "alice", "resource_id": "world-facts"},
+			meta: map[string]any{"user_id": "alice", "resource_id": "world-facts"},
 		},
 		{
 			id:   "doc-tokyo",
 			text: "Tokyo is the capital of Japan and one of its 47 prefectures.",
-			meta: map[string]interface{}{"user_id": "alice", "resource_id": "asia-notes"},
+			meta: map[string]any{"user_id": "alice", "resource_id": "asia-notes"},
 		},
 	}
 
@@ -91,7 +91,7 @@ func main() {
 				Model: "claude-sonnet-4-5",
 				SystemPrompt: "You are a helpful assistant. Use the provided context if available " +
 					"and answer the user's question concisely.",
-				Tools: []interface{}{"Read", "Write"},
+				Tools: []any{"Read", "Write"},
 			})
 			return tr
 		}(),
@@ -171,7 +171,7 @@ func (a *SemanticQAWorkflowAgent) Execute(ctx context.Context, message string) *
 		defer writer.Close()
 
 		// 1) 语义检索: 在 alice/world-facts 命名空间内查询
-		meta := map[string]interface{}{
+		meta := map[string]any{
 			"user_id":     "alice",
 			"resource_id": "world-facts",
 		}
@@ -208,7 +208,7 @@ func (a *SemanticQAWorkflowAgent) Execute(ctx context.Context, message string) *
 		// 2) 调用底层 LLM Agent 生成回答
 		agentConfig := &types.AgentConfig{
 			TemplateID: a.templateID,
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"workflow_step": a.name,
 			},
 		}

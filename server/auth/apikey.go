@@ -33,7 +33,7 @@ type APIKeyInfo struct {
 	ExpiresAt *time.Time             `json:"expires_at,omitempty"`
 	CreatedAt time.Time              `json:"created_at"`
 	LastUsed  *time.Time             `json:"last_used,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // APIKeyAuthenticator API Key 认证器
@@ -54,7 +54,7 @@ func (a *APIKeyAuthenticator) Method() AuthMethod {
 }
 
 // Authenticate 验证 API Key
-func (a *APIKeyAuthenticator) Authenticate(ctx context.Context, credentials interface{}) (*User, error) {
+func (a *APIKeyAuthenticator) Authenticate(ctx context.Context, credentials any) (*User, error) {
 	key, ok := credentials.(string)
 	if !ok {
 		return nil, ErrInvalidCredentials
@@ -90,7 +90,7 @@ func (a *APIKeyAuthenticator) Validate(ctx context.Context, key string) (*User, 
 	return &User{
 		ID:    info.UserID,
 		Roles: info.Roles,
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"api_key_name": info.Name,
 		},
 	}, nil

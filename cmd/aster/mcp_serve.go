@@ -23,19 +23,19 @@ func runMCPServe(args []string) error {
 	registry := tools.NewRegistry()
 
 	// Echo tool
-	registry.Register("echo", func(cfg map[string]interface{}) (tools.Tool, error) {
+	registry.Register("echo", func(cfg map[string]any) (tools.Tool, error) {
 		return &EchoTool{}, nil
 	})
 
 	// Docs tools
 	if docsGet, err := mcpserver.NewDocsGetTool(*docsDir); err == nil {
-		registry.Register(docsGet.Name(), func(cfg map[string]interface{}) (tools.Tool, error) {
+		registry.Register(docsGet.Name(), func(cfg map[string]any) (tools.Tool, error) {
 			return docsGet, nil
 		})
 	}
 
 	if docsSearch, err := mcpserver.NewDocsSearchTool(*docsDir); err == nil {
-		registry.Register(docsSearch.Name(), func(cfg map[string]interface{}) (tools.Tool, error) {
+		registry.Register(docsSearch.Name(), func(cfg map[string]any) (tools.Tool, error) {
 			return docsSearch, nil
 		})
 	}
@@ -61,16 +61,16 @@ type EchoTool struct{}
 
 func (t *EchoTool) Name() string        { return "echo" }
 func (t *EchoTool) Description() string { return "Echo text" }
-func (t *EchoTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *EchoTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"text": map[string]interface{}{"type": "string"},
+		"properties": map[string]any{
+			"text": map[string]any{"type": "string"},
 		},
 		"required": []string{"text"},
 	}
 }
-func (t *EchoTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *EchoTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	return input["text"], nil
 }
 func (t *EchoTool) Prompt() string { return "Echo tool" }

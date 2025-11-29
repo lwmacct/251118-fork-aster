@@ -44,7 +44,7 @@ type SimplicityWarning struct {
 	Type    string                 `json:"type"`    // 警告类型
 	Message string                 `json:"message"` // 警告消息
 	File    string                 `json:"file"`    // 相关文件
-	Details map[string]interface{} `json:"details"` // 详细信息
+	Details map[string]any `json:"details"` // 详细信息
 }
 
 // 警告类型常量
@@ -168,7 +168,7 @@ func (m *SimplicityCheckerMiddleware) checkHelperFunctions(content, filePath str
 				Type:    WarningTypeHelperOverflow,
 				Message: "创建了过多的辅助函数，考虑简化设计或合并功能",
 				File:    filePath,
-				Details: map[string]interface{}{
+				Details: map[string]any{
 					"function_name": funcName,
 					"helper_count":  m.helperCount,
 					"max_allowed":   m.config.MaxHelperFunctions,
@@ -202,7 +202,7 @@ func (m *SimplicityCheckerMiddleware) checkPrematureAbstraction(content, filePat
 				Type:    WarningTypePrematureAbstraction,
 				Message: "创建了较多接口定义，确保每个接口都有明确的用途和多个实现",
 				File:    filePath,
-				Details: map[string]interface{}{
+				Details: map[string]any{
 					"interface_name":  interfaceName,
 					"interface_count": m.interfaceCount,
 				},
@@ -234,7 +234,7 @@ func (m *SimplicityCheckerMiddleware) checkBackwardsCompatHacks(content, filePat
 			Type:    WarningTypeBackwardsCompatHack,
 			Message: "发现向后兼容 hack 模式，考虑直接删除未使用的代码",
 			File:    filePath,
-			Details: map[string]interface{}{
+			Details: map[string]any{
 				"patterns_found": warnings,
 			},
 		})
@@ -267,7 +267,7 @@ func (m *SimplicityCheckerMiddleware) checkOverEngineering(content, filePath str
 			Type:    WarningTypeOverEngineering,
 			Message: "检测到可能的过度工程迹象",
 			File:    filePath,
-			Details: map[string]interface{}{
+			Details: map[string]any{
 				"patterns_found": warnings,
 				"lines_added":    lines,
 			},

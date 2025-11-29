@@ -605,8 +605,8 @@ func (m *SummarizationMiddleware) ResetSummarizationCount() {
 }
 
 // GetConfig 获取当前配置
-func (m *SummarizationMiddleware) GetConfig() map[string]interface{} {
-	return map[string]interface{}{
+func (m *SummarizationMiddleware) GetConfig() map[string]any {
+	return map[string]any{
 		"max_tokens_before_summary": m.maxTokensBeforeSummary,
 		"messages_to_keep":          m.messagesToKeep,
 		"summary_prefix":            m.summaryPrefix,

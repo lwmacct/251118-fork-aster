@@ -201,8 +201,8 @@ func (m *ObservationCompressionMiddleware) compressToolResultBlock(
 }
 
 // GetStats 获取压缩统计
-func (m *ObservationCompressionMiddleware) GetStats() map[string]interface{} {
-	return map[string]interface{}{
+func (m *ObservationCompressionMiddleware) GetStats() map[string]any {
+	return map[string]any{
 		"compression_count": m.compressionCount,
 		"total_saved_bytes": m.totalSaved,
 		"enabled":           m.enabled,

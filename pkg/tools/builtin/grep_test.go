@@ -34,7 +34,7 @@ func TestGrepTool_InputSchema(t *testing.T) {
 		t.Fatal("Input schema should not be nil")
 	}
 
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -57,12 +57,12 @@ func TestGrepTool_InputSchema(t *testing.T) {
 
 	// 验证required字段
 	required := schema["required"]
-	var requiredArray []interface{}
+	var requiredArray []any
 	switch v := required.(type) {
-	case []interface{}:
+	case []any:
 		requiredArray = v
 	case []string:
-		requiredArray = make([]interface{}, len(v))
+		requiredArray = make([]any, len(v))
 		for i, s := range v {
 			requiredArray[i] = s
 		}
@@ -81,7 +81,7 @@ func TestGrepTool_SimplePattern(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "package",
 	}
 
@@ -96,7 +96,7 @@ func TestGrepTool_SimplePattern(t *testing.T) {
 		t.Error("Result should contain 'matches' field")
 	} else {
 		// matches 是 []builtin.GrepMatch 类型
-		if matchesArray, ok := matches.([]interface{}); ok {
+		if matchesArray, ok := matches.([]any); ok {
 			t.Logf("Found %d matches", len(matchesArray))
 		} else if matchesSlice := reflect.ValueOf(matches); matchesSlice.Kind() == reflect.Slice {
 			t.Logf("Found %d matches", matchesSlice.Len())
@@ -133,7 +133,7 @@ func TestGrepTool_WithFileFilter(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "func.*Test",
 		"glob":    "*_test.go",
 	}
@@ -150,9 +150,9 @@ func TestGrepTool_WithFileFilter(t *testing.T) {
 
 	// 验证只匹配测试文件
 	if matches, exists := result["matches"]; exists {
-		if matchesArray, ok := matches.([]interface{}); ok {
+		if matchesArray, ok := matches.([]any); ok {
 			for _, match := range matchesArray {
-				if matchMap, ok := match.(map[string]interface{}); ok {
+				if matchMap, ok := match.(map[string]any); ok {
 					if file, hasFile := matchMap["file"]; hasFile {
 						if fileStr, ok := file.(string); ok {
 							if !strings.HasSuffix(fileStr, "_test.go") {
@@ -172,7 +172,7 @@ func TestGrepTool_WithFileType(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":   "import",
 		"file_type": "go",
 	}
@@ -193,7 +193,7 @@ func TestGrepTool_CaseInsensitive(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":        "PACKAGE",
 		"case_sensitive": false,
 	}
@@ -208,7 +208,7 @@ func TestGrepTool_CaseInsensitive(t *testing.T) {
 
 	// 验证能找到 "package"（即使模式是大写的 "PACKAGE"）
 	if matches, exists := result["matches"]; exists {
-		if matchesArray, ok := matches.([]interface{}); ok {
+		if matchesArray, ok := matches.([]any); ok {
 			if len(matchesArray) == 0 {
 				t.Log("Warning: No matches found, but this might be normal in test environment")
 			} else {
@@ -224,7 +224,7 @@ func TestGrepTool_OutputModeFiles(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":     "package",
 		"output_mode": "files_with_matches",
 	}
@@ -239,9 +239,9 @@ func TestGrepTool_OutputModeFiles(t *testing.T) {
 
 	// 验证只返回文件名，不返回具体匹配行
 	if matches, exists := result["matches"]; exists {
-		if matchesArray, ok := matches.([]interface{}); ok {
+		if matchesArray, ok := matches.([]any); ok {
 			for _, match := range matchesArray {
-				if matchMap, ok := match.(map[string]interface{}); ok {
+				if matchMap, ok := match.(map[string]any); ok {
 					if line, hasLine := matchMap["line"]; hasLine {
 						t.Errorf("In files_with_matches mode, should not include line content, got: %v", line)
 					}
@@ -258,7 +258,7 @@ func TestGrepTool_MaxResults(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":     "func",
 		"max_results": 5,
 	}
@@ -272,7 +272,7 @@ func TestGrepTool_MaxResults(t *testing.T) {
 	}
 
 	if matches, exists := result["matches"]; exists {
-		if matchesArray, ok := matches.([]interface{}); ok {
+		if matchesArray, ok := matches.([]any); ok {
 			if len(matchesArray) > 5 {
 				t.Errorf("Matches length should not exceed max_results (5), got %d", len(matchesArray))
 			}
@@ -293,7 +293,7 @@ func TestGrepTool_WithLineNumbers(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":      "package",
 		"output_mode":  "content",
 		"line_numbers": true,
@@ -309,9 +309,9 @@ func TestGrepTool_WithLineNumbers(t *testing.T) {
 
 	// 验证匹配结果包含行号
 	if matches, exists := result["matches"]; exists {
-		if matchesArray, ok := matches.([]interface{}); ok {
+		if matchesArray, ok := matches.([]any); ok {
 			for _, match := range matchesArray {
-				if matchMap, ok := match.(map[string]interface{}); ok {
+				if matchMap, ok := match.(map[string]any); ok {
 					if _, hasLineNumber := matchMap["line_number"]; !hasLineNumber {
 						t.Error("Match should include line_number when line_numbers=true")
 					}
@@ -327,7 +327,7 @@ func TestGrepTool_MissingPattern(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"path": "./",
 	}
 
@@ -346,7 +346,7 @@ func TestGrepTool_EmptyPattern(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "",
 	}
 
@@ -365,7 +365,7 @@ func TestGrepTool_PerformanceInfo(t *testing.T) {
 		t.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "import",
 	}
 
@@ -400,7 +400,7 @@ func TestGrepTool_ConcurrentOperations(t *testing.T) {
 
 	concurrency := 3
 	result := RunConcurrentTest(concurrency, func() error {
-		input := map[string]interface{}{
+		input := map[string]any{
 			"pattern":     "func",
 			"max_results": 10,
 		}
@@ -437,7 +437,7 @@ func BenchmarkGrepTool_SimplePattern(b *testing.B) {
 		b.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "func",
 	}
 
@@ -454,7 +454,7 @@ func BenchmarkGrepTool_ComplexPattern(b *testing.B) {
 		b.Fatalf("Failed to create Grep tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":      "(func|type|struct)\\s+\\w+",
 		"file_type":    "go",
 		"output_mode":  "content",

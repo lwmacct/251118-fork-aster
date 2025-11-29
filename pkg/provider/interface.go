@@ -34,7 +34,7 @@ type StreamChunk struct {
 	Index int `json:"index,omitempty"`
 
 	// Delta 增量数据（通用，兼容旧版）
-	Delta interface{} `json:"delta,omitempty"`
+	Delta any `json:"delta,omitempty"`
 
 	// TextDelta 文本增量（新增，明确类型）
 	TextDelta string `json:"text_delta,omitempty"`
@@ -130,15 +130,15 @@ type CompleteResponse struct {
 // ToolExample 工具使用示例（与 tools.ToolExample 保持一致）
 type ToolExample struct {
 	Description string                 `json:"description"`
-	Input       map[string]interface{} `json:"input"`
-	Output      interface{}            `json:"output,omitempty"`
+	Input       map[string]any `json:"input"`
+	Output      any            `json:"output,omitempty"`
 }
 
 // ToolSchema 工具Schema
 type ToolSchema struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
-	InputSchema map[string]interface{} `json:"input_schema"`
+	InputSchema map[string]any `json:"input_schema"`
 
 	// InputExamples 工具使用示例，帮助 LLM 更准确地调用工具
 	// 参考 Anthropic 的 Tool Use Examples 功能

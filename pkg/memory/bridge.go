@@ -32,7 +32,7 @@ func (b *LongTermBridge) SaveSessionToSemanticMemory(
 	appName string,
 	userID string,
 	sessionID string,
-	scopeMeta map[string]interface{},
+	scopeMeta map[string]any,
 	cfg *LongTermBridgeConfig,
 ) error {
 	if b == nil || b.Sessions == nil || b.SemanticMemory == nil || !b.SemanticMemory.Enabled() {
@@ -85,7 +85,7 @@ func (b *LongTermBridge) SaveSessionToSemanticMemory(
 	// 构造 docID：app/user/session 的组合，保证全局唯一性
 	docID := fmt.Sprintf("%s/%s/%s", appName, userID, sessionID)
 
-	meta := make(map[string]interface{}, len(scopeMeta)+2)
+	meta := make(map[string]any, len(scopeMeta)+2)
 	for k, v := range scopeMeta {
 		meta[k] = v
 	}

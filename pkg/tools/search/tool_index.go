@@ -22,13 +22,13 @@ type ToolIndex struct {
 type ToolIndexEntry struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
-	InputSchema map[string]interface{} `json:"input_schema"`
+	InputSchema map[string]any `json:"input_schema"`
 	Category    string                 `json:"category,omitempty"`
 	Keywords    []string               `json:"keywords,omitempty"`
 	Examples    []tools.ToolExample    `json:"examples,omitempty"`
 	Deferred    bool                   `json:"deferred"`
 	Source      string                 `json:"source"` // "builtin", "mcp", "custom"
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // ToolSearchResult 工具搜索结果
@@ -60,7 +60,7 @@ func (ti *ToolIndex) IndexTool(tool tools.Tool, source string, deferred bool) er
 		InputSchema: tool.InputSchema(),
 		Source:      source,
 		Deferred:    deferred,
-		Metadata:    make(map[string]interface{}),
+		Metadata:    make(map[string]any),
 	}
 
 	// 检查是否实现了 ExampleableTool 接口
@@ -85,7 +85,7 @@ func (ti *ToolIndex) IndexTool(tool tools.Tool, source string, deferred bool) er
 	doc := Document{
 		ID:      entry.Name,
 		Content: content,
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"source":   source,
 			"deferred": deferred,
 		},
@@ -119,7 +119,7 @@ func (ti *ToolIndex) IndexToolEntry(entry ToolIndexEntry) error {
 	doc := Document{
 		ID:      entry.Name,
 		Content: content,
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"source":   entry.Source,
 			"deferred": entry.Deferred,
 		},
@@ -302,10 +302,10 @@ func (ti *ToolIndex) buildSearchableContent(entry ToolIndexEntry) string {
 
 	// 添加参数名称
 	if entry.InputSchema != nil {
-		if props, ok := entry.InputSchema["properties"].(map[string]interface{}); ok {
+		if props, ok := entry.InputSchema["properties"].(map[string]any); ok {
 			for propName, propDef := range props {
 				parts = append(parts, propName)
-				if propMap, ok := propDef.(map[string]interface{}); ok {
+				if propMap, ok := propDef.(map[string]any); ok {
 					if desc, ok := propMap["description"].(string); ok {
 						parts = append(parts, desc)
 					}
@@ -374,7 +374,7 @@ func (ti *ToolIndex) Export() ([]byte, error) {
 	ti.mu.RLock()
 	defer ti.mu.RUnlock()
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"tools":      ti.toolMap,
 		"categories": ti.categories,
 		"count":      len(ti.toolMap),
@@ -409,7 +409,7 @@ func (ti *ToolIndex) Import(data []byte) error {
 		ti.bm25.AddDocument(Document{
 			ID:      name,
 			Content: content,
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"source":   entry.Source,
 				"deferred": entry.Deferred,
 			},

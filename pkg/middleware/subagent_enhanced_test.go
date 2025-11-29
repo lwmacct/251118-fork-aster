@@ -9,7 +9,7 @@ import (
 func TestSubAgentMiddleware_GeneralPurpose(t *testing.T) {
 	// 创建工厂
 	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			return "Result from " + spec.Name, nil
 		}
 		return NewSimpleSubAgent(spec.Name, spec.Prompt, execFn), nil

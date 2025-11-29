@@ -139,7 +139,7 @@ func (g *PromptInjectionGuardrail) Check(ctx context.Context, input *GuardrailIn
 			GuardrailName: g.Name(),
 			Trigger:       CheckTriggerPromptInjection,
 			Message:       "检测到可能的提示注入攻击",
-			Details: map[string]interface{}{
+			Details: map[string]any{
 				"detected_patterns": detectedPatterns,
 				"pattern_count":     len(detectedPatterns),
 			},

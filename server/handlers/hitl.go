@@ -27,7 +27,7 @@ type HITLRequest struct {
 	ID         string                 `json:"id"`
 	ToolCallID string                 `json:"tool_call_id"`
 	ToolName   string                 `json:"tool_name"`
-	ToolInput  map[string]interface{} `json:"tool_input"`
+	ToolInput  map[string]any `json:"tool_input"`
 	Message    string                 `json:"message"`
 	CreatedAt  time.Time              `json:"created_at"`
 	AgentID    string                 `json:"agent_id"`
@@ -38,7 +38,7 @@ type HITLRequest struct {
 type HITLDecision struct {
 	RequestID   string                 `json:"request_id"`
 	Decision    string                 `json:"decision"` // approve, reject, edit
-	EditedInput map[string]interface{} `json:"edited_input,omitempty"`
+	EditedInput map[string]any `json:"edited_input,omitempty"`
 	Reason      string                 `json:"reason,omitempty"`
 	DecidedAt   time.Time              `json:"decided_at"`
 }
@@ -117,10 +117,10 @@ func (m *HITLManager) sendApprovalRequest(connID string, req *HITLRequest) {
 		return
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"request_id":   req.ID,
 		"tool_call_id": req.ToolCallID,
-		"call": map[string]interface{}{
+		"call": map[string]any{
 			"name":      req.ToolName,
 			"arguments": req.ToolInput,
 		},
@@ -133,7 +133,7 @@ func (m *HITLManager) sendApprovalRequest(connID string, req *HITLRequest) {
 }
 
 // HandleDecision 处理前端发来的审批决策
-func (m *HITLManager) HandleDecision(requestID string, decision string, editedInput map[string]interface{}, reason string) error {
+func (m *HITLManager) HandleDecision(requestID string, decision string, editedInput map[string]any, reason string) error {
 	m.mu.RLock()
 	ch, exists := m.requestChannels[requestID]
 	m.mu.RUnlock()
@@ -236,7 +236,7 @@ func (m *HITLManager) CancelPendingRequests(connID string) {
 // ==================
 
 // handlePermissionDecision 处理审批决策消息
-func (h *WebSocketHandler) handlePermissionDecision(wsConn *WebSocketConnection, payload map[string]interface{}) {
+func (h *WebSocketHandler) handlePermissionDecision(wsConn *WebSocketConnection, payload map[string]any) {
 	if h.hitlManager == nil {
 		h.sendError(wsConn, "hitl_not_enabled", "HITL manager not initialized")
 		return
@@ -246,8 +246,8 @@ func (h *WebSocketHandler) handlePermissionDecision(wsConn *WebSocketConnection,
 	decision, _ := payload["decision"].(string)
 	reason, _ := payload["reason"].(string)
 
-	var editedInput map[string]interface{}
-	if edited, ok := payload["edited_input"].(map[string]interface{}); ok {
+	var editedInput map[string]any
+	if edited, ok := payload["edited_input"].(map[string]any); ok {
 		editedInput = edited
 	}
 
@@ -262,7 +262,7 @@ func (h *WebSocketHandler) handlePermissionDecision(wsConn *WebSocketConnection,
 	}
 
 	// 发送确认
-	h.sendMessage(wsConn, "permission_decision_ack", map[string]interface{}{
+	h.sendMessage(wsConn, "permission_decision_ack", map[string]any{
 		"request_id": requestID,
 		"decision":   decision,
 	})

@@ -246,14 +246,14 @@ func createDependencies() *agent.Dependencies {
 		ID:           "leader",
 		SystemPrompt: "You are a team leader. Coordinate tasks and make decisions.",
 		Model:        "claude-sonnet-4-5",
-		Tools:        []interface{}{},
+		Tools:        []any{},
 	})
 
 	templateRegistry.Register(&types.AgentTemplateDefinition{
 		ID:           "worker",
 		SystemPrompt: "You are a team worker. Execute tasks assigned to you.",
 		Model:        "claude-sonnet-4-5",
-		Tools:        []interface{}{},
+		Tools:        []any{},
 	})
 
 	providerFactory := &provider.AnthropicFactory{}

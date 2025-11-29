@@ -8,7 +8,7 @@ import (
 // APIResponse 统一的 API 响应格式
 type APIResponse struct {
 	Success bool        `json:"success"`
-	Data    interface{} `json:"data,omitempty"`
+	Data    any `json:"data,omitempty"`
 	Error   *APIError   `json:"error,omitempty"`
 }
 
@@ -21,7 +21,7 @@ type APIError struct {
 
 // PaginatedResponse 分页响应
 type PaginatedResponse struct {
-	Items      interface{} `json:"items"`
+	Items      any `json:"items"`
 	Total      int         `json:"total"`
 	Page       int         `json:"page"`
 	PageSize   int         `json:"page_size"`
@@ -29,7 +29,7 @@ type PaginatedResponse struct {
 }
 
 // JSON 辅助函数：发送 JSON 响应
-func JSON(w http.ResponseWriter, status int, data interface{}) {
+func JSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(&APIResponse{
@@ -66,7 +66,7 @@ func ErrorWithDetails(w http.ResponseWriter, status int, code, message, details 
 }
 
 // Paginated 辅助函数：发送分页响应
-func Paginated(w http.ResponseWriter, items interface{}, total, page, pageSize int) {
+func Paginated(w http.ResponseWriter, items any, total, page, pageSize int) {
 	totalPages := (total + pageSize - 1) / pageSize
 	JSON(w, http.StatusOK, &PaginatedResponse{
 		Items:      items,
@@ -78,7 +78,7 @@ func Paginated(w http.ResponseWriter, items interface{}, total, page, pageSize i
 }
 
 // Created 辅助函数：发送 201 Created 响应
-func Created(w http.ResponseWriter, data interface{}) {
+func Created(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusCreated, data)
 }
 
@@ -118,6 +118,6 @@ func Conflict(w http.ResponseWriter, message string) {
 }
 
 // ParseJSON 解析 JSON 请求体
-func ParseJSON(r *http.Request, v interface{}) error {
+func ParseJSON(r *http.Request, v any) error {
 	return json.NewDecoder(r.Body).Decode(v)
 }

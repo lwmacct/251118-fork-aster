@@ -13,7 +13,7 @@ type ScoreResult struct {
 	// Value 得分,范围通常在 [0,1]
 	Value float64 `json:"value"`
 	// Details 额外信息,如匹配到的关键词列表
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details map[string]any `json:"details,omitempty"`
 }
 
 // TextEvalInput 文本评估输入
@@ -68,7 +68,7 @@ func (s *KeywordCoverageScorer) Score(ctx context.Context, input *TextEvalInput)
 		return &ScoreResult{
 			Name:  "keyword_coverage",
 			Value: 0,
-			Details: map[string]interface{}{
+			Details: map[string]any{
 				"matched":   []string{},
 				"unmatched": s.cfg.Keywords,
 			},
@@ -103,7 +103,7 @@ func (s *KeywordCoverageScorer) Score(ctx context.Context, input *TextEvalInput)
 	return &ScoreResult{
 		Name:  "keyword_coverage",
 		Value: score,
-		Details: map[string]interface{}{
+		Details: map[string]any{
 			"matched":   matched,
 			"unmatched": unmatched,
 			"total":     total,
@@ -169,7 +169,7 @@ func (s *LexicalSimilarityScorer) Score(ctx context.Context, input *TextEvalInpu
 	return &ScoreResult{
 		Name:  "lexical_similarity",
 		Value: score,
-		Details: map[string]interface{}{
+		Details: map[string]any{
 			"intersection": intersection,
 			"union_size":   len(union),
 		},

@@ -20,10 +20,10 @@ func TestMCPToolAdapter_Interface(t *testing.T) {
 		Client:      client,
 		Name:        "test_tool",
 		Description: "A test tool",
-		InputSchema: map[string]interface{}{
+		InputSchema: map[string]any{
 			"type": "object",
-			"properties": map[string]interface{}{
-				"input": map[string]interface{}{
+			"properties": map[string]any{
+				"input": map[string]any{
 					"type":        "string",
 					"description": "Test input",
 				},
@@ -70,16 +70,16 @@ func TestToolFactory(t *testing.T) {
 	mcpTool := cloud.MCPTool{
 		Name:        "calculator",
 		Description: "A simple calculator",
-		InputSchema: map[string]interface{}{
+		InputSchema: map[string]any{
 			"type": "object",
-			"properties": map[string]interface{}{
-				"operation": map[string]interface{}{
+			"properties": map[string]any{
+				"operation": map[string]any{
 					"type": "string",
 				},
-				"a": map[string]interface{}{
+				"a": map[string]any{
 					"type": "number",
 				},
-				"b": map[string]interface{}{
+				"b": map[string]any{
 					"type": "number",
 				},
 			},
@@ -90,7 +90,7 @@ func TestToolFactory(t *testing.T) {
 	factory := ToolFactory(client, mcpTool)
 
 	// 使用工厂创建工具
-	tool, err := factory(map[string]interface{}{
+	tool, err := factory(map[string]any{
 		"prompt": "Custom prompt for calculator",
 	})
 
@@ -119,11 +119,11 @@ func TestMCPToolAdapter_Execute(t *testing.T) {
 		Client:      client,
 		Name:        "echo",
 		Description: "Echo tool",
-		InputSchema: map[string]interface{}{},
+		InputSchema: map[string]any{},
 	})
 
 	ctx := context.Background()
-	result, err := adapter.Execute(ctx, map[string]interface{}{
+	result, err := adapter.Execute(ctx, map[string]any{
 		"message": "hello",
 	}, &tools.ToolContext{
 		AgentID: "test-agent",

@@ -118,7 +118,7 @@ func (a *SequentialAgent) enrichSequentialEvent(event *session.Event, branch str
 
 	// 添加顺序执行的元数据
 	if event.Metadata == nil {
-		event.Metadata = make(map[string]interface{})
+		event.Metadata = make(map[string]any)
 	}
 	event.Metadata["sequential_step"] = index + 1
 	event.Metadata["sequential_agent"] = a.name

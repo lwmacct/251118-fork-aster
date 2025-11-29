@@ -76,7 +76,7 @@ func (sm *SemanticMemory) Close() error {
 // Index 将一段文本写入向量索引。
 // docID 应全局唯一, meta 中可包含 user_id/project_id/resource_id 等信息。
 // 如果启用 Provenance, 将自动创建溯源信息。
-func (sm *SemanticMemory) Index(ctx context.Context, docID string, text string, meta map[string]interface{}) error {
+func (sm *SemanticMemory) Index(ctx context.Context, docID string, text string, meta map[string]any) error {
 	if sm.cfg.EnableProvenance {
 		// 自动创建 Provenance
 		sourceID := docID // 使用 docID 作为默认 sourceID
@@ -110,7 +110,7 @@ func (sm *SemanticMemory) Index(ctx context.Context, docID string, text string, 
 
 // IndexWithProvenance 使用指定的 Provenance 索引文本。
 // derivedFromIDs 表示该记忆派生自哪些其他记忆。
-func (sm *SemanticMemory) IndexWithProvenance(ctx context.Context, docID string, text string, meta map[string]interface{}, provenance *MemoryProvenance, derivedFromIDs []string) error {
+func (sm *SemanticMemory) IndexWithProvenance(ctx context.Context, docID string, text string, meta map[string]any, provenance *MemoryProvenance, derivedFromIDs []string) error {
 	if sm == nil || sm.cfg.Store == nil || sm.cfg.Embedder == nil {
 		return nil
 	}
@@ -133,7 +133,7 @@ func (sm *SemanticMemory) IndexWithProvenance(ctx context.Context, docID string,
 }
 
 // indexInternal 内部索引方法。
-func (sm *SemanticMemory) indexInternal(ctx context.Context, docID string, text string, meta map[string]interface{}, provenance *MemoryProvenance) error {
+func (sm *SemanticMemory) indexInternal(ctx context.Context, docID string, text string, meta map[string]any, provenance *MemoryProvenance) error {
 	if docID == "" || text == "" {
 		return fmt.Errorf("docID and text are required")
 	}
@@ -147,7 +147,7 @@ func (sm *SemanticMemory) indexInternal(ctx context.Context, docID string, text 
 	}
 
 	// 将文本复制到 metadata 中, 方便检索结果直接携带原文片段。
-	metaCopy := make(map[string]interface{}, len(meta)+2)
+	metaCopy := make(map[string]any, len(meta)+2)
 	for k, v := range meta {
 		metaCopy[k] = v
 	}
@@ -174,7 +174,7 @@ func (sm *SemanticMemory) indexInternal(ctx context.Context, docID string, text 
 
 // Search 在指定命名空间内执行向量检索。
 // query 为用户自然语言查询, meta 用于构造 namespace/过滤。
-func (sm *SemanticMemory) Search(ctx context.Context, query string, meta map[string]interface{}, topK int) ([]vector.Hit, error) {
+func (sm *SemanticMemory) Search(ctx context.Context, query string, meta map[string]any, topK int) ([]vector.Hit, error) {
 	if sm == nil || sm.cfg.Store == nil || sm.cfg.Embedder == nil {
 		return nil, nil
 	}
@@ -201,7 +201,7 @@ func (sm *SemanticMemory) Search(ctx context.Context, query string, meta map[str
 	})
 }
 
-func (sm *SemanticMemory) namespaceFromMeta(meta map[string]interface{}) string {
+func (sm *SemanticMemory) namespaceFromMeta(meta map[string]any) string {
 	if meta == nil {
 		return ""
 	}
@@ -233,7 +233,7 @@ func (sm *SemanticMemory) namespaceFromMeta(meta map[string]interface{}) string 
 
 // SearchWithConfidenceFilter 执行检索并按置信度过滤。
 // minConfidence: 最低置信度阈值（0.0-1.0）
-func (sm *SemanticMemory) SearchWithConfidenceFilter(ctx context.Context, query string, meta map[string]interface{}, topK int, minConfidence float64) ([]vector.Hit, error) {
+func (sm *SemanticMemory) SearchWithConfidenceFilter(ctx context.Context, query string, meta map[string]any, topK int, minConfidence float64) ([]vector.Hit, error) {
 	if !sm.cfg.EnableProvenance {
 		return sm.Search(ctx, query, meta, topK)
 	}
@@ -282,7 +282,7 @@ func (sm *SemanticMemory) SearchWithConfidenceFilter(ctx context.Context, query 
 }
 
 // SearchBySourceType 按来源类型检索记忆。
-func (sm *SemanticMemory) SearchBySourceType(ctx context.Context, query string, meta map[string]interface{}, topK int, sourceTypes []SourceType) ([]vector.Hit, error) {
+func (sm *SemanticMemory) SearchBySourceType(ctx context.Context, query string, meta map[string]any, topK int, sourceTypes []SourceType) ([]vector.Hit, error) {
 	if !sm.cfg.EnableProvenance {
 		return sm.Search(ctx, query, meta, topK)
 	}
@@ -355,7 +355,7 @@ func (sm *SemanticMemory) DeleteMemoryWithLineage(ctx context.Context, memoryID 
 
 // GetMemoryProvenance 获取记忆的溯源信息。
 // 这需要先检索记忆，然后提取 Provenance。
-func (sm *SemanticMemory) GetMemoryProvenance(ctx context.Context, query string, meta map[string]interface{}) (*MemoryProvenance, error) {
+func (sm *SemanticMemory) GetMemoryProvenance(ctx context.Context, query string, meta map[string]any) (*MemoryProvenance, error) {
 	if !sm.cfg.EnableProvenance {
 		return nil, fmt.Errorf("provenance not enabled")
 	}
@@ -382,7 +382,7 @@ func (sm *SemanticMemory) Delete(ctx context.Context, docID string) error {
 }
 
 // UpdateMetadata 更新记忆的元数据。
-func (sm *SemanticMemory) UpdateMetadata(ctx context.Context, docID string, metadata map[string]interface{}) error {
+func (sm *SemanticMemory) UpdateMetadata(ctx context.Context, docID string, metadata map[string]any) error {
 	if sm == nil || sm.cfg.Store == nil {
 		return nil
 	}

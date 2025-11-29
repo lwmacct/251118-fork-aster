@@ -16,7 +16,7 @@ import (
 type GlobTool struct{}
 
 // NewGlobTool 创建Glob工具
-func NewGlobTool(config map[string]interface{}) (tools.Tool, error) {
+func NewGlobTool(config map[string]any) (tools.Tool, error) {
 	return &GlobTool{}, nil
 }
 
@@ -28,42 +28,42 @@ func (t *GlobTool) Description() string {
 	return "使用模式匹配搜索文件"
 }
 
-func (t *GlobTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *GlobTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"pattern": map[string]interface{}{
+		"properties": map[string]any{
+			"pattern": map[string]any{
 				"type":        "string",
 				"description": "要搜索的文件模式，支持通配符如 *.go, **/*.js",
 			},
-			"path": map[string]interface{}{
+			"path": map[string]any{
 				"type":        "string",
 				"description": "搜索的起始目录，默认为当前目录",
 			},
-			"exclude_patterns": map[string]interface{}{
+			"exclude_patterns": map[string]any{
 				"type":        "array",
 				"description": "要排除的文件模式列表",
-				"items": map[string]interface{}{
+				"items": map[string]any{
 					"type": "string",
 				},
 			},
-			"include_hidden": map[string]interface{}{
+			"include_hidden": map[string]any{
 				"type":        "boolean",
 				"description": "是否包含隐藏文件，默认为false",
 			},
-			"case_sensitive": map[string]interface{}{
+			"case_sensitive": map[string]any{
 				"type":        "boolean",
 				"description": "是否区分大小写，默认为false",
 			},
-			"max_results": map[string]interface{}{
+			"max_results": map[string]any{
 				"type":        "integer",
 				"description": "返回的最大结果数量，默认为100",
 			},
-			"sort_by": map[string]interface{}{
+			"sort_by": map[string]any{
 				"type":        "string",
 				"description": "结果排序方式：name, size, modified_time, 默认为name",
 			},
-			"recursive": map[string]interface{}{
+			"recursive": map[string]any{
 				"type":        "boolean",
 				"description": "是否递归搜索子目录，默认为true",
 			},
@@ -72,7 +72,7 @@ func (t *GlobTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *GlobTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := t.validateRequired(input, []string{"pattern"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -107,7 +107,7 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	duration := time.Since(start)
 
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("search failed: %v", err),
 			"recommendations": []string{
@@ -131,7 +131,7 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	t.sortMatches(matches, sortBy)
 
 	// 获取文件信息
-	fileInfos := make([]map[string]interface{}, len(matches))
+	fileInfos := make([]map[string]any, len(matches))
 	for i, match := range matches {
 		info, err := tc.Sandbox.FS().Stat(ctx, match)
 		fileType := "unknown"
@@ -190,7 +190,7 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 			}
 		}
 
-		fileInfos[i] = map[string]interface{}{
+		fileInfos[i] = map[string]any{
 			"path":          match,
 			"name":          filepath.Base(match),
 			"type":          fileType,
@@ -200,7 +200,7 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 		}
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":               true,
 		"pattern":          pattern,
 		"path":             path,
@@ -218,7 +218,7 @@ func (t *GlobTool) Execute(ctx context.Context, input map[string]interface{}, tc
 }
 
 // validateRequired 验证必需参数
-func (t *GlobTool) validateRequired(input map[string]interface{}, required []string) error {
+func (t *GlobTool) validateRequired(input map[string]any, required []string) error {
 	for _, key := range required {
 		if _, exists := input[key]; !exists {
 			return fmt.Errorf("missing required parameter: %s", key)
@@ -228,7 +228,7 @@ func (t *GlobTool) validateRequired(input map[string]interface{}, required []str
 }
 
 // getStringParam 获取字符串参数
-func (t *GlobTool) getStringParam(input map[string]interface{}, key string, defaultValue string) string {
+func (t *GlobTool) getStringParam(input map[string]any, key string, defaultValue string) string {
 	if value, exists := input[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -238,7 +238,7 @@ func (t *GlobTool) getStringParam(input map[string]interface{}, key string, defa
 }
 
 // getBoolParam 获取布尔参数
-func (t *GlobTool) getBoolParam(input map[string]interface{}, key string, defaultValue bool) bool {
+func (t *GlobTool) getBoolParam(input map[string]any, key string, defaultValue bool) bool {
 	if value, exists := input[key]; exists {
 		if b, ok := value.(bool); ok {
 			return b
@@ -248,7 +248,7 @@ func (t *GlobTool) getBoolParam(input map[string]interface{}, key string, defaul
 }
 
 // getIntParam 获取整数参数
-func (t *GlobTool) getIntParam(input map[string]interface{}, key string, defaultValue int) int {
+func (t *GlobTool) getIntParam(input map[string]any, key string, defaultValue int) int {
 	if value, exists := input[key]; exists {
 		if num, ok := value.(float64); ok {
 			return int(num)
@@ -258,9 +258,9 @@ func (t *GlobTool) getIntParam(input map[string]interface{}, key string, default
 }
 
 // getStringSlice 获取字符串数组参数
-func (t *GlobTool) getStringSlice(input map[string]interface{}, key string) []string {
+func (t *GlobTool) getStringSlice(input map[string]any, key string) []string {
 	if value, exists := input[key]; exists {
-		if slice, ok := value.([]interface{}); ok {
+		if slice, ok := value.([]any); ok {
 			result := make([]string, len(slice))
 			for i, item := range slice {
 				if str, ok := item.(string); ok {
@@ -367,27 +367,27 @@ func (t *GlobTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "查找所有 Go 源文件",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"pattern": "**/*.go",
 			},
 		},
 		{
 			Description: "在 src 目录中查找 TypeScript 文件",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"pattern": "**/*.{ts,tsx}",
 				"path":    "/app/src",
 			},
 		},
 		{
 			Description: "查找测试文件并排除 vendor 目录",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"pattern":          "**/*_test.go",
 				"exclude_patterns": []string{"vendor/**", "node_modules/**"},
 			},
 		},
 		{
 			Description: "查找配置文件并按修改时间排序",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"pattern":     "*.{yaml,yml,json}",
 				"path":        "/app/config",
 				"sort_by":     "modified_time",

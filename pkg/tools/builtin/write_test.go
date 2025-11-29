@@ -32,7 +32,7 @@ func TestWriteTool_CreateNewFile(t *testing.T) {
 	filePath := helper.TmpDir + "/new_file.txt"
 	content := "This is new content"
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 		"content":   content,
 	}
@@ -69,7 +69,7 @@ func TestWriteTool_OverwriteExisting(t *testing.T) {
 	filePath := helper.CreateTempFile("existing.txt", "Original content")
 
 	newContent := "Overwritten content"
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 		"content":   newContent,
 	}
@@ -95,7 +95,7 @@ func TestWriteTool_AppendMode(t *testing.T) {
 	filePath := helper.CreateTempFile("append.txt", originalContent)
 
 	appendContent := "Appended line"
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 		"content":   appendContent,
 		"append":    true,
@@ -124,7 +124,7 @@ func TestWriteTool_AutoCreateDirectory(t *testing.T) {
 	filePath := helper.TmpDir + "/new/subdir/file.txt"
 	content := "Content in auto-created directory"
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 		"content":   content,
 	}
@@ -149,7 +149,7 @@ func BenchmarkWriteTool_SmallFile(b *testing.B) {
 	filePath := helper.TmpDir + "/benchmark.txt"
 	content := "Benchmark content"
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 		"content":   content,
 	}

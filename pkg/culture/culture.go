@@ -43,7 +43,7 @@ type Culture struct {
 	AdaptationStrategies []AdaptationStrategy `json:"adaptation_strategies"`
 
 	// 元数据
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata map[string]any `json:"metadata"`
 	Tags     []string               `json:"tags"`
 
 	// 状态信息
@@ -69,7 +69,7 @@ type CultureDimension struct {
 	MinValue    float64                `json:"min_value"`
 	MaxValue    float64                `json:"max_value"`
 	Category    string                 `json:"category"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 	Indicators  []Indicator            `json:"indicators"` // 指标
 }
 
@@ -111,7 +111,7 @@ type Norm struct {
 	Scope       NormScope              `json:"scope"`
 	Conditions  []NormCondition        `json:"conditions"`
 	Exceptions  []NormException        `json:"exceptions"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // NormType 规范类型
@@ -140,7 +140,7 @@ type NormCondition struct {
 	Type        string      `json:"type"`
 	Field       string      `json:"field"`
 	Operator    string      `json:"operator"`
-	Value       interface{} `json:"value"`
+	Value       any `json:"value"`
 	Description string      `json:"description"`
 }
 
@@ -149,7 +149,7 @@ type NormException struct {
 	ID          string                 `json:"id"`
 	Description string                 `json:"description"`
 	Conditions  []NormCondition        `json:"conditions"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // Value 价值观
@@ -161,7 +161,7 @@ type Value struct {
 	Priority       int                    `json:"priority"`   // 1-10
 	Importance     float64                `json:"importance"` // 0.0 - 1.0
 	Manifestations []ValueManifestation   `json:"manifestations"`
-	Attributes     map[string]interface{} `json:"attributes"`
+	Attributes     map[string]any `json:"attributes"`
 }
 
 // ValueCategory 价值观类别
@@ -196,7 +196,7 @@ type Belief struct {
 	Strength    float64                `json:"strength"`
 	Evidence    []BeliefEvidence       `json:"evidence"`
 	Source      string                 `json:"source"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // BeliefType 信念类型
@@ -227,7 +227,7 @@ type BeliefEvidence struct {
 	Description string      `json:"description"`
 	Source      string      `json:"source"`
 	Strength    float64     `json:"strength"`
-	Attributes  interface{} `json:"attributes"`
+	Attributes  any `json:"attributes"`
 }
 
 // BehaviorPattern 行为模式
@@ -239,7 +239,7 @@ type BehaviorPattern struct {
 	Frequency   FrequencyLevel         `json:"frequency"`
 	Triggers    []BehaviorTrigger      `json:"triggers"`
 	Outcomes    []BehaviorOutcome      `json:"outcomes"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // BehaviorType 行为类型
@@ -272,7 +272,7 @@ type BehaviorTrigger struct {
 	Type        string      `json:"type"`
 	Condition   string      `json:"condition"`
 	Description string      `json:"description"`
-	Attributes  interface{} `json:"attributes"`
+	Attributes  any `json:"attributes"`
 }
 
 // BehaviorOutcome 行为结果
@@ -293,7 +293,7 @@ type Ritual struct {
 	Frequency   FrequencyLevel         `json:"frequency"`
 	Steps       []RitualStep           `json:"steps"`
 	Symbols     []RitualSymbol         `json:"symbols"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // RitualType 仪式类型
@@ -348,7 +348,7 @@ type CommunicationStyle struct {
 	Context     ContextLevel           `json:"context"`
 	Formality   FormalityLevel         `json:"formality"`
 	Emotional   EmotionalLevel         `json:"emotional"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // CommStyleType 沟通风格类型
@@ -417,7 +417,7 @@ type DecisionStyle struct {
 	ConsensusLevel ConsensusLevel         `json:"consensus_level"`
 	RiskTolerance  RiskToleranceLevel     `json:"risk_tolerance"`
 	DataPreference DataPreference         `json:"data_preference"`
-	Attributes     map[string]interface{} `json:"attributes"`
+	Attributes     map[string]any `json:"attributes"`
 }
 
 // DecisionType 决策类型
@@ -501,7 +501,7 @@ type ConflictResolutionStrategy struct {
 	Involvement InvolvementLevel       `json:"involvement"`
 	Outcome     ConflictOutcome        `json:"outcome"`
 	Techniques  []ConflictTechnique    `json:"techniques"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // ConflictType 冲突类型
@@ -586,7 +586,7 @@ type LearningStyle struct {
 	Pace        LearningPace           `json:"pace"`
 	Depth       LearningDepth          `json:"depth"`
 	Social      LearningSocial         `json:"social"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // LearningType 学习类型
@@ -649,7 +649,7 @@ type AdaptationStrategy struct {
 	Trigger     AdaptationTrigger      `json:"trigger"`
 	Response    AdaptationResponse     `json:"response"`
 	Flexibility FlexibilityLevel       `json:"flexibility"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // AdaptationType 适应类型
@@ -678,7 +678,7 @@ type AdaptationTrigger struct {
 	Type        string      `json:"type"`
 	Condition   string      `json:"condition"`
 	Description string      `json:"description"`
-	Attributes  interface{} `json:"attributes"`
+	Attributes  any `json:"attributes"`
 }
 
 // AdaptationResponse 适应响应
@@ -686,7 +686,7 @@ type AdaptationResponse struct {
 	Type        string      `json:"type"`
 	Description string      `json:"description"`
 	Strategy    string      `json:"strategy"`
-	Attributes  interface{} `json:"attributes"`
+	Attributes  any `json:"attributes"`
 }
 
 // FlexibilityLevel 灵活性级别
@@ -708,7 +708,7 @@ type CultureContext struct {
 	Constraints  []ContextConstraint    `json:"constraints"`
 	Resources    []ContextResource      `json:"resources"`
 	Stakeholders []ContextStakeholder   `json:"stakeholders"`
-	Attributes   map[string]interface{} `json:"attributes"`
+	Attributes   map[string]any `json:"attributes"`
 }
 
 // Clone 克隆 CultureContext
@@ -724,7 +724,7 @@ func (cc *CultureContext) Clone() *CultureContext {
 		Constraints:  make([]ContextConstraint, len(cc.Constraints)),
 		Resources:    make([]ContextResource, len(cc.Resources)),
 		Stakeholders: make([]ContextStakeholder, len(cc.Stakeholders)),
-		Attributes:   make(map[string]interface{}),
+		Attributes:   make(map[string]any),
 	}
 
 	copy(clone.Constraints, cc.Constraints)
@@ -743,7 +743,7 @@ type ContextConstraint struct {
 	Type        string      `json:"type"`
 	Description string      `json:"description"`
 	Impact      string      `json:"impact"`
-	Attributes  interface{} `json:"attributes"`
+	Attributes  any `json:"attributes"`
 }
 
 // ContextResource 上下文资源
@@ -751,7 +751,7 @@ type ContextResource struct {
 	Type         string      `json:"type"`
 	Description  string      `json:"description"`
 	Availability string      `json:"availability"`
-	Attributes   interface{} `json:"attributes"`
+	Attributes   any `json:"attributes"`
 }
 
 // ContextStakeholder 上下文利益相关者
@@ -761,7 +761,7 @@ type ContextStakeholder struct {
 	Role       string      `json:"role"`
 	Influence  string      `json:"influence"`
 	Interest   string      `json:"interest"`
-	Attributes interface{} `json:"attributes"`
+	Attributes any `json:"attributes"`
 }
 
 // CultureEngine 文化引擎接口
@@ -771,7 +771,7 @@ type CultureEngine interface {
 	UpdateCulture(culture *Culture) error
 	DeleteCulture(cultureID string) error
 	GetCulture(cultureID string) (*Culture, error)
-	ListCultures(filters map[string]interface{}) ([]*Culture, error)
+	ListCultures(filters map[string]any) ([]*Culture, error)
 
 	// 文化分析
 	AnalyzeCulture(cultureID string) (*CultureAnalysis, error)
@@ -806,7 +806,7 @@ type CultureAnalysis struct {
 	Characteristics []string               `json:"characteristics"`
 	Compatibility   []CompatibilityScore   `json:"compatibility"`
 	Recommendations []string               `json:"recommendations"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	Metadata        map[string]any `json:"metadata"`
 }
 
 // CompatibilityScore 兼容性评分
@@ -827,7 +827,7 @@ type CultureComparison struct {
 	Commonalities        []string               `json:"commonalities"`
 	PotentialConflicts   []ConflictArea         `json:"potential_conflicts"`
 	SynergyOpportunities []SynergyOpportunity   `json:"synergy_opportunities"`
-	Metadata             map[string]interface{} `json:"metadata"`
+	Metadata             map[string]any `json:"metadata"`
 }
 
 // CultureDifference 文化差异
@@ -861,7 +861,7 @@ type SynergyOpportunity struct {
 // CultureMatchRequest 文化匹配请求
 type CultureMatchRequest struct {
 	TargetCulture string                 `json:"target_culture"`
-	Preferences   map[string]interface{} `json:"preferences"`
+	Preferences   map[string]any `json:"preferences"`
 	Constraints   []string               `json:"constraints"`
 	Context       *CultureContext        `json:"context"`
 	Priority      []string               `json:"priority"`
@@ -897,7 +897,7 @@ type CultureMatchResult struct {
 	Fit         string                 `json:"fit"`
 	Strengths   []string               `json:"strengths"`
 	Weaknesses  []string               `json:"weaknesses"`
-	Analysis    map[string]interface{} `json:"analysis"`
+	Analysis    map[string]any `json:"analysis"`
 }
 
 // AdaptationResult 适应结果
@@ -909,7 +909,7 @@ type AdaptationResult struct {
 	Changes         []CultureChange        `json:"changes"`
 	Impact          AdaptationImpact       `json:"impact"`
 	Recommendations []string               `json:"recommendations"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	Metadata        map[string]any `json:"metadata"`
 }
 
 // AppliedAdaptation 应用的适应
@@ -929,7 +929,7 @@ type CultureChange struct {
 	Impact      string                 `json:"impact"`
 	Magnitude   float64                `json:"magnitude"`
 	Status      string                 `json:"status"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // AdaptationImpact 适应影响
@@ -955,7 +955,7 @@ type AdaptationPlan struct {
 	Resources    []PlanResource          `json:"resources"`
 	Risks        []PlanRisk              `json:"risks"`
 	Metrics      []PlanMetric            `json:"metrics"`
-	Metadata     map[string]interface{}  `json:"metadata"`
+	Metadata     map[string]any  `json:"metadata"`
 }
 
 // AdaptationRequirement 适应需求
@@ -965,7 +965,7 @@ type AdaptationRequirement struct {
 	Description string                 `json:"description"`
 	Priority    int                    `json:"priority"`
 	Source      string                 `json:"source"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // PlanStatus 计划状态
@@ -997,7 +997,7 @@ type PlanResource struct {
 	Description  string                 `json:"description"`
 	Quantity     int                    `json:"quantity"`
 	Availability string                 `json:"availability"`
-	Attributes   map[string]interface{} `json:"attributes"`
+	Attributes   map[string]any `json:"attributes"`
 }
 
 // PlanRisk 计划风险
@@ -1008,7 +1008,7 @@ type PlanRisk struct {
 	Probability float64                `json:"probability"`
 	Impact      string                 `json:"impact"`
 	Mitigation  []string               `json:"mitigation"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 // PlanMetric 计划指标
@@ -1032,7 +1032,7 @@ type FitAssessment struct {
 	Gaps            []FitGap               `json:"gaps"`
 	Recommendations []string               `json:"recommendations"`
 	Confidence      float64                `json:"confidence"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	Metadata        map[string]any `json:"metadata"`
 }
 
 // FitGap 适配差距
@@ -1054,7 +1054,7 @@ type ChallengePrediction struct {
 	OverallRisk     security.RiskLevel     `json:"overall_risk"`
 	Recommendations []string               `json:"recommendations"`
 	Confidence      float64                `json:"confidence"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	Metadata        map[string]any `json:"metadata"`
 }
 
 // PredictedChallenge 预测的挑战
@@ -1078,7 +1078,7 @@ type CulturalInteraction struct {
 	Content         string                   `json:"content"`
 	Outcome         string                   `json:"outcome"`
 	Timestamp       time.Time                `json:"timestamp"`
-	Metadata        map[string]interface{}   `json:"metadata"`
+	Metadata        map[string]any   `json:"metadata"`
 }
 
 // InteractionParticipant 互动参与者
@@ -1099,7 +1099,7 @@ type LearningResult struct {
 	Adjustments  []CultureAdjustment    `json:"adjustments"`
 	Improvements []CultureImprovement   `json:"improvements"`
 	Confidence   float64                `json:"confidence"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	Metadata     map[string]any `json:"metadata"`
 }
 
 // LearnedPattern 学习的模式
@@ -1139,7 +1139,7 @@ type CultureFeedback struct {
 	Categories  []string               `json:"categories"`
 	Suggestions []string               `json:"suggestions"`
 	Timestamp   time.Time              `json:"timestamp"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    map[string]any `json:"metadata"`
 }
 
 // FeedbackType 反馈类型
@@ -1158,12 +1158,12 @@ type Situation struct {
 	ID           string                 `json:"id"`
 	Type         SituationType          `json:"type"`
 	Description  string                 `json:"description"`
-	Context      map[string]interface{} `json:"context"`
+	Context      map[string]any `json:"context"`
 	Participants []string               `json:"participants"`
 	Objectives   []string               `json:"objectives"`
 	Constraints  []string               `json:"constraints"`
 	Timestamp    time.Time              `json:"timestamp"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	Metadata     map[string]any `json:"metadata"`
 }
 
 // SituationType 情境类型
@@ -1193,7 +1193,7 @@ type Guidance struct {
 	Timing       GuidanceTiming         `json:"timing"`
 	Impact       GuidanceImpact         `json:"impact"`
 	Confidence   float64                `json:"confidence"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	Metadata     map[string]any `json:"metadata"`
 }
 
 // GuidanceType 指导类型
@@ -1252,7 +1252,7 @@ type Recommendations struct {
 	Recommendations []Recommendation       `json:"recommendations"`
 	GeneratedAt     time.Time              `json:"generated_at"`
 	Confidence      float64                `json:"confidence"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	Metadata        map[string]any `json:"metadata"`
 }
 
 // Recommendation 推荐
@@ -1306,7 +1306,7 @@ func NewCulture(id, name, description string) *Culture {
 		ConflictResolution:   make([]ConflictResolutionStrategy, 0),
 		LearningStyles:       make([]LearningStyle, 0),
 		AdaptationStrategies: make([]AdaptationStrategy, 0),
-		Metadata:             make(map[string]interface{}),
+		Metadata:             make(map[string]any),
 		Tags:                 make([]string, 0),
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
@@ -1444,7 +1444,7 @@ func (c *Culture) Clone() *Culture {
 		ConflictResolution:   make([]ConflictResolutionStrategy, len(c.ConflictResolution)),
 		LearningStyles:       make([]LearningStyle, len(c.LearningStyles)),
 		AdaptationStrategies: make([]AdaptationStrategy, len(c.AdaptationStrategies)),
-		Metadata:             make(map[string]interface{}),
+		Metadata:             make(map[string]any),
 		Tags:                 make([]string, len(c.Tags)),
 		CreatedAt:            c.CreatedAt,
 		UpdatedAt:            c.UpdatedAt,

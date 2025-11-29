@@ -14,8 +14,8 @@ import (
 type ToolExecution struct {
 	ID          string                 `json:"id"`
 	ToolID      string                 `json:"tool_id"`
-	Input       map[string]interface{} `json:"input"`
-	Output      map[string]interface{} `json:"output,omitempty"`
+	Input       map[string]any `json:"input"`
+	Output      map[string]any `json:"output,omitempty"`
 	Status      string                 `json:"status"` // pending, running, completed, failed
 	StartedAt   time.Time              `json:"started_at"`
 	CompletedAt *time.Time             `json:"completed_at,omitempty"`
@@ -38,9 +38,9 @@ func (h *ToolHandler) Create(c *gin.Context) {
 		Name        string                 `json:"name" binding:"required"`
 		Description string                 `json:"description"`
 		Type        string                 `json:"type"`
-		Schema      map[string]interface{} `json:"schema" binding:"required"`
-		Config      map[string]interface{} `json:"config"`
-		Metadata    map[string]interface{} `json:"metadata"`
+		Schema      map[string]any `json:"schema" binding:"required"`
+		Config      map[string]any `json:"config"`
+		Metadata    map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -79,7 +79,7 @@ func (h *ToolHandler) Create(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "tool.created", map[string]interface{}{
+	logging.Info(ctx, "tool.created", map[string]any{
 		"id":   tool.ID,
 		"name": req.Name,
 	})
@@ -174,10 +174,10 @@ func (h *ToolHandler) Update(c *gin.Context) {
 		Name        *string                `json:"name"`
 		Description *string                `json:"description"`
 		Type        *string                `json:"type"`
-		Schema      map[string]interface{} `json:"schema"`
-		Config      map[string]interface{} `json:"config"`
+		Schema      map[string]any `json:"schema"`
+		Config      map[string]any `json:"config"`
 		Status      *string                `json:"status"`
-		Metadata    map[string]interface{} `json:"metadata"`
+		Metadata    map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -248,7 +248,7 @@ func (h *ToolHandler) Update(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "tool.updated", map[string]interface{}{
+	logging.Info(ctx, "tool.updated", map[string]any{
 		"id": id,
 	})
 
@@ -284,7 +284,7 @@ func (h *ToolHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "tool.deleted", map[string]interface{}{
+	logging.Info(ctx, "tool.deleted", map[string]any{
 		"id": id,
 	})
 
@@ -297,7 +297,7 @@ func (h *ToolHandler) Execute(c *gin.Context) {
 	id := c.Param("id")
 
 	var req struct {
-		Input map[string]interface{} `json:"input" binding:"required"`
+		Input map[string]any `json:"input" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -354,7 +354,7 @@ func (h *ToolHandler) Execute(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "tool.execution.started", map[string]interface{}{
+	logging.Info(ctx, "tool.execution.started", map[string]any{
 		"tool_id":      id,
 		"execution_id": execution.ID,
 	})

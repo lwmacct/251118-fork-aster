@@ -42,7 +42,7 @@ func TestReadTool_InputSchema(t *testing.T) {
 	}
 
 	// 验证必需字段
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -58,7 +58,7 @@ func TestReadTool_InputSchema(t *testing.T) {
 
 	// 尝试类型转换，但不强制要求特定类型
 	switch req := required.(type) {
-	case []interface{}:
+	case []any:
 		if len(req) == 0 || req[0] != "file_path" {
 			t.Error("file_path should be required")
 		}
@@ -90,7 +90,7 @@ func TestReadTool_Success(t *testing.T) {
 	testContent := "Hello, World!\nThis is a test file.\nWith multiple lines."
 	filePath := helper.CreateTempFile("test.txt", testContent)
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 	}
 
@@ -130,7 +130,7 @@ func TestReadTool_EmptyFile(t *testing.T) {
 	// 创建空文件
 	filePath := helper.CreateTempFile("empty.txt", "")
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 	}
 
@@ -158,7 +158,7 @@ func TestReadTool_FileNotFound(t *testing.T) {
 		t.Fatalf("Failed to create Read tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": "/nonexistent/path/file.txt",
 	}
 
@@ -203,7 +203,7 @@ func TestReadTool_OffsetAndLimit(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			input := map[string]interface{}{
+			input := map[string]any{
 				"file_path": filePath,
 			}
 			if test.offset > 0 {
@@ -241,7 +241,7 @@ func TestReadTool_LargeFile(t *testing.T) {
 	filePath := helper.CreateTempFile("large.txt", largeContent)
 
 	start := time.Now()
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 	}
 
@@ -276,7 +276,7 @@ func TestReadTool_ConcurrentReads(t *testing.T) {
 
 	concurrency := 10
 	result := RunConcurrentTest(concurrency, func() error {
-		input := map[string]interface{}{
+		input := map[string]any{
 			"file_path": filePath,
 		}
 		result := ExecuteToolWithRealFS(t, tool, input)
@@ -321,7 +321,7 @@ func TestReadTool_DirectoryTraversal(t *testing.T) {
 
 	for _, maliciousPath := range traversalPaths {
 		t.Run("Traversal_"+maliciousPath, func(t *testing.T) {
-			input := map[string]interface{}{
+			input := map[string]any{
 				"file_path": maliciousPath,
 			}
 
@@ -338,7 +338,7 @@ func TestReadTool_DirectoryTraversal(t *testing.T) {
 	}
 
 	// 验证正常文件仍然可以读取
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": normalFile,
 	}
 	result := ExecuteToolWithRealFS(t, tool, input)
@@ -362,7 +362,7 @@ func TestReadTool_BinaryFile(t *testing.T) {
 		t.Fatalf("Failed to create binary file: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": binaryFile,
 	}
 
@@ -413,7 +413,7 @@ func TestReadTool_SpecialFiles(t *testing.T) {
 				t.Skipf("Special file %s does not exist on this system", specialFile)
 			}
 
-			input := map[string]interface{}{
+			input := map[string]any{
 				"file_path": specialFile,
 			}
 
@@ -441,7 +441,7 @@ func BenchmarkReadTool_SmallFile(b *testing.B) {
 
 	filePath := helper.CreateTempFile("benchmark.txt", "Small benchmark content")
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 	}
 
@@ -464,7 +464,7 @@ func BenchmarkReadTool_LargeFile(b *testing.B) {
 	largeContent := strings.Repeat("Benchmark line content.\n", 1024*10) // ~170KB
 	filePath := helper.CreateTempFile("large_benchmark.txt", largeContent)
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"file_path": filePath,
 	}
 

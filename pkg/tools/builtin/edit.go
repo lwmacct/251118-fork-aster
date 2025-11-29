@@ -15,7 +15,7 @@ import (
 type EditTool struct{}
 
 // NewEditTool 创建Edit工具
-func NewEditTool(config map[string]interface{}) (tools.Tool, error) {
+func NewEditTool(config map[string]any) (tools.Tool, error) {
 	return &EditTool{}, nil
 }
 
@@ -27,31 +27,31 @@ func (t *EditTool) Description() string {
 	return "对文件进行精确的字符串替换编辑"
 }
 
-func (t *EditTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *EditTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"file_path": map[string]interface{}{
+		"properties": map[string]any{
+			"file_path": map[string]any{
 				"type":        "string",
 				"description": "要编辑的文件路径，必须是绝对路径",
 			},
-			"old_string": map[string]interface{}{
+			"old_string": map[string]any{
 				"type":        "string",
 				"description": "要被替换的原始字符串，必须精确匹配",
 			},
-			"new_string": map[string]interface{}{
+			"new_string": map[string]any{
 				"type":        "string",
 				"description": "替换后的新字符串",
 			},
-			"replace_all": map[string]interface{}{
+			"replace_all": map[string]any{
 				"type":        "boolean",
 				"description": "是否替换所有匹配的实例，默认为false（只替换第一个匹配项）",
 			},
-			"preserve_indentation": map[string]interface{}{
+			"preserve_indentation": map[string]any{
 				"type":        "boolean",
 				"description": "是否保持原始缩进格式，默认为true",
 			},
-			"backup": map[string]interface{}{
+			"backup": map[string]any{
 				"type":        "boolean",
 				"description": "在编辑前是否创建备份，默认为true",
 			},
@@ -60,7 +60,7 @@ func (t *EditTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *EditTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 验证必需参数
 	if err := t.validateRequired(input, []string{"file_path", "old_string", "new_string"}); err != nil {
 		return NewClaudeErrorResponse(err), nil
@@ -83,7 +83,7 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	// 如果 old_string 和 new_string 相同，直接返回成功但没有修改
 	if oldString == newString {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":           true,
 			"success":      true,
 			"changes_made": 0,
@@ -107,7 +107,7 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	// 读取原文件内容
 	originalContent, err := tc.Sandbox.FS().Read(ctx, filePath)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to read file: %v", err),
 			"recommendations": []string{
@@ -149,7 +149,7 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	// 检查是否发生了替换
 	if replacements == 0 {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": "old_string not found in file",
 			"recommendations": []string{
@@ -181,7 +181,7 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	// 写入修改后的内容
 	err = tc.Sandbox.FS().Write(ctx, filePath, modifiedContent)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to write modified content: %v", err),
 			"recommendations": []string{
@@ -201,7 +201,7 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	lineDifference := modifiedLines - originalLines
 	sizeDifference := len(modifiedContent) - len(originalContent)
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":                   true,
 		"success":              true,
 		"changes_made":         replacements,
@@ -224,7 +224,7 @@ func (t *EditTool) Execute(ctx context.Context, input map[string]interface{}, tc
 }
 
 // validateRequired 验证必需参数
-func (t *EditTool) validateRequired(input map[string]interface{}, required []string) error {
+func (t *EditTool) validateRequired(input map[string]any, required []string) error {
 	for _, key := range required {
 		if _, exists := input[key]; !exists {
 			return fmt.Errorf("missing required parameter: %s", key)
@@ -234,7 +234,7 @@ func (t *EditTool) validateRequired(input map[string]interface{}, required []str
 }
 
 // getStringParam 获取字符串参数
-func (t *EditTool) getStringParam(input map[string]interface{}, key string, defaultValue string) string {
+func (t *EditTool) getStringParam(input map[string]any, key string, defaultValue string) string {
 	if value, exists := input[key]; exists {
 		if str, ok := value.(string); ok {
 			return str
@@ -244,7 +244,7 @@ func (t *EditTool) getStringParam(input map[string]interface{}, key string, defa
 }
 
 // getBoolParam 获取布尔参数
-func (t *EditTool) getBoolParam(input map[string]interface{}, key string, defaultValue bool) bool {
+func (t *EditTool) getBoolParam(input map[string]any, key string, defaultValue bool) bool {
 	if value, exists := input[key]; exists {
 		if b, ok := value.(bool); ok {
 			return b
@@ -360,7 +360,7 @@ func (t *EditTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "修改函数名称",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path":  "/app/src/utils.go",
 				"old_string": "func oldFunction(",
 				"new_string": "func newFunction(",
@@ -368,7 +368,7 @@ func (t *EditTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "替换所有导入路径",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path":   "/app/src/main.go",
 				"old_string":  "github.com/old/package",
 				"new_string":  "github.com/new/package",
@@ -377,7 +377,7 @@ func (t *EditTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "修改配置值并创建备份",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path":  "/app/config.yaml",
 				"old_string": "port: 8080",
 				"new_string": "port: 9090",
@@ -386,7 +386,7 @@ func (t *EditTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "修改多行代码块",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path":  "/app/src/handler.go",
 				"old_string": "if err != nil {\n\treturn err\n}",
 				"new_string": "if err != nil {\n\tlog.Error(err)\n\treturn fmt.Errorf(\"handler error: %w\", err)\n}",

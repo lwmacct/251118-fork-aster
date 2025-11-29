@@ -26,14 +26,14 @@ type InterruptConfig struct {
 type ActionRequest struct {
 	ToolCallID string                 // 工具调用ID
 	ToolName   string                 // 工具名称
-	Input      map[string]interface{} // 工具输入参数
+	Input      map[string]any // 工具输入参数
 	Message    string                 // 审核提示信息
 }
 
 // Decision 人工决策
 type Decision struct {
 	Type        DecisionType           // 决策类型
-	EditedInput map[string]interface{} // 编辑后的参数(仅 type=edit 时有效)
+	EditedInput map[string]any // 编辑后的参数(仅 type=edit 时有效)
 	Reason      string                 // 决策理由(可选)
 }
 
@@ -55,7 +55,7 @@ type HumanInTheLoopMiddlewareConfig struct {
 	// 1. true: 启用默认审核配置
 	// 2. false: 禁用审核
 	// 3. InterruptConfig: 自定义审核配置
-	InterruptOn map[string]interface{}
+	InterruptOn map[string]any
 
 	// ApprovalHandler 人工审核处理器
 	// 如果为 nil, 默认自动批准所有请求
@@ -112,7 +112,7 @@ func NewHumanInTheLoopMiddleware(config *HumanInTheLoopMiddlewareConfig) (*Human
 }
 
 // parseInterruptConfig 解析审核配置
-func (m *HumanInTheLoopMiddleware) parseInterruptConfig(toolName string, cfg interface{}) *InterruptConfig {
+func (m *HumanInTheLoopMiddleware) parseInterruptConfig(toolName string, cfg any) *InterruptConfig {
 	switch v := cfg.(type) {
 	case bool:
 		if !v {
@@ -125,14 +125,14 @@ func (m *HumanInTheLoopMiddleware) parseInterruptConfig(toolName string, cfg int
 			Message:          fmt.Sprintf("Tool '%s' requires approval before execution", toolName),
 		}
 
-	case map[string]interface{}:
+	case map[string]any:
 		// 自定义配置
 		interruptCfg := &InterruptConfig{
 			Enabled: true,
 		}
 
 		// 解析 allowed_decisions
-		if decisions, ok := v["allowed_decisions"].([]interface{}); ok {
+		if decisions, ok := v["allowed_decisions"].([]any); ok {
 			interruptCfg.AllowedDecisions = make([]DecisionType, 0, len(decisions))
 			for _, d := range decisions {
 				if ds, ok := d.(string); ok {
@@ -190,7 +190,7 @@ func (m *HumanInTheLoopMiddleware) WrapToolCall(ctx context.Context, req *ToolCa
 	decisions, err := m.getApproval(ctx, reviewRequest)
 	if err != nil {
 		return &ToolCallResponse{
-			Result: map[string]interface{}{
+			Result: map[string]any{
 				"ok":    false,
 				"error": fmt.Sprintf("approval request failed: %v", err),
 			},
@@ -199,7 +199,7 @@ func (m *HumanInTheLoopMiddleware) WrapToolCall(ctx context.Context, req *ToolCa
 
 	if len(decisions) == 0 {
 		return &ToolCallResponse{
-			Result: map[string]interface{}{
+			Result: map[string]any{
 				"ok":    false,
 				"error": "no decision received",
 			},
@@ -224,7 +224,7 @@ func (m *HumanInTheLoopMiddleware) WrapToolCall(ctx context.Context, req *ToolCa
 	case DecisionReject:
 		log.Printf("[HumanInTheLoopMiddleware] Tool '%s' rejected: %s", req.ToolName, decision.Reason)
 		return &ToolCallResponse{
-			Result: map[string]interface{}{
+			Result: map[string]any{
 				"ok":       false,
 				"rejected": true,
 				"reason":   decision.Reason,
@@ -234,7 +234,7 @@ func (m *HumanInTheLoopMiddleware) WrapToolCall(ctx context.Context, req *ToolCa
 
 	default:
 		return &ToolCallResponse{
-			Result: map[string]interface{}{
+			Result: map[string]any{
 				"ok":    false,
 				"error": fmt.Sprintf("unknown decision type: %s", decision.Type),
 			},

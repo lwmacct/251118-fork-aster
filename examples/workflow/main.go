@@ -24,11 +24,11 @@ func main() {
 	wf.AddStep(workflow.NewFunctionStep("load", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		fmt.Println("📥 Step 1: Loading data...")
 		return &workflow.StepOutput{
-			Content: map[string]interface{}{
+			Content: map[string]any{
 				"data":  []string{"item1", "item2", "item3"},
 				"count": 3,
 			},
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	}))
 
@@ -37,9 +37,9 @@ func main() {
 		fmt.Println("⚙️  Step 2: Processing data...")
 
 		// 从前一步获取数据
-		var dataMap map[string]interface{}
+		var dataMap map[string]any
 		if input.PreviousStepContent != nil {
-			dataMap, _ = input.PreviousStepContent.(map[string]interface{})
+			dataMap, _ = input.PreviousStepContent.(map[string]any)
 		}
 
 		if dataMap != nil {
@@ -49,11 +49,11 @@ func main() {
 					processed[i] = fmt.Sprintf("processed_%s", item)
 				}
 				return &workflow.StepOutput{
-					Content: map[string]interface{}{
+					Content: map[string]any{
 						"processed": processed,
 						"count":     len(processed),
 					},
-					Metadata: make(map[string]interface{}),
+					Metadata: make(map[string]any),
 				}, nil
 			}
 		}
@@ -67,7 +67,7 @@ func main() {
 
 		result := "No data"
 		if input.PreviousStepContent != nil {
-			if dataMap, ok := input.PreviousStepContent.(map[string]interface{}); ok {
+			if dataMap, ok := input.PreviousStepContent.(map[string]any); ok {
 				if processed, ok := dataMap["processed"].([]string); ok {
 					result = fmt.Sprintf("✅ Final Result: %v", processed)
 				}
@@ -76,7 +76,7 @@ func main() {
 
 		return &workflow.StepOutput{
 			Content:  result,
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	}))
 
@@ -116,7 +116,7 @@ func main() {
 
 		case workflow.EventStepCompleted:
 			fmt.Printf("  ✓ Step completed: %s\n", event.StepName)
-			if data, ok := event.Data.(map[string]interface{}); ok {
+			if data, ok := event.Data.(map[string]any); ok {
 				if output, ok := data["output"].(*workflow.StepOutput); ok {
 					fmt.Printf("    Output: %v\n", output.Content)
 					if output.Metrics != nil {
@@ -127,7 +127,7 @@ func main() {
 
 		case workflow.EventWorkflowCompleted:
 			fmt.Println("  ✓ Workflow completed")
-			if data, ok := event.Data.(map[string]interface{}); ok {
+			if data, ok := event.Data.(map[string]any); ok {
 				if output, ok := data["output"]; ok {
 					fmt.Printf("    Final output: %v\n", output)
 				}

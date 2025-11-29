@@ -39,11 +39,11 @@ func (t *UpdateWorkingMemoryTool) Description() string {
 	return desc
 }
 
-func (t *UpdateWorkingMemoryTool) InputSchema() map[string]interface{} {
-	schema := map[string]interface{}{
+func (t *UpdateWorkingMemoryTool) InputSchema() map[string]any {
+	schema := map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"memory": map[string]interface{}{
+		"properties": map[string]any{
+			"memory": map[string]any{
 				"type": "string",
 			},
 		},
@@ -52,21 +52,21 @@ func (t *UpdateWorkingMemoryTool) InputSchema() map[string]interface{} {
 
 	// 根据配置的 Schema 调整描述
 	if t.schema != nil && t.schema.Type == "object" {
-		schema["properties"].(map[string]interface{})["memory"].(map[string]interface{})["description"] =
+		schema["properties"].(map[string]any)["memory"].(map[string]any)["description"] =
 			"The JSON formatted working memory content to store. This MUST be a valid JSON string."
 	} else {
-		schema["properties"].(map[string]interface{})["memory"].(map[string]interface{})["description"] =
+		schema["properties"].(map[string]any)["memory"].(map[string]any)["description"] =
 			"The Markdown formatted working memory content to store. This MUST be a string."
 	}
 
 	return schema
 }
 
-func (t *UpdateWorkingMemoryTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *UpdateWorkingMemoryTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 从 input 中获取 memory 内容
 	memoryContent, ok := input["memory"].(string)
 	if !ok {
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"error":   "memory field is required and must be a string",
 		}, nil
@@ -77,7 +77,7 @@ func (t *UpdateWorkingMemoryTool) Execute(ctx context.Context, input map[string]
 	resourceID := tc.ResourceID
 
 	if threadID == "" && resourceID == "" {
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"error":   "threadID and resourceID cannot both be empty. Please ensure they are set in the context.",
 		}, nil
@@ -86,7 +86,7 @@ func (t *UpdateWorkingMemoryTool) Execute(ctx context.Context, input map[string]
 	// 如果配置了 Schema，尝试美化 JSON 格式
 	if t.schema != nil && t.schema.Type == "object" {
 		// 尝试解析并重新格式化
-		var data interface{}
+		var data any
 		if err := json.Unmarshal([]byte(memoryContent), &data); err == nil {
 			formatted, err := json.MarshalIndent(data, "", "  ")
 			if err == nil {
@@ -97,13 +97,13 @@ func (t *UpdateWorkingMemoryTool) Execute(ctx context.Context, input map[string]
 
 	// 更新 Working Memory
 	if err := t.manager.Update(ctx, threadID, resourceID, memoryContent); err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"error":   fmt.Sprintf("failed to update working memory: %v", err),
 		}, nil
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"success":     true,
 		"thread_id":   threadID,
 		"resource_id": resourceID,
@@ -158,26 +158,26 @@ func (t *ExperimentalUpdateWorkingMemoryTool) Description() string {
 	return "Update working memory with support for find/replace operations (experimental feature)."
 }
 
-func (t *ExperimentalUpdateWorkingMemoryTool) InputSchema() map[string]interface{} {
+func (t *ExperimentalUpdateWorkingMemoryTool) InputSchema() map[string]any {
 	contentDesc := "The Markdown formatted working memory content to store"
 	if t.schema != nil && t.schema.Type == "object" {
 		contentDesc = "The JSON formatted working memory content to store"
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"new_memory": map[string]interface{}{
+		"properties": map[string]any{
+			"new_memory": map[string]any{
 				"type":        "string",
 				"description": contentDesc,
 			},
-			"search_string": map[string]interface{}{
+			"search_string": map[string]any{
 				"type": "string",
 				"description": "The working memory string to find and replace. If omitted or doesn't exist, new_memory will be appended. " +
 					"Replacing single lines at a time is encouraged for greater accuracy. " +
 					"If update_reason is not 'append-new-memory', this field must be provided.",
 			},
-			"update_reason": map[string]interface{}{
+			"update_reason": map[string]any{
 				"type": "string",
 				"enum": []string{"append-new-memory", "clarify-existing-memory", "replace-irrelevant-memory"},
 				"description": "The reason for updating working memory. Passing any value other than 'append-new-memory' requires a search_string. " +
@@ -188,7 +188,7 @@ func (t *ExperimentalUpdateWorkingMemoryTool) InputSchema() map[string]interface
 	}
 }
 
-func (t *ExperimentalUpdateWorkingMemoryTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *ExperimentalUpdateWorkingMemoryTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	newMemory, _ := input["new_memory"].(string)
 	searchString, _ := input["search_string"].(string)
 	updateReason, _ := input["update_reason"].(string)
@@ -201,7 +201,7 @@ func (t *ExperimentalUpdateWorkingMemoryTool) Execute(ctx context.Context, input
 	resourceID := tc.ResourceID
 
 	if threadID == "" && resourceID == "" {
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"error":   "threadID and resourceID cannot both be empty",
 		}, nil
@@ -221,7 +221,7 @@ func (t *ExperimentalUpdateWorkingMemoryTool) Execute(ctx context.Context, input
 
 	// 非追加模式必须提供 search_string
 	if updateReason != "append-new-memory" && searchString == "" {
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"reason": fmt.Sprintf("update_reason was %s but no search_string was provided. "+
 				"Unable to replace undefined with \"%s\"", updateReason, newMemory),
@@ -239,13 +239,13 @@ func (t *ExperimentalUpdateWorkingMemoryTool) Execute(ctx context.Context, input
 	}
 
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"success": false,
 			"error":   fmt.Sprintf("failed to update working memory: %v", err),
 		}, nil
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"success":       true,
 		"thread_id":     threadID,
 		"resource_id":   resourceID,

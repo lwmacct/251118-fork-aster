@@ -41,7 +41,7 @@ type PreToolUseHook func(ctx context.Context, call *types.ToolCallRecord) (*type
 
 // PostToolUseHook 工具执行后钩子
 // 可以检查结果或执行清理工作
-type PostToolUseHook func(ctx context.Context, call *types.ToolCallRecord, result interface{}, err error) error
+type PostToolUseHook func(ctx context.Context, call *types.ToolCallRecord, result any, err error) error
 
 // PermissionManager 权限管理器
 type PermissionManager struct {
@@ -286,7 +286,7 @@ func (pm *PermissionManager) RunPreHooks(ctx context.Context, call *types.ToolCa
 }
 
 // RunPostHooks 运行后置钩子
-func (pm *PermissionManager) RunPostHooks(ctx context.Context, call *types.ToolCallRecord, result interface{}, callErr error) error {
+func (pm *PermissionManager) RunPostHooks(ctx context.Context, call *types.ToolCallRecord, result any, callErr error) error {
 	pm.mu.RLock()
 	hooks := make([]PermissionHook, len(pm.hooks))
 	copy(hooks, pm.hooks)

@@ -278,12 +278,12 @@ func (m *ModelFallbackManager) DisableModel(provider, model string) error {
 }
 
 // ListModels 列出所有模型及其状态
-func (m *ModelFallbackManager) ListModels() []map[string]interface{} {
-	models := make([]map[string]interface{}, 0, len(m.fallbacks))
+func (m *ModelFallbackManager) ListModels() []map[string]any {
+	models := make([]map[string]any, 0, len(m.fallbacks))
 
 	for i, fb := range m.fallbacks {
 		modelKey := fmt.Sprintf("%s/%s", fb.Config.Provider, fb.Config.Model)
-		models = append(models, map[string]interface{}{
+		models = append(models, map[string]any{
 			"provider":    fb.Config.Provider,
 			"model":       fb.Config.Model,
 			"enabled":     fb.Enabled,

@@ -91,7 +91,7 @@ func (gp *GLMProvider) Complete(ctx context.Context, messages []types.Message, o
 	}
 
 	// 解析完整响应
-	var apiResp map[string]interface{}
+	var apiResp map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
@@ -106,7 +106,7 @@ func (gp *GLMProvider) Complete(ctx context.Context, messages []types.Message, o
 
 	// 解析Token使用情况
 	var usage *TokenUsage
-	if usageData, ok := apiResp["usage"].(map[string]interface{}); ok {
+	if usageData, ok := apiResp["usage"].(map[string]any); ok {
 		usage = &TokenUsage{
 			InputTokens:  int64(usageData["prompt_tokens"].(float64)),
 			OutputTokens: int64(usageData["completion_tokens"].(float64)),
@@ -131,7 +131,7 @@ func (gp *GLMProvider) Stream(ctx context.Context, messages []types.Message, opt
 	}
 
 	// 记录请求内容（用于调试）
-	if tools, ok := reqBody["tools"].([]map[string]interface{}); ok && len(tools) > 0 {
+	if tools, ok := reqBody["tools"].([]map[string]any); ok && len(tools) > 0 {
 		log.Printf("[GLMProvider] Request body includes %d tools", len(tools))
 		toolsJSON, _ := util.MarshalDeterministicIndent(reqBody["tools"], "", "  ")
 		log.Printf("[GLMProvider] Full tools definition:\n%s", string(toolsJSON))
@@ -181,8 +181,8 @@ func (gp *GLMProvider) Stream(ctx context.Context, messages []types.Message, opt
 }
 
 // buildRequest 构建请求体
-func (gp *GLMProvider) buildRequest(messages []types.Message, opts *StreamOptions) map[string]interface{} {
-	req := map[string]interface{}{
+func (gp *GLMProvider) buildRequest(messages []types.Message, opts *StreamOptions) map[string]any {
+	req := map[string]any{
 		"model":    gp.config.Model,
 		"messages": gp.convertMessages(messages),
 		"stream":   true,
@@ -209,11 +209,11 @@ func (gp *GLMProvider) buildRequest(messages []types.Message, opts *StreamOption
 
 		if len(opts.Tools) > 0 {
 			// GLM API 使用 tools 字段，格式与 OpenAI 兼容
-			tools := make([]map[string]interface{}, 0, len(opts.Tools))
+			tools := make([]map[string]any, 0, len(opts.Tools))
 			for _, tool := range opts.Tools {
-				toolMap := map[string]interface{}{
+				toolMap := map[string]any{
 					"type": "function",
-					"function": map[string]interface{}{
+					"function": map[string]any{
 						"name":        tool.Name,
 						"description": tool.Description,
 						"parameters":  tool.InputSchema,
@@ -227,7 +227,7 @@ func (gp *GLMProvider) buildRequest(messages []types.Message, opts *StreamOption
 			req["tools"] = tools
 			toolNames := make([]string, len(tools))
 			for i, t := range tools {
-				if fn, ok := t["function"].(map[string]interface{}); ok {
+				if fn, ok := t["function"].(map[string]any); ok {
 					if name, ok := fn["name"].(string); ok {
 						toolNames[i] = name
 					}
@@ -246,8 +246,8 @@ func (gp *GLMProvider) buildRequest(messages []types.Message, opts *StreamOption
 }
 
 // convertMessages 转换消息格式（OpenAI 兼容格式）
-func (gp *GLMProvider) convertMessages(messages []types.Message) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(messages))
+func (gp *GLMProvider) convertMessages(messages []types.Message) []map[string]any {
+	result := make([]map[string]any, 0, len(messages))
 
 	for _, msg := range messages {
 		// 跳过system消息（已在opts中单独传递）
@@ -258,7 +258,7 @@ func (gp *GLMProvider) convertMessages(messages []types.Message) []map[string]in
 		// GLM API 使用 OpenAI 兼容格式
 		if msg.Role == types.MessageRoleAssistant {
 			// Assistant 消息：检查是否有工具调用
-			toolCalls := make([]map[string]interface{}, 0)
+			toolCalls := make([]map[string]any, 0)
 			textContent := ""
 
 			// 处理 ContentBlocks（如果存在）
@@ -270,10 +270,10 @@ func (gp *GLMProvider) convertMessages(messages []types.Message) []map[string]in
 					case *types.ToolUseBlock:
 						// 转换为 OpenAI 格式的 tool_calls
 						argsJSON, _ := json.Marshal(b.Input)
-						toolCall := map[string]interface{}{
+						toolCall := map[string]any{
 							"id":   b.ID,
 							"type": "function",
-							"function": map[string]interface{}{
+							"function": map[string]any{
 								"name":      b.Name,
 								"arguments": string(argsJSON),
 							},
@@ -286,7 +286,7 @@ func (gp *GLMProvider) convertMessages(messages []types.Message) []map[string]in
 				textContent = msg.Content
 			}
 
-			msgMap := map[string]interface{}{
+			msgMap := map[string]any{
 				"role": "assistant",
 			}
 
@@ -331,7 +331,7 @@ func (gp *GLMProvider) convertMessages(messages []types.Message) []map[string]in
 		// 如果有文本内容，先添加文本消息
 		content := strings.Join(textParts, "\n")
 		if content != "" {
-			result = append(result, map[string]interface{}{
+			result = append(result, map[string]any{
 				"role":    "user",
 				"content": content,
 			})
@@ -339,7 +339,7 @@ func (gp *GLMProvider) convertMessages(messages []types.Message) []map[string]in
 
 		// 添加工具结果消息（每个工具结果作为独立的 tool 消息）
 		for _, tr := range toolResults {
-			toolMsg := map[string]interface{}{
+			toolMsg := map[string]any{
 				"role":         "tool",
 				"content":      tr.Content,
 				"tool_call_id": tr.ToolUseID,
@@ -380,7 +380,7 @@ func (gp *GLMProvider) processStream(body io.ReadCloser, chunkCh chan<- StreamCh
 		}
 
 		// 解析JSON
-		var event map[string]interface{}
+		var event map[string]any
 		if err := json.Unmarshal([]byte(data), &event); err != nil {
 			log.Printf("[GLMProvider] Failed to parse JSON: %v, data: %s", err, data)
 			continue
@@ -406,18 +406,18 @@ func (gp *GLMProvider) processStream(body io.ReadCloser, chunkCh chan<- StreamCh
 }
 
 // parseStreamEvent 解析流式事件
-func (gp *GLMProvider) parseStreamEvent(event map[string]interface{}) *StreamChunk {
+func (gp *GLMProvider) parseStreamEvent(event map[string]any) *StreamChunk {
 	// GLM API 使用 OpenAI 兼容格式
 	chunk := &StreamChunk{}
 
 	// 检查 choices
-	if choices, ok := event["choices"].([]interface{}); ok && len(choices) > 0 {
-		if choice, ok := choices[0].(map[string]interface{}); ok {
-			if delta, ok := choice["delta"].(map[string]interface{}); ok {
+	if choices, ok := event["choices"].([]any); ok && len(choices) > 0 {
+		if choice, ok := choices[0].(map[string]any); ok {
+			if delta, ok := choice["delta"].(map[string]any); ok {
 				// 检查是否有 tool_calls（OpenAI 格式）
-				if toolCalls, ok := delta["tool_calls"].([]interface{}); ok && len(toolCalls) > 0 {
+				if toolCalls, ok := delta["tool_calls"].([]any); ok && len(toolCalls) > 0 {
 					// 工具调用开始
-					if toolCall, ok := toolCalls[0].(map[string]interface{}); ok {
+					if toolCall, ok := toolCalls[0].(map[string]any); ok {
 						index := 0
 						if idx, ok := toolCall["index"].(float64); ok {
 							index = int(idx)
@@ -427,7 +427,7 @@ func (gp *GLMProvider) parseStreamEvent(event map[string]interface{}) *StreamChu
 						chunk.Index = index
 
 						// 构建工具调用信息（转换为 Anthropic 格式以便统一处理）
-						toolInfo := map[string]interface{}{
+						toolInfo := map[string]any{
 							"type": "tool_use",
 						}
 
@@ -435,7 +435,7 @@ func (gp *GLMProvider) parseStreamEvent(event map[string]interface{}) *StreamChu
 							toolInfo["id"] = id
 						}
 
-						if fn, ok := toolCall["function"].(map[string]interface{}); ok {
+						if fn, ok := toolCall["function"].(map[string]any); ok {
 							if name, ok := fn["name"].(string); ok {
 								toolInfo["name"] = name
 							}
@@ -451,7 +451,7 @@ func (gp *GLMProvider) parseStreamEvent(event map[string]interface{}) *StreamChu
 				// 检查是否有文本内容
 				if content, ok := delta["content"].(string); ok && content != "" {
 					chunk.Type = "content_block_delta"
-					chunk.Delta = map[string]interface{}{
+					chunk.Delta = map[string]any{
 						"type": "text_delta",
 						"text": content,
 					}
@@ -460,10 +460,10 @@ func (gp *GLMProvider) parseStreamEvent(event map[string]interface{}) *StreamChu
 			}
 
 			// 检查 tool_calls 的增量更新（arguments 字段）
-			if delta, ok := choice["delta"].(map[string]interface{}); ok {
-				if toolCalls, ok := delta["tool_calls"].([]interface{}); ok && len(toolCalls) > 0 {
-					if toolCall, ok := toolCalls[0].(map[string]interface{}); ok {
-						if fn, ok := toolCall["function"].(map[string]interface{}); ok {
+			if delta, ok := choice["delta"].(map[string]any); ok {
+				if toolCalls, ok := delta["tool_calls"].([]any); ok && len(toolCalls) > 0 {
+					if toolCall, ok := toolCalls[0].(map[string]any); ok {
+						if fn, ok := toolCall["function"].(map[string]any); ok {
 							if arguments, ok := fn["arguments"].(string); ok && arguments != "" {
 								// 这是工具参数的增量更新
 								chunk.Type = "content_block_delta"
@@ -471,7 +471,7 @@ func (gp *GLMProvider) parseStreamEvent(event map[string]interface{}) *StreamChu
 								if idx, ok := toolCall["index"].(float64); ok {
 									chunk.Index = int(idx)
 								}
-								chunk.Delta = map[string]interface{}{
+								chunk.Delta = map[string]any{
 									"type":      "arguments",
 									"arguments": arguments,
 								}
@@ -525,21 +525,21 @@ func (gp *GLMProvider) GetSystemPrompt() string {
 }
 
 // parseCompleteResponse 解析完整的非流式响应(OpenAI兼容格式)
-func (gp *GLMProvider) parseCompleteResponse(apiResp map[string]interface{}) (types.Message, error) {
+func (gp *GLMProvider) parseCompleteResponse(apiResp map[string]any) (types.Message, error) {
 	assistantContent := make([]types.ContentBlock, 0)
 
 	// 获取第一个choice
-	choices, ok := apiResp["choices"].([]interface{})
+	choices, ok := apiResp["choices"].([]any)
 	if !ok || len(choices) == 0 {
 		return types.Message{}, fmt.Errorf("no choices in response")
 	}
 
-	choice, ok := choices[0].(map[string]interface{})
+	choice, ok := choices[0].(map[string]any)
 	if !ok {
 		return types.Message{}, fmt.Errorf("invalid choice format")
 	}
 
-	message, ok := choice["message"].(map[string]interface{})
+	message, ok := choice["message"].(map[string]any)
 	if !ok {
 		return types.Message{}, fmt.Errorf("no message in choice")
 	}
@@ -550,15 +550,15 @@ func (gp *GLMProvider) parseCompleteResponse(apiResp map[string]interface{}) (ty
 	}
 
 	// 解析工具调用
-	if toolCalls, ok := message["tool_calls"].([]interface{}); ok && len(toolCalls) > 0 {
+	if toolCalls, ok := message["tool_calls"].([]any); ok && len(toolCalls) > 0 {
 		for _, tc := range toolCalls {
-			toolCall, ok := tc.(map[string]interface{})
+			toolCall, ok := tc.(map[string]any)
 			if !ok {
 				continue
 			}
 
 			toolID, _ := toolCall["id"].(string)
-			fn, ok := toolCall["function"].(map[string]interface{})
+			fn, ok := toolCall["function"].(map[string]any)
 			if !ok {
 				continue
 			}
@@ -567,10 +567,10 @@ func (gp *GLMProvider) parseCompleteResponse(apiResp map[string]interface{}) (ty
 			argsJSON, _ := fn["arguments"].(string)
 
 			// 解析参数
-			var input map[string]interface{}
+			var input map[string]any
 			if err := json.Unmarshal([]byte(argsJSON), &input); err != nil {
 				log.Printf("[GLMProvider] Failed to parse tool arguments: %v", err)
-				input = make(map[string]interface{})
+				input = make(map[string]any)
 			}
 
 			assistantContent = append(assistantContent, &types.ToolUseBlock{

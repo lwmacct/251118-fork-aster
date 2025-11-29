@@ -8,7 +8,7 @@ import (
 
 func TestMarshalDeterministic_Map(t *testing.T) {
 	// 创建一个 map，多次序列化应该产生相同的结果
-	m := map[string]interface{}{
+	m := map[string]any{
 		"zebra": 1,
 		"apple": 2,
 		"mango": 3,
@@ -40,7 +40,7 @@ func TestMarshalDeterministic_Map(t *testing.T) {
 }
 
 func TestMarshalDeterministic_NestedMap(t *testing.T) {
-	m := map[string]interface{}{
+	m := map[string]any{
 		"z": map[string]int{
 			"c": 3,
 			"a": 1,
@@ -127,7 +127,7 @@ func TestMarshalDeterministic_Struct(t *testing.T) {
 	}
 
 	// 解析验证结构正确
-	var parsed map[string]interface{}
+	var parsed map[string]any
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatalf("Failed to parse result: %v", err)
 	}
@@ -231,7 +231,7 @@ func TestMarshalDeterministic_OmitEmpty(t *testing.T) {
 func TestMarshalDeterministic_BasicTypes(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    interface{}
+		input    any
 		expected string
 	}{
 		{"string", "hello", `"hello"`},
@@ -256,7 +256,7 @@ func TestMarshalDeterministic_BasicTypes(t *testing.T) {
 
 // BenchmarkMarshalDeterministic 与标准 json.Marshal 对比
 func BenchmarkMarshalDeterministic(b *testing.B) {
-	m := map[string]interface{}{
+	m := map[string]any{
 		"zebra": 1,
 		"apple": 2,
 		"mango": 3,

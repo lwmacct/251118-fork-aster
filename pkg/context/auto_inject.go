@@ -230,7 +230,7 @@ type SessionState struct {
 	SessionID    string
 	MessageCount int
 	Duration     time.Duration
-	CustomState  map[string]interface{}
+	CustomState  map[string]any
 }
 
 // UserInfoProvider 用户信息提供者接口
@@ -244,7 +244,7 @@ type UserInfo struct {
 	Name              string
 	PreferredLanguage string
 	Timezone          string
-	Preferences       map[string]interface{}
+	Preferences       map[string]any
 }
 
 // SimpleLocationProvider 简单的位置提供者（基于配置）

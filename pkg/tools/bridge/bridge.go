@@ -48,19 +48,19 @@ func (b *ToolBridge) GetTool(name string) (tools.Tool, error) {
 // CallToolInput 工具调用输入
 type CallToolInput struct {
 	Name  string                 `json:"name"`
-	Input map[string]interface{} `json:"input"`
+	Input map[string]any `json:"input"`
 }
 
 // CallToolResult 工具调用结果
 type CallToolResult struct {
 	Name    string      `json:"name"`
 	Success bool        `json:"success"`
-	Result  interface{} `json:"result,omitempty"`
+	Result  any `json:"result,omitempty"`
 	Error   string      `json:"error,omitempty"`
 }
 
 // CallTool 调用单个工具
-func (b *ToolBridge) CallTool(ctx context.Context, name string, input map[string]interface{}, tc *tools.ToolContext) (*CallToolResult, error) {
+func (b *ToolBridge) CallTool(ctx context.Context, name string, input map[string]any, tc *tools.ToolContext) (*CallToolResult, error) {
 	tool, err := b.GetTool(name)
 	if err != nil {
 		return &CallToolResult{
@@ -88,7 +88,7 @@ func (b *ToolBridge) CallTool(ctx context.Context, name string, input map[string
 
 // CallToolJSON 使用 JSON 字符串调用工具
 func (b *ToolBridge) CallToolJSON(ctx context.Context, name string, inputJSON string, tc *tools.ToolContext) (*CallToolResult, error) {
-	var input map[string]interface{}
+	var input map[string]any
 	if err := json.Unmarshal([]byte(inputJSON), &input); err != nil {
 		return &CallToolResult{
 			Name:    name,
@@ -170,13 +170,13 @@ func (b *ToolBridge) ListAvailableTools() []string {
 }
 
 // GetToolSchema 获取工具的 schema
-func (b *ToolBridge) GetToolSchema(name string) (map[string]interface{}, error) {
+func (b *ToolBridge) GetToolSchema(name string) (map[string]any, error) {
 	tool, err := b.GetTool(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"name":         tool.Name(),
 		"description":  tool.Description(),
 		"input_schema": tool.InputSchema(),
@@ -192,9 +192,9 @@ type ToolChain struct {
 // ChainStep 链中的一步
 type ChainStep struct {
 	Name  string                 `json:"name"`
-	Input map[string]interface{} `json:"input"`
+	Input map[string]any `json:"input"`
 	// InputMapper 可选：将前一步结果映射到当前输入
-	InputMapper func(prevResult interface{}) map[string]interface{} `json:"-"`
+	InputMapper func(prevResult any) map[string]any `json:"-"`
 }
 
 // NewToolChain 创建工具链
@@ -214,7 +214,7 @@ func (c *ToolChain) AddStep(step ChainStep) *ToolChain {
 // ChainResult 链执行结果
 type ChainResult struct {
 	Steps       []*CallToolResult `json:"steps"`
-	FinalResult interface{}       `json:"final_result"`
+	FinalResult any       `json:"final_result"`
 	Success     bool              `json:"success"`
 	Error       string            `json:"error,omitempty"`
 }
@@ -229,7 +229,7 @@ func (c *ToolChain) Execute(ctx context.Context, tc *tools.ToolContext) *ChainRe
 	}
 
 	results := make([]*CallToolResult, len(c.steps))
-	var prevResult interface{}
+	var prevResult any
 
 	for i, step := range c.steps {
 		input := step.Input

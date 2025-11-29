@@ -46,7 +46,7 @@ func Test_QualityMetrics_Evaluate(t *testing.T) {
 	memory := &MemoryWithScore{
 		DocID: "test-1",
 		Text:  "This is a test memory with sufficient content to evaluate quality metrics properly.",
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"source": "test",
 		},
 		Provenance: NewProvenance(SourceUserInput, "test-user"),

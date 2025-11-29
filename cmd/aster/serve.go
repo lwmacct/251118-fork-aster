@@ -117,13 +117,13 @@ func registerBuiltinTemplates(registry *agent.TemplateRegistry) {
 	registry.Register(&types.AgentTemplateDefinition{
 		ID:           "assistant",
 		SystemPrompt: "You are a helpful assistant.",
-		Tools:        []interface{}{"filesystem", "bash"},
+		Tools:        []any{"filesystem", "bash"},
 	})
 
 	registry.Register(&types.AgentTemplateDefinition{
 		ID:           "coder",
 		SystemPrompt: "You are an expert programmer.",
-		Tools:        []interface{}{"filesystem", "bash", "grep"},
+		Tools:        []any{"filesystem", "bash", "grep"},
 	})
 }
 

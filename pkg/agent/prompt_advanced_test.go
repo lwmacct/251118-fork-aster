@@ -15,7 +15,7 @@ func TestPromptBuilder_AllModules(t *testing.T) {
 	deps.TemplateRegistry.Register(&types.AgentTemplateDefinition{
 		ID:           "full-featured",
 		SystemPrompt: "You are a full-featured assistant.",
-		Tools:        []interface{}{"Read", "Write", "Bash"},
+		Tools:        []any{"Read", "Write", "Bash"},
 		Runtime: &types.AgentTemplateRuntime{
 			Todo: &types.TodoConfig{
 				Enabled:         true,
@@ -38,7 +38,7 @@ func TestPromptBuilder_AllModules(t *testing.T) {
 		Context: &types.ContextManagerOptions{
 			MaxTokens: 100000,
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"agent_type":               "code_assistant",
 			"show_capabilities":        true,
 			"show_limitations":         true,
@@ -95,7 +95,7 @@ func TestPromptBuilder_RoomCollaboration(t *testing.T) {
 			Kind:    types.SandboxKindMock,
 			WorkDir: "/tmp/test",
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"room_id":           "room-123",
 			"room_member_count": 3,
 			"room_members":      []string{"alice", "bob", "charlie"},
@@ -140,7 +140,7 @@ func TestPromptBuilder_WorkflowContext(t *testing.T) {
 			Kind:    types.SandboxKindMock,
 			WorkDir: "/tmp/test",
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"workflow_id":            "wf-456",
 			"workflow_current_step":  "data_processing",
 			"workflow_total_steps":   5,
@@ -328,7 +328,7 @@ func TestPromptBuilder_WithPreset(t *testing.T) {
 			Kind:    types.SandboxKindMock,
 			WorkDir: "/tmp/test",
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"agent_type": "code_assistant",
 		},
 	}

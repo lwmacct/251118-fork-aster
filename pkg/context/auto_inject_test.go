@@ -66,7 +66,7 @@ func TestContextInjector_InjectSessionState(t *testing.T) {
 		SessionID:    "session-123",
 		MessageCount: 42,
 		Duration:     30 * time.Minute,
-		CustomState: map[string]interface{}{
+		CustomState: map[string]any{
 			"mode": "debug",
 		},
 	}

@@ -16,15 +16,15 @@ type EvalRecord struct {
 	Name        string                 `json:"name"`
 	Type        string                 `json:"type"`   // text, session, batch, benchmark
 	Status      string                 `json:"status"` // pending, running, completed, failed
-	Input       map[string]interface{} `json:"input,omitempty"`
-	Output      map[string]interface{} `json:"output,omitempty"`
+	Input       map[string]any `json:"input,omitempty"`
+	Output      map[string]any `json:"output,omitempty"`
 	Metrics     map[string]float64     `json:"metrics,omitempty"`
 	Score       float64                `json:"score,omitempty"`
 	StartedAt   time.Time              `json:"started_at"`
 	CompletedAt *time.Time             `json:"completed_at,omitempty"`
 	Duration    int64                  `json:"duration,omitempty"` // milliseconds
 	Error       string                 `json:"error,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // BenchmarkRecord 基准测试记录
@@ -33,7 +33,7 @@ type BenchmarkRecord struct {
 	Name      string                 `json:"name"`
 	Runs      int                    `json:"runs"`
 	Results   []map[string]float64   `json:"results,omitempty"`
-	Summary   map[string]interface{} `json:"summary,omitempty"`
+	Summary   map[string]any `json:"summary,omitempty"`
 	CreatedAt time.Time              `json:"created_at"`
 }
 
@@ -52,8 +52,8 @@ func (h *EvalHandler) RunTextEval(c *gin.Context) {
 	var req struct {
 		Prompt   string                 `json:"prompt" binding:"required"`
 		Expected string                 `json:"expected"`
-		Criteria map[string]interface{} `json:"criteria"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Criteria map[string]any `json:"criteria"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -73,11 +73,11 @@ func (h *EvalHandler) RunTextEval(c *gin.Context) {
 		Name:   "Text Eval",
 		Type:   "text",
 		Status: "completed",
-		Input: map[string]interface{}{
+		Input: map[string]any{
 			"prompt":   req.Prompt,
 			"expected": req.Expected,
 		},
-		Output:    map[string]interface{}{"result": "Sample output"},
+		Output:    map[string]any{"result": "Sample output"},
 		Metrics:   map[string]float64{"accuracy": 0.95},
 		Score:     0.95,
 		StartedAt: time.Now(),
@@ -99,7 +99,7 @@ func (h *EvalHandler) RunTextEval(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "eval.text.completed", map[string]interface{}{
+	logging.Info(ctx, "eval.text.completed", map[string]any{
 		"id":    evalRec.ID,
 		"score": evalRec.Score,
 	})
@@ -114,8 +114,8 @@ func (h *EvalHandler) RunTextEval(c *gin.Context) {
 func (h *EvalHandler) RunSessionEval(c *gin.Context) {
 	var req struct {
 		SessionID string                 `json:"session_id" binding:"required"`
-		Criteria  map[string]interface{} `json:"criteria"`
-		Metadata  map[string]interface{} `json:"metadata"`
+		Criteria  map[string]any `json:"criteria"`
+		Metadata  map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -135,7 +135,7 @@ func (h *EvalHandler) RunSessionEval(c *gin.Context) {
 		Name:   "Session Eval",
 		Type:   "session",
 		Status: "completed",
-		Input: map[string]interface{}{
+		Input: map[string]any{
 			"session_id": req.SessionID,
 		},
 		Metrics:   map[string]float64{"coherence": 0.90, "relevance": 0.88},
@@ -159,7 +159,7 @@ func (h *EvalHandler) RunSessionEval(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "eval.session.completed", map[string]interface{}{
+	logging.Info(ctx, "eval.session.completed", map[string]any{
 		"id": evalRec.ID,
 	})
 
@@ -172,9 +172,9 @@ func (h *EvalHandler) RunSessionEval(c *gin.Context) {
 // RunBatchEval runs batch evaluation
 func (h *EvalHandler) RunBatchEval(c *gin.Context) {
 	var req struct {
-		Items    []map[string]interface{} `json:"items" binding:"required"`
-		Criteria map[string]interface{}   `json:"criteria"`
-		Metadata map[string]interface{}   `json:"metadata"`
+		Items    []map[string]any `json:"items" binding:"required"`
+		Criteria map[string]any   `json:"criteria"`
+		Metadata map[string]any   `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -194,7 +194,7 @@ func (h *EvalHandler) RunBatchEval(c *gin.Context) {
 		Name:   "Batch Eval",
 		Type:   "batch",
 		Status: "completed",
-		Input: map[string]interface{}{
+		Input: map[string]any{
 			"count": len(req.Items),
 		},
 		Metrics:   map[string]float64{"avg_score": 0.92},
@@ -218,7 +218,7 @@ func (h *EvalHandler) RunBatchEval(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "eval.batch.completed", map[string]interface{}{
+	logging.Info(ctx, "eval.batch.completed", map[string]any{
 		"id":    evalRec.ID,
 		"count": len(req.Items),
 	})
@@ -233,9 +233,9 @@ func (h *EvalHandler) RunBatchEval(c *gin.Context) {
 func (h *EvalHandler) RunCustomEval(c *gin.Context) {
 	var req struct {
 		Name     string                 `json:"name" binding:"required"`
-		Input    map[string]interface{} `json:"input" binding:"required"`
-		Criteria map[string]interface{} `json:"criteria"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Input    map[string]any `json:"input" binding:"required"`
+		Criteria map[string]any `json:"criteria"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -277,7 +277,7 @@ func (h *EvalHandler) RunCustomEval(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "eval.custom.completed", map[string]interface{}{
+	logging.Info(ctx, "eval.custom.completed", map[string]any{
 		"id":   evalRec.ID,
 		"name": req.Name,
 	})
@@ -389,7 +389,7 @@ func (h *EvalHandler) DeleteEval(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "eval.deleted", map[string]interface{}{
+	logging.Info(ctx, "eval.deleted", map[string]any{
 		"id": id,
 	})
 
@@ -434,7 +434,7 @@ func (h *EvalHandler) CreateBenchmark(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "benchmark.created", map[string]interface{}{
+	logging.Info(ctx, "benchmark.created", map[string]any{
 		"id":   benchmark.ID,
 		"name": req.Name,
 	})
@@ -535,7 +535,7 @@ func (h *EvalHandler) DeleteBenchmark(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "benchmark.deleted", map[string]interface{}{
+	logging.Info(ctx, "benchmark.deleted", map[string]any{
 		"id": id,
 	})
 
@@ -591,7 +591,7 @@ func (h *EvalHandler) RunBenchmark(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "benchmark.run", map[string]interface{}{
+	logging.Info(ctx, "benchmark.run", map[string]any{
 		"id": id,
 	})
 

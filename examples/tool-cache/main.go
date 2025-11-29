@@ -20,11 +20,11 @@ func (t *ExpensiveTool) Description() string {
 	return "执行耗时的计算"
 }
 
-func (t *ExpensiveTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *ExpensiveTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"number": map[string]interface{}{
+		"properties": map[string]any{
+			"number": map[string]any{
 				"type":        "integer",
 				"description": "要计算的数字",
 			},
@@ -37,7 +37,7 @@ func (t *ExpensiveTool) Prompt() string {
 	return "使用此工具执行复杂的数学计算"
 }
 
-func (t *ExpensiveTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *ExpensiveTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	number, ok := input["number"].(float64)
 	if !ok {
 		return nil, fmt.Errorf("invalid input: number must be a number")
@@ -52,7 +52,7 @@ func (t *ExpensiveTool) Execute(ctx context.Context, input map[string]interface{
 
 	fmt.Printf("  [ExpensiveTool] 计算完成: %v\n", result)
 
-	return map[string]interface{}{
+	return map[string]any{
 		"result": result,
 		"time":   time.Now().Format(time.RFC3339),
 	}, nil
@@ -78,7 +78,7 @@ func main() {
 	cachedTool := tools.NewCachedTool(expensiveTool, memoryCache)
 
 	ctx := context.Background()
-	input := map[string]interface{}{"number": 10.0}
+	input := map[string]any{"number": 10.0}
 
 	// 第一次执行（无缓存）
 	fmt.Println("第一次执行（无缓存）:")
@@ -125,7 +125,7 @@ func main() {
 	fileCache := tools.NewToolCache(fileConfig)
 	cachedTool2 := tools.NewCachedTool(expensiveTool, fileCache)
 
-	input2 := map[string]interface{}{"number": 20.0}
+	input2 := map[string]any{"number": 20.0}
 
 	// 第一次执行
 	fmt.Println("第一次执行（写入文件缓存）:")
@@ -161,7 +161,7 @@ func main() {
 	bothCache := tools.NewToolCache(bothConfig)
 	cachedTool3 := tools.NewCachedTool(expensiveTool, bothCache)
 
-	input3 := map[string]interface{}{"number": 30.0}
+	input3 := map[string]any{"number": 30.0}
 
 	// 第一次执行
 	fmt.Println("第一次执行（写入双层缓存）:")
@@ -186,7 +186,7 @@ func main() {
 	fmt.Println("示例 4: 不同输入的缓存")
 	fmt.Println("---")
 
-	inputs := []map[string]interface{}{
+	inputs := []map[string]any{
 		{"number": 5.0},
 		{"number": 10.0},
 		{"number": 15.0},
@@ -233,7 +233,7 @@ func main() {
 	shortTTLCache := tools.NewToolCache(shortTTLConfig)
 	cachedTool4 := tools.NewCachedTool(expensiveTool, shortTTLCache)
 
-	input4 := map[string]interface{}{"number": 40.0}
+	input4 := map[string]any{"number": 40.0}
 
 	// 第一次执行
 	fmt.Println("第一次执行:")

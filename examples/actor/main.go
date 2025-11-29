@@ -271,11 +271,11 @@ func runCounterDemo(ctx context.Context, cmd *cli.Command) error {
 
 	// 并发发送增量消息
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(n int) {
 			defer wg.Done()
-			for j := 0; j < 10; j++ {
+			for range 10 {
 				pid.Tell(&IncrementMsg{Value: 1})
 			}
 		}(i)
@@ -310,7 +310,7 @@ func runSupervisorDemo(ctx context.Context, cmd *cli.Command) error {
 
 	// 使用自定义配置，静默 panic 日志
 	config := actor.DefaultSystemConfig()
-	config.PanicHandler = func(a *actor.PID, msg actor.Message, err interface{}) {
+	config.PanicHandler = func(a *actor.PID, msg actor.Message, err any) {
 		// 静默处理，不打印堆栈
 	}
 	system := actor.NewSystemWithConfig("supervisor-demo", config)
@@ -399,7 +399,7 @@ func runBroadcastDemo(ctx context.Context, cmd *cli.Command) error {
 
 	// 创建多个订阅者
 	subscribers := make([]*actor.PID, 5)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		sub := &SubscriberActor{name: fmt.Sprintf("Sub-%d", i+1)}
 		subscribers[i] = system.Spawn(sub, fmt.Sprintf("subscriber-%d", i+1))
 	}

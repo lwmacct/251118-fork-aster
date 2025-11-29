@@ -106,7 +106,7 @@ type Role struct {
 	Description string                 `json:"description"`
 	Permissions []string               `json:"permissions"`
 	Parents     []string               `json:"parents"` // 父角色，继承权限
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 	Enabled     bool                   `json:"enabled"`
 	Priority    int                    `json:"priority"`
 	CreatedAt   time.Time              `json:"created_at"`
@@ -123,7 +123,7 @@ type Permission struct {
 	Resource    string                 `json:"resource"`   // 资源类型
 	Action      string                 `json:"action"`     // 操作类型
 	Conditions  []PermissionCondition  `json:"conditions"` // 权限条件
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  map[string]any `json:"attributes"`
 	Enabled     bool                   `json:"enabled"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
@@ -134,7 +134,7 @@ type PermissionCondition struct {
 	Type        string      `json:"type"`     // 条件类型
 	Field       string      `json:"field"`    // 字段名
 	Operator    string      `json:"operator"` // 操作符
-	Value       interface{} `json:"value"`    // 条件值
+	Value       any `json:"value"`    // 条件值
 	Description string      `json:"description"`
 }
 
@@ -178,7 +178,7 @@ type User struct {
 	Email      string                 `json:"email"`
 	FullName   string                 `json:"full_name"`
 	Roles      []string               `json:"roles"`
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes map[string]any `json:"attributes"`
 	Status     UserStatus             `json:"status"`
 	Enabled    bool                   `json:"enabled"`
 	LastLogin  *time.Time             `json:"last_login"`
@@ -205,7 +205,7 @@ type Session struct {
 	Permissions  []string               `json:"permissions"`
 	IPAddress    string                 `json:"ip_address"`
 	UserAgent    string                 `json:"user_agent"`
-	Attributes   map[string]interface{} `json:"attributes"`
+	Attributes   map[string]any `json:"attributes"`
 	Status       SessionStatus          `json:"status"`
 	CreatedAt    time.Time              `json:"created_at"`
 	LastActivity time.Time              `json:"last_activity"`
@@ -233,7 +233,7 @@ type AccessDecision struct {
 	CacheHit     bool                   `json:"cache_hit"`
 	DecisionTime time.Duration          `json:"decision_time"`
 	EvaluatedAt  time.Time              `json:"evaluated_at"`
-	Context      map[string]interface{} `json:"context"`
+	Context      map[string]any `json:"context"`
 }
 
 // AccessRequest 访问请求
@@ -242,7 +242,7 @@ type AccessRequest struct {
 	Username    string                 `json:"username"`
 	Resource    string                 `json:"resource"`
 	Action      string                 `json:"action"`
-	Context     map[string]interface{} `json:"context"`
+	Context     map[string]any `json:"context"`
 	IPAddress   string                 `json:"ip_address"`
 	UserAgent   string                 `json:"user_agent"`
 	SessionID   string                 `json:"session_id"`
@@ -467,7 +467,7 @@ func (ac *AccessController) AssignRole(userID, roleID string) error {
 			UserID:    userID,
 			Timestamp: time.Now(),
 			Message:   fmt.Sprintf("Role %s assigned to user %s", role.Name, user.Username),
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"role_id":   roleID,
 				"role_name": role.Name,
 			},
@@ -506,7 +506,7 @@ func (ac *AccessController) RevokeRole(userID, roleID string) error {
 			UserID:    userID,
 			Timestamp: time.Now(),
 			Message:   fmt.Sprintf("Role %s revoked from user %s", roleID, user.Username),
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"role_id": roleID,
 			},
 		})
@@ -516,7 +516,7 @@ func (ac *AccessController) RevokeRole(userID, roleID string) error {
 }
 
 // CheckPermission 检查用户权限
-func (ac *AccessController) CheckPermission(userID, resource, action string, context map[string]interface{}) (*AccessDecision, error) {
+func (ac *AccessController) CheckPermission(userID, resource, action string, context map[string]any) (*AccessDecision, error) {
 	start := time.Now()
 
 	// 检查缓存
@@ -600,7 +600,7 @@ func (ac *AccessController) CheckPermission(userID, resource, action string, con
 			UserID:    userID,
 			Timestamp: time.Now(),
 			Message:   fmt.Sprintf("Access check for %s:%s - %s", resource, action, decision.Effect),
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"resource":      resource,
 				"action":        action,
 				"allowed":       decision.Allowed,
@@ -613,7 +613,7 @@ func (ac *AccessController) CheckPermission(userID, resource, action string, con
 }
 
 // evaluatePolicies 评估策略
-func (ac *AccessController) evaluatePolicies(userID, resource, action string, context map[string]interface{}) *AccessDecision {
+func (ac *AccessController) evaluatePolicies(userID, resource, action string, context map[string]any) *AccessDecision {
 	var applicablePolicies []*AccessPolicy
 
 	// 收集适用的策略
@@ -650,7 +650,7 @@ func (ac *AccessController) evaluatePolicies(userID, resource, action string, co
 }
 
 // policyApplies 检查策略是否适用
-func (ac *AccessController) policyApplies(policy *AccessPolicy, userID, resource, action string, context map[string]interface{}) bool {
+func (ac *AccessController) policyApplies(policy *AccessPolicy, userID, resource, action string, context map[string]any) bool {
 	// 检查主体
 	if policy.Principal != userID && policy.Principal != "*" {
 		return false
@@ -670,7 +670,7 @@ func (ac *AccessController) policyApplies(policy *AccessPolicy, userID, resource
 }
 
 // evaluatePolicyConditions 评估策略条件
-func (ac *AccessController) evaluatePolicyConditions(conditions []PolicyCondition, userID, resource, action string, context map[string]interface{}) bool {
+func (ac *AccessController) evaluatePolicyConditions(conditions []PolicyCondition, userID, resource, action string, context map[string]any) bool {
 	for _, condition := range conditions {
 		if !ac.evaluateCondition(condition, userID, resource, action, context) {
 			return false
@@ -680,7 +680,7 @@ func (ac *AccessController) evaluatePolicyConditions(conditions []PolicyConditio
 }
 
 // evaluateCondition 评估单个条件
-func (ac *AccessController) evaluateCondition(condition PolicyCondition, userID, resource, action string, context map[string]interface{}) bool {
+func (ac *AccessController) evaluateCondition(condition PolicyCondition, userID, resource, action string, context map[string]any) bool {
 	// 简化的条件评估
 	switch condition.Field {
 	case "user.id":
@@ -699,7 +699,7 @@ func (ac *AccessController) evaluateCondition(condition PolicyCondition, userID,
 }
 
 // compareValues 比较值
-func (ac *AccessController) compareValues(actual interface{}, operator string, expected interface{}) bool {
+func (ac *AccessController) compareValues(actual any, operator string, expected any) bool {
 	actualStr := fmt.Sprintf("%v", actual)
 	expectedStr := fmt.Sprintf("%v", expected)
 
@@ -716,7 +716,7 @@ func (ac *AccessController) compareValues(actual interface{}, operator string, e
 }
 
 // valueInList 检查值是否在列表中
-func (ac *AccessController) valueInList(value string, list interface{}) bool {
+func (ac *AccessController) valueInList(value string, list any) bool {
 	switch list := list.(type) {
 	case []string:
 		for _, item := range list {
@@ -724,7 +724,7 @@ func (ac *AccessController) valueInList(value string, list interface{}) bool {
 				return true
 			}
 		}
-	case []interface{}:
+	case []any:
 		for _, item := range list {
 			if fmt.Sprintf("%v", item) == value {
 				return true
@@ -812,7 +812,7 @@ func (ac *AccessController) getParentRolePermissions(role *Role) []string {
 }
 
 // checkPermissionList 检查权限列表
-func (ac *AccessController) checkPermissionList(permissionIDs []string, resource, action string, context map[string]interface{}) bool {
+func (ac *AccessController) checkPermissionList(permissionIDs []string, resource, action string, context map[string]any) bool {
 	for _, permID := range permissionIDs {
 		permission, exists := ac.permissions[permID]
 		if !exists || !permission.Enabled {
@@ -834,7 +834,7 @@ func (ac *AccessController) checkPermissionList(permissionIDs []string, resource
 }
 
 // checkPermissionConditions 检查权限条件
-func (ac *AccessController) checkPermissionConditions(conditions []PermissionCondition, context map[string]interface{}) bool {
+func (ac *AccessController) checkPermissionConditions(conditions []PermissionCondition, context map[string]any) bool {
 	for _, condition := range conditions {
 		if !ac.checkPermissionCondition(condition, context) {
 			return false
@@ -844,7 +844,7 @@ func (ac *AccessController) checkPermissionConditions(conditions []PermissionCon
 }
 
 // checkPermissionCondition 检查单个权限条件
-func (ac *AccessController) checkPermissionCondition(condition PermissionCondition, context map[string]interface{}) bool {
+func (ac *AccessController) checkPermissionCondition(condition PermissionCondition, context map[string]any) bool {
 	value, exists := context[condition.Field]
 	if !exists {
 		return false
@@ -911,7 +911,7 @@ func (ac *AccessController) CreateSession(userID, ipAddress, userAgent string) (
 			UserID:    userID,
 			Timestamp: time.Now(),
 			Message:   fmt.Sprintf("Session %s created for user %s", sessionID, user.Username),
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"session_id": sessionID,
 				"ip_address": ipAddress,
 				"user_agent": userAgent,
@@ -961,7 +961,7 @@ func (ac *AccessController) DeleteSession(sessionID string) error {
 			UserID:    session.UserID,
 			Timestamp: time.Now(),
 			Message:   fmt.Sprintf("Session %s revoked for user %s", sessionID, session.Username),
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"session_id": sessionID,
 			},
 		})
@@ -978,7 +978,7 @@ func (ac *AccessController) generateSessionID(userID, ipAddress, userAgent strin
 }
 
 // generateCacheKey 生成缓存键
-func (ac *AccessController) generateCacheKey(userID, resource, action string, context map[string]interface{}) string {
+func (ac *AccessController) generateCacheKey(userID, resource, action string, context map[string]any) string {
 	data := fmt.Sprintf("%s:%s:%s:%v", userID, resource, action, context)
 	hash := sha256.Sum256([]byte(data))
 	return hex.EncodeToString(hash[:])

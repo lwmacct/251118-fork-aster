@@ -8,7 +8,7 @@ import (
 )
 
 // EventHandler 事件处理器函数
-type EventHandler func(event interface{})
+type EventHandler func(event any)
 
 // EventBus 三通道事件总线
 type EventBus struct {
@@ -43,7 +43,7 @@ func NewEventBus() *EventBus {
 }
 
 // emit 发送事件到总线(内部方法)
-func (eb *EventBus) emit(channel types.AgentChannel, event interface{}) types.AgentEventEnvelope {
+func (eb *EventBus) emit(channel types.AgentChannel, event any) types.AgentEventEnvelope {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
 
@@ -101,7 +101,7 @@ func (eb *EventBus) emit(channel types.AgentChannel, event interface{}) types.Ag
 }
 
 // invokeHandlers 调用事件处理器
-func (eb *EventBus) invokeHandlers(handlers map[string][]EventHandler, event interface{}) {
+func (eb *EventBus) invokeHandlers(handlers map[string][]EventHandler, event any) {
 	// 获取事件类型
 	eventType := ""
 	if e, ok := event.(types.EventType); ok {
@@ -124,17 +124,17 @@ func (eb *EventBus) invokeHandlers(handlers map[string][]EventHandler, event int
 }
 
 // EmitProgress 发送Progress事件
-func (eb *EventBus) EmitProgress(event interface{}) types.AgentEventEnvelope {
+func (eb *EventBus) EmitProgress(event any) types.AgentEventEnvelope {
 	return eb.emit(types.ChannelProgress, event)
 }
 
 // EmitControl 发送Control事件
-func (eb *EventBus) EmitControl(event interface{}) types.AgentEventEnvelope {
+func (eb *EventBus) EmitControl(event any) types.AgentEventEnvelope {
 	return eb.emit(types.ChannelControl, event)
 }
 
 // EmitMonitor 发送Monitor事件
-func (eb *EventBus) EmitMonitor(event interface{}) types.AgentEventEnvelope {
+func (eb *EventBus) EmitMonitor(event any) types.AgentEventEnvelope {
 	return eb.emit(types.ChannelMonitor, event)
 }
 

@@ -61,10 +61,7 @@ func (s *SlidingWindowStrategy) Compress(
 	}
 
 	// 2. 始终保留最近的 N 条消息
-	recentCount := config.AlwaysKeepRecent
-	if recentCount > len(messages) {
-		recentCount = len(messages)
-	}
+	recentCount := min(config.AlwaysKeepRecent, len(messages))
 	for i := len(messages) - recentCount; i < len(messages); i++ {
 		keepIndices[i] = true
 	}
@@ -143,10 +140,7 @@ func (s *PriorityBasedStrategy) Compress(
 	}
 
 	// 2. 始终保留最近的 N 条消息
-	recentCount := config.AlwaysKeepRecent
-	if recentCount > len(messages) {
-		recentCount = len(messages)
-	}
+	recentCount := min(config.AlwaysKeepRecent, len(messages))
 	for i := len(messages) - recentCount; i < len(messages); i++ {
 		keepIndices[i] = true
 	}
@@ -239,10 +233,7 @@ func (s *TokenBasedStrategy) Compress(
 	}
 
 	// 2. 始终保留最近的 N 条消息
-	recentCount := config.AlwaysKeepRecent
-	if recentCount > len(messages) {
-		recentCount = len(messages)
-	}
+	recentCount := min(config.AlwaysKeepRecent, len(messages))
 	for i := len(messages) - recentCount; i < len(messages); i++ {
 		keepIndices[i] = true
 	}
@@ -262,7 +253,7 @@ func (s *TokenBasedStrategy) Compress(
 
 		// 构建测试消息列表
 		testMessages := []Message{}
-		for j := 0; j < len(messages); j++ {
+		for j := range len(messages) {
 			if testIndices[j] {
 				testMessages = append(testMessages, messages[j])
 			}
@@ -377,10 +368,7 @@ func (s *HybridStrategy) Compress(
 	})
 
 	// 选择得分最高的消息（最多保留原始数量的一半）
-	targetSize := len(messages) / 2
-	if targetSize < config.MinMessagesToKeep {
-		targetSize = config.MinMessagesToKeep
-	}
+	targetSize := max(len(messages)/2, config.MinMessagesToKeep)
 
 	keepIndices := make(map[int]bool)
 	for i := 0; i < targetSize && i < len(scores); i++ {

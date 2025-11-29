@@ -81,12 +81,12 @@ func demoComplexWorkflow(ctx context.Context) {
 		func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 			fmt.Println("  📥 收集数据...")
 			return &workflow.StepOutput{
-				Content: map[string]interface{}{
+				Content: map[string]any{
 					"data":    []int{1, 2, 3, 4, 5},
 					"source":  "api",
 					"quality": "high",
 				},
-				Metadata: make(map[string]interface{}),
+				Metadata: make(map[string]any),
 			}, nil
 		},
 	))
@@ -95,10 +95,10 @@ func demoComplexWorkflow(ctx context.Context) {
 	highQualityStep := workflow.NewFunctionStep("high_quality",
 		func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 			fmt.Println("  ⚡ 使用高级算法处理...")
-			data := input.PreviousStepContent.(map[string]interface{})
+			data := input.PreviousStepContent.(map[string]any)
 			return &workflow.StepOutput{
 				Content:  fmt.Sprintf("高级处理: %v", data["data"]),
-				Metadata: make(map[string]interface{}),
+				Metadata: make(map[string]any),
 			}, nil
 		},
 	)
@@ -106,17 +106,17 @@ func demoComplexWorkflow(ctx context.Context) {
 	lowQualityStep := workflow.NewFunctionStep("low_quality",
 		func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 			fmt.Println("  🔧 使用基础算法处理...")
-			data := input.PreviousStepContent.(map[string]interface{})
+			data := input.PreviousStepContent.(map[string]any)
 			return &workflow.StepOutput{
 				Content:  fmt.Sprintf("基础处理: %v", data["data"]),
-				Metadata: make(map[string]interface{}),
+				Metadata: make(map[string]any),
 			}, nil
 		},
 	)
 
 	wf.AddStep(workflow.NewConditionStep("quality_check",
 		func(input *workflow.StepInput) bool {
-			data := input.PreviousStepContent.(map[string]interface{})
+			data := input.PreviousStepContent.(map[string]any)
 			return data["quality"] == "high"
 		},
 		highQualityStep,
@@ -127,14 +127,14 @@ func demoComplexWorkflow(ctx context.Context) {
 	task1 := workflow.NewFunctionStep("validate",
 		func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 			fmt.Println("  ✓ 验证结果...")
-			return &workflow.StepOutput{Content: "验证通过", Metadata: make(map[string]interface{})}, nil
+			return &workflow.StepOutput{Content: "验证通过", Metadata: make(map[string]any)}, nil
 		},
 	)
 
 	task2 := workflow.NewFunctionStep("save",
 		func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 			fmt.Println("  💾 保存结果...")
-			return &workflow.StepOutput{Content: "保存成功", Metadata: make(map[string]interface{})}, nil
+			return &workflow.StepOutput{Content: "保存成功", Metadata: make(map[string]any)}, nil
 		},
 	)
 
@@ -154,7 +154,7 @@ func demoComplexWorkflow(ctx context.Context) {
 		}
 
 		if event.Type == workflow.EventWorkflowCompleted {
-			if data, ok := event.Data.(map[string]interface{}); ok {
+			if data, ok := event.Data.(map[string]any); ok {
 				if metrics, ok := data["metrics"].(*workflow.RunMetrics); ok {
 					fmt.Printf("\n  ✅ Workflow 完成！\n")
 					fmt.Printf("  总步骤: %d, 成功: %d, 耗时: %.3fs\n",
@@ -176,7 +176,7 @@ func demoWorkflowAgent(ctx context.Context) {
 			fmt.Printf("  🔍 分析查询: %s\n", query)
 
 			// 模拟分析
-			result := map[string]interface{}{
+			result := map[string]any{
 				"query":   query,
 				"result":  "分析完成",
 				"metrics": map[string]int{"items": 42, "quality": 95},
@@ -184,7 +184,7 @@ func demoWorkflowAgent(ctx context.Context) {
 
 			return &workflow.StepOutput{
 				Content:  result,
-				Metadata: make(map[string]interface{}),
+				Metadata: make(map[string]any),
 			}, nil
 		},
 	))

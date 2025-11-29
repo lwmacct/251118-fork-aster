@@ -15,7 +15,7 @@ import (
 type ReadTool struct{}
 
 // NewReadTool 创建文件读取工具
-func NewReadTool(config map[string]interface{}) (tools.Tool, error) {
+func NewReadTool(config map[string]any) (tools.Tool, error) {
 	return &ReadTool{}, nil
 }
 
@@ -27,19 +27,19 @@ func (t *ReadTool) Description() string {
 	return "读取本地文件系统中的文件内容"
 }
 
-func (t *ReadTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *ReadTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"file_path": map[string]interface{}{
+		"properties": map[string]any{
+			"file_path": map[string]any{
 				"type":        "string",
 				"description": "要读取的文件路径，必须是绝对路径",
 			},
-			"offset": map[string]interface{}{
+			"offset": map[string]any{
 				"type":        "integer",
 				"description": "读取的起始行号（从1开始计数），默认为1",
 			},
-			"limit": map[string]interface{}{
+			"limit": map[string]any{
 				"type":        "integer",
 				"description": "读取的最大行数，默认读取整个文件",
 			},
@@ -48,11 +48,11 @@ func (t *ReadTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *ReadTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 获取参数
 	filePath, ok := input["file_path"].(string)
 	if !ok {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": "file_path must be a string",
 			"recommendations": []string{
@@ -63,7 +63,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	}
 
 	if filePath == "" {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": "file_path cannot be empty",
 			"recommendations": []string{
@@ -75,7 +75,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	// 验证文件路径安全性
 	if err := t.validatePath(filePath); err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("invalid file path: %v", err),
 			"recommendations": []string{
@@ -104,7 +104,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	// 读取文件内容
 	content, err := tc.Sandbox.FS().Read(ctx, filePath)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("failed to read file: %v", err),
 			"recommendations": []string{
@@ -120,7 +120,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 
 	// 如果文件为空
 	if content == "" {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":          true,
 			"file_path":   filePath,
 			"content":     "",
@@ -140,7 +140,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 	// 处理offset (转换为0基索引)
 	startLine := offset - 1
 	if startLine >= totalLines {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":          true,
 			"file_path":   filePath,
 			"content":     "",
@@ -221,7 +221,7 @@ func (t *ReadTool) Execute(ctx context.Context, input map[string]interface{}, tc
 		fileType = "log"
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":          true,
 		"file_path":   filePath,
 		"content":     resultContent,
@@ -275,20 +275,20 @@ func (t *ReadTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "读取整个配置文件",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path": "/app/config.yaml",
 			},
 		},
 		{
 			Description: "读取文件的前100行",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path": "/var/log/app.log",
 				"limit":     100,
 			},
 		},
 		{
 			Description: "从第50行开始读取20行",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"file_path": "/app/src/main.go",
 				"offset":    50,
 				"limit":     20,

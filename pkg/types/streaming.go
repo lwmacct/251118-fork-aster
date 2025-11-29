@@ -47,7 +47,7 @@ type StreamChunk struct {
 	FinishReason string `json:"finish_reason,omitempty"`
 
 	// Raw 原始响应数据 (用于调试)
-	Raw map[string]interface{} `json:"raw,omitempty"`
+	Raw map[string]any `json:"raw,omitempty"`
 }
 
 // ToolCallDelta 工具调用增量
@@ -222,7 +222,7 @@ func (acc *StreamAccumulator) ToMessage() Message {
 			blocks = append(blocks, &ToolUseBlock{
 				ID:    tc.ID,
 				Name:  tc.Name,
-				Input: map[string]interface{}{"raw": tc.Arguments},
+				Input: map[string]any{"raw": tc.Arguments},
 			})
 		}
 

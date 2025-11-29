@@ -76,7 +76,7 @@ func (s *AgentStep) Execute(ctx context.Context, input *StepInput) *stream.Reade
 			Content:   fmt.Sprintf("Agent %s processed: %s", s.name, inputMessage),
 			StartTime: startTime,
 			EndTime:   time.Now(),
-			Metadata:  make(map[string]interface{}),
+			Metadata:  make(map[string]any),
 			Metrics:   &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
@@ -148,7 +148,7 @@ func (s *RoomStep) Execute(ctx context.Context, input *StepInput) *stream.Reader
 			Content:   fmt.Sprintf("Room %s processed: %s", s.name, inputMessage),
 			StartTime: startTime,
 			EndTime:   time.Now(),
-			Metadata:  make(map[string]interface{}),
+			Metadata:  make(map[string]any),
 			Metrics:   &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
@@ -246,7 +246,7 @@ func (s *FunctionStep) WithTimeout(timeout time.Duration) *FunctionStep {
 
 // ===== Helper Functions =====
 
-func SimpleFunction(name string, fn func(input interface{}) (interface{}, error)) *FunctionStep {
+func SimpleFunction(name string, fn func(input any) (any, error)) *FunctionStep {
 	return NewFunctionStep(name, func(ctx context.Context, stepInput *StepInput) (*StepOutput, error) {
 		input := stepInput.Input
 		if input == nil && stepInput.PreviousStepContent != nil {
@@ -260,13 +260,13 @@ func SimpleFunction(name string, fn func(input interface{}) (interface{}, error)
 
 		return &StepOutput{
 			Content:  output,
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	})
 }
 
-func TransformFunction(name string, transform func(input interface{}) interface{}) *FunctionStep {
-	return SimpleFunction(name, func(input interface{}) (interface{}, error) {
+func TransformFunction(name string, transform func(input any) any) *FunctionStep {
+	return SimpleFunction(name, func(input any) (any, error) {
 		return transform(input), nil
 	})
 }
@@ -340,7 +340,7 @@ func (s *ConditionStep) Execute(ctx context.Context, input *StepInput) *stream.R
 					Error:     err,
 					StartTime: startTime,
 					EndTime:   time.Now(),
-					Metadata:  map[string]interface{}{"condition": conditionResult, "branch": branchName},
+					Metadata:  map[string]any{"condition": conditionResult, "branch": branchName},
 				}
 				errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
 				writer.Send(errorOutput, err)
@@ -357,7 +357,7 @@ func (s *ConditionStep) Execute(ctx context.Context, input *StepInput) *stream.R
 			StartTime:   startTime,
 			EndTime:     time.Now(),
 			NestedSteps: []*StepOutput{branchOutput},
-			Metadata:    map[string]interface{}{"condition": conditionResult, "branch": branchName},
+			Metadata:    map[string]any{"condition": conditionResult, "branch": branchName},
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
@@ -439,7 +439,7 @@ func (s *LoopStep) Execute(ctx context.Context, input *StepInput) *stream.Reader
 						StartTime:   startTime,
 						EndTime:     time.Now(),
 						NestedSteps: iterations,
-						Metadata:    map[string]interface{}{"iterations": i, "max": s.maxIterations},
+						Metadata:    map[string]any{"iterations": i, "max": s.maxIterations},
 					}
 					errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
 					writer.Send(errorOutput, err)
@@ -469,7 +469,7 @@ func (s *LoopStep) Execute(ctx context.Context, input *StepInput) *stream.Reader
 			StartTime:   startTime,
 			EndTime:     time.Now(),
 			NestedSteps: iterations,
-			Metadata:    map[string]interface{}{"iterations": len(iterations), "max": s.maxIterations},
+			Metadata:    map[string]any{"iterations": len(iterations), "max": s.maxIterations},
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
@@ -564,14 +564,14 @@ func (s *ParallelStep) Execute(ctx context.Context, input *StepInput) *stream.Re
 				StartTime:   startTime,
 				EndTime:     time.Now(),
 				NestedSteps: results,
-				Metadata:    map[string]interface{}{"parallel_steps": len(s.steps)},
+				Metadata:    map[string]any{"parallel_steps": len(s.steps)},
 			}
 			errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
 			writer.Send(errorOutput, firstError)
 			return
 		}
 
-		combinedContent := make(map[string]interface{})
+		combinedContent := make(map[string]any)
 		for i, result := range results {
 			if result != nil {
 				combinedContent[fmt.Sprintf("step_%d", i)] = result.Content
@@ -586,7 +586,7 @@ func (s *ParallelStep) Execute(ctx context.Context, input *StepInput) *stream.Re
 			StartTime:   startTime,
 			EndTime:     time.Now(),
 			NestedSteps: results,
-			Metadata:    map[string]interface{}{"parallel_steps": len(s.steps)},
+			Metadata:    map[string]any{"parallel_steps": len(s.steps)},
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
@@ -649,7 +649,7 @@ func (s *RouterStep) Execute(ctx context.Context, input *StepInput) *stream.Read
 					Error:     err,
 					StartTime: startTime,
 					EndTime:   time.Now(),
-					Metadata:  map[string]interface{}{"route": routeName},
+					Metadata:  map[string]any{"route": routeName},
 				}
 				errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
 				writer.Send(errorOutput, err)
@@ -674,7 +674,7 @@ func (s *RouterStep) Execute(ctx context.Context, input *StepInput) *stream.Read
 					Error:     err,
 					StartTime: startTime,
 					EndTime:   time.Now(),
-					Metadata:  map[string]interface{}{"route": routeName},
+					Metadata:  map[string]any{"route": routeName},
 				}
 				errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
 				writer.Send(errorOutput, err)
@@ -691,7 +691,7 @@ func (s *RouterStep) Execute(ctx context.Context, input *StepInput) *stream.Read
 			StartTime:   startTime,
 			EndTime:     time.Now(),
 			NestedSteps: []*StepOutput{routeOutput},
-			Metadata:    map[string]interface{}{"route": routeName},
+			Metadata:    map[string]any{"route": routeName},
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()
@@ -775,7 +775,7 @@ func (s *StepsGroup) Execute(ctx context.Context, input *StepInput) *stream.Read
 						StartTime:   startTime,
 						EndTime:     time.Now(),
 						NestedSteps: outputs,
-						Metadata:    map[string]interface{}{"completed": len(outputs), "total": len(s.steps)},
+						Metadata:    map[string]any{"completed": len(outputs), "total": len(s.steps)},
 					}
 					errorOutput.Duration = errorOutput.EndTime.Sub(errorOutput.StartTime).Seconds()
 					writer.Send(errorOutput, err)
@@ -801,7 +801,7 @@ func (s *StepsGroup) Execute(ctx context.Context, input *StepInput) *stream.Read
 			StartTime:   startTime,
 			EndTime:     time.Now(),
 			NestedSteps: outputs,
-			Metadata:    map[string]interface{}{"completed": len(outputs), "total": len(s.steps)},
+			Metadata:    map[string]any{"completed": len(outputs), "total": len(s.steps)},
 			Metrics:     &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
 		}
 		output.Duration = output.EndTime.Sub(output.StartTime).Seconds()

@@ -66,7 +66,7 @@ func (r *Router) Execute(ctx context.Context, input *StepInput) *stream.Reader[*
 				StartTime:   startTime,
 				EndTime:     time.Now(),
 				NestedSteps: []*StepOutput{},
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"selected_steps": 0,
 				},
 				Metrics: &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
@@ -127,7 +127,7 @@ func (r *Router) Execute(ctx context.Context, input *StepInput) *stream.Reader[*
 					StartTime:   startTime,
 					EndTime:     time.Now(),
 					NestedSteps: allResults,
-					Metadata: map[string]interface{}{
+					Metadata: map[string]any{
 						"selected_steps": len(stepsToExecute),
 						"executed_steps": i,
 						"failed_step":    step.Name(),
@@ -153,7 +153,7 @@ func (r *Router) Execute(ctx context.Context, input *StepInput) *stream.Reader[*
 		}
 
 		// 构建最终输出
-		var finalContent interface{}
+		var finalContent any
 		if len(allResults) > 0 {
 			finalContent = allResults[len(allResults)-1].Content
 		}
@@ -166,7 +166,7 @@ func (r *Router) Execute(ctx context.Context, input *StepInput) *stream.Reader[*
 			StartTime:   startTime,
 			EndTime:     time.Now(),
 			NestedSteps: allResults,
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"selected_steps": len(stepsToExecute),
 				"executed_steps": len(allResults),
 				"step_names":     getStepNames(stepsToExecute),
@@ -193,8 +193,8 @@ func (r *Router) WithTimeout(timeout time.Duration) *Router {
 }
 
 // ExecuteStream 流式执行 Router - 支持实时事件流
-func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEvents bool) *stream.Reader[interface{}] {
-	reader, writer := stream.Pipe[interface{}](10)
+func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEvents bool) *stream.Reader[any] {
+	reader, writer := stream.Pipe[any](10)
 
 	go func() {
 		defer writer.Close()
@@ -239,7 +239,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 				StartTime:   startTime,
 				EndTime:     time.Now(),
 				NestedSteps: []*StepOutput{},
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"selected_steps": 0,
 				},
 				Metrics: &StepMetrics{ExecutionTime: time.Since(startTime).Seconds()},
@@ -290,7 +290,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 
 				// 转发步骤的流式输出
 				if streamEvents && output != nil {
-					stepProgressEvent := map[string]interface{}{
+					stepProgressEvent := map[string]any{
 						"type":        "router_step_progress",
 						"router_name": r.name,
 						"step_name":   step.Name(),
@@ -326,7 +326,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 					StartTime:   startTime,
 					EndTime:     time.Now(),
 					NestedSteps: allResults,
-					Metadata: map[string]interface{}{
+					Metadata: map[string]any{
 						"selected_steps": len(stepsToExecute),
 						"executed_steps": i,
 						"failed_step":    step.Name(),
@@ -364,7 +364,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 		}
 
 		// 构建最终输出
-		var finalContent interface{}
+		var finalContent any
 		if len(allResults) > 0 {
 			finalContent = allResults[len(allResults)-1].Content
 		}
@@ -377,7 +377,7 @@ func (r *Router) ExecuteStream(ctx context.Context, input *StepInput, streamEven
 			StartTime:   startTime,
 			EndTime:     time.Now(),
 			NestedSteps: allResults,
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"selected_steps": len(stepsToExecute),
 				"executed_steps": len(allResults),
 				"step_names":     getStepNames(stepsToExecute),

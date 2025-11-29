@@ -18,8 +18,8 @@ func main() {
 	step1 := workflow.NewFunctionStep("analyze", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		fmt.Println("  🔍 Analyzing input...")
 		return &workflow.StepOutput{
-			Content:  map[string]interface{}{"analysis": "complex", "priority": "high"},
-			Metadata: make(map[string]interface{}),
+			Content:  map[string]any{"analysis": "complex", "priority": "high"},
+			Metadata: make(map[string]any),
 		}, nil
 	})
 
@@ -27,7 +27,7 @@ func main() {
 		fmt.Println("  ⚙️  Processing complex case...")
 		return &workflow.StepOutput{
 			Content:  "Processed with advanced algorithm",
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	})
 
@@ -35,7 +35,7 @@ func main() {
 		fmt.Println("  ⚡ Processing simple case...")
 		return &workflow.StepOutput{
 			Content:  "Processed with basic algorithm",
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	})
 
@@ -43,7 +43,7 @@ func main() {
 		fmt.Println("  ✅ Finalizing...")
 		return &workflow.StepOutput{
 			Content:  fmt.Sprintf("Final result: %v", input.PreviousStepContent),
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	})
 
@@ -52,7 +52,7 @@ func main() {
 		func(input *workflow.StepInput) []string {
 			// 根据前一步的分析结果决定执行路径
 			if input.PreviousStepContent != nil {
-				if analysis, ok := input.PreviousStepContent.(map[string]interface{}); ok {
+				if analysis, ok := input.PreviousStepContent.(map[string]any); ok {
 					if analysis["analysis"] == "complex" {
 						fmt.Println("\n📍 Router 选择: complex 路径 (2步)")
 						return []string{"process_complex", "finalize"}
@@ -113,7 +113,7 @@ func main() {
 
 		case workflow.EventStepCompleted:
 			fmt.Printf("[Event %d] ✅ Step Completed: %s\n", eventCount, event.StepName)
-			if data, ok := event.Data.(map[string]interface{}); ok {
+			if data, ok := event.Data.(map[string]any); ok {
 				if output, ok := data["output"].(*workflow.StepOutput); ok {
 					fmt.Printf("   Output: %v\n", output.Content)
 					if len(output.NestedSteps) > 0 {
@@ -127,7 +127,7 @@ func main() {
 
 		case workflow.EventWorkflowCompleted:
 			fmt.Printf("\n[Event %d] 🎉 Workflow Completed\n", eventCount)
-			if data, ok := event.Data.(map[string]interface{}); ok {
+			if data, ok := event.Data.(map[string]any); ok {
 				if output, ok := data["output"]; ok {
 					fmt.Printf("   Final Output: %v\n", output)
 				}
@@ -180,7 +180,7 @@ func main() {
 			continue
 		}
 		if event.Type == workflow.EventWorkflowCompleted {
-			if data, ok := event.Data.(map[string]interface{}); ok {
+			if data, ok := event.Data.(map[string]any); ok {
 				if output, ok := data["output"]; ok {
 					fmt.Printf("结果: %v\n", output)
 				}

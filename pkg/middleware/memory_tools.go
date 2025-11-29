@@ -53,27 +53,27 @@ func (t *MemorySearchTool) Description() string {
 	return "Search long-term memory files using grep-style matching within the configured memory path."
 }
 
-func (t *MemorySearchTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *MemorySearchTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"query": map[string]interface{}{
+		"properties": map[string]any{
+			"query": map[string]any{
 				"type":        "string",
 				"description": "Text to search for (case-insensitive by default).",
 			},
-			"namespace": map[string]interface{}{
+			"namespace": map[string]any{
 				"type":        "string",
 				"description": "Optional logical namespace, e.g. \"users/alice\" or \"projects/demo\". Limits search to that subtree.",
 			},
-			"regex": map[string]interface{}{
+			"regex": map[string]any{
 				"type":        "boolean",
 				"description": "If true, treat query as a raw regular expression.",
 			},
-			"glob": map[string]interface{}{
+			"glob": map[string]any{
 				"type":        "string",
 				"description": "Optional glob filter for files, e.g. \"*.md\".",
 			},
-			"max_results": map[string]interface{}{
+			"max_results": map[string]any{
 				"type":        "integer",
 				"description": "Maximum number of matches to return (default 20).",
 			},
@@ -82,7 +82,7 @@ func (t *MemorySearchTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *MemorySearchTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *MemorySearchTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	query, _ := input["query"].(string)
 
 	rawNamespace, _ := input["namespace"].(string)
@@ -101,8 +101,8 @@ func (t *MemorySearchTool) Execute(ctx context.Context, input map[string]interfa
 	// - 如果 namespace 以 "/" 开头, 视为全局命名空间, 不叠加 baseNamespace
 	// - 否则在 baseNamespace 下叠加
 	ns := strings.TrimSpace(rawNamespace)
-	if strings.HasPrefix(ns, "/") {
-		ns = strings.TrimPrefix(ns, "/")
+	if after, found := strings.CutPrefix(ns, "/"); found {
+		ns = after
 	} else if t.baseNamespace != "" {
 		if ns != "" {
 			ns = filepath.ToSlash(filepath.Join(t.baseNamespace, ns))
@@ -119,15 +119,15 @@ func (t *MemorySearchTool) Execute(ctx context.Context, input map[string]interfa
 		MaxResults: maxResults,
 	})
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("memory search failed: %v", err),
 		}, nil
 	}
 
-	items := make([]map[string]interface{}, 0, len(matches))
+	items := make([]map[string]any, 0, len(matches))
 	for _, m := range matches {
-		items = append(items, map[string]interface{}{
+		items = append(items, map[string]any{
 			"path":        m.Path,
 			"line_number": m.LineNumber,
 			"line":        m.Line,
@@ -135,7 +135,7 @@ func (t *MemorySearchTool) Execute(ctx context.Context, input map[string]interfa
 		})
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":          true,
 		"query":       query,
 		"namespace":   ns,
@@ -185,28 +185,28 @@ func (t *MemoryWriteTool) Description() string {
 	return "Append or overwrite long-term memory notes stored as plaintext/Markdown files."
 }
 
-func (t *MemoryWriteTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *MemoryWriteTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"file": map[string]interface{}{
+		"properties": map[string]any{
+			"file": map[string]any{
 				"type":        "string",
 				"description": "Memory file name relative to the memory root, e.g. \"project_notes.md\".",
 			},
-			"content": map[string]interface{}{
+			"content": map[string]any{
 				"type":        "string",
 				"description": "Note content to write.",
 			},
-			"namespace": map[string]interface{}{
+			"namespace": map[string]any{
 				"type":        "string",
 				"description": "Optional logical namespace, e.g. \"users/alice\" or \"projects/demo\". The file will be created under this subtree.",
 			},
-			"mode": map[string]interface{}{
+			"mode": map[string]any{
 				"type":        "string",
 				"description": "Write mode: \"append\" (default) or \"overwrite\".",
-				"enum":        []interface{}{"append", "overwrite"},
+				"enum":        []any{"append", "overwrite"},
 			},
-			"title": map[string]interface{}{
+			"title": map[string]any{
 				"type":        "string",
 				"description": "Optional title for the note section (used in append mode).",
 			},
@@ -215,7 +215,7 @@ func (t *MemoryWriteTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *MemoryWriteTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *MemoryWriteTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	file, _ := input["file"].(string)
 	content, _ := input["content"].(string)
 	mode, _ := input["mode"].(string)
@@ -231,8 +231,8 @@ func (t *MemoryWriteTool) Execute(ctx context.Context, input map[string]interfac
 	// - 如果 namespace 以 "/" 开头, 视为全局命名空间, 不叠加 baseNamespace
 	// - 否则在 baseNamespace 下叠加
 	ns := strings.TrimSpace(rawNamespace)
-	if strings.HasPrefix(ns, "/") {
-		ns = strings.TrimPrefix(ns, "/")
+	if after, found := strings.CutPrefix(ns, "/"); found {
+		ns = after
 	} else if t.baseNamespace != "" {
 		if ns != "" {
 			ns = filepath.ToSlash(filepath.Join(t.baseNamespace, ns))
@@ -251,13 +251,13 @@ func (t *MemoryWriteTool) Execute(ctx context.Context, input map[string]interfac
 	case "append":
 		path, err := t.manager.AppendNote(ctx, combinedFile, title, content)
 		if err != nil {
-			return map[string]interface{}{
+			return map[string]any{
 				"ok":    false,
 				"error": fmt.Sprintf("append note failed: %v", err),
 			}, nil
 		}
 
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":          true,
 			"mode":        "append",
 			"path":        path,
@@ -269,12 +269,12 @@ func (t *MemoryWriteTool) Execute(ctx context.Context, input map[string]interfac
 	case "overwrite":
 		path, err := t.manager.OverwriteWithNote(ctx, combinedFile, title, content)
 		if err != nil {
-			return map[string]interface{}{
+			return map[string]any{
 				"ok":    false,
 				"error": fmt.Sprintf("overwrite note failed: %v", err),
 			}, nil
 		}
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":          true,
 			"mode":        "overwrite",
 			"path":        path,
@@ -284,7 +284,7 @@ func (t *MemoryWriteTool) Execute(ctx context.Context, input map[string]interfac
 		}, nil
 
 	default:
-		return map[string]interface{}{
+		return map[string]any{
 			"ok":    false,
 			"error": fmt.Sprintf("unsupported mode: %s (expected \"append\" or \"overwrite\")", mode),
 		}, nil

@@ -29,16 +29,16 @@ type Context struct {
 	StartTime time.Time
 
 	// Metadata 元数据
-	Metadata map[string]interface{}
+	Metadata map[string]any
 
 	// SessionState 会话状态
-	SessionState map[string]interface{}
+	SessionState map[string]any
 
 	// KnowledgeFilters 知识过滤器
-	KnowledgeFilters map[string]interface{}
+	KnowledgeFilters map[string]any
 
 	// Dependencies 依赖项
-	Dependencies map[string]interface{}
+	Dependencies map[string]any
 
 	// ctx Go context
 	ctx context.Context
@@ -50,8 +50,8 @@ func NewContext(runID, sessionID string) *Context {
 		RunID:        runID,
 		SessionID:    sessionID,
 		StartTime:    time.Now(),
-		Metadata:     make(map[string]interface{}),
-		SessionState: make(map[string]interface{}),
+		Metadata:     make(map[string]any),
+		SessionState: make(map[string]any),
 		ctx:          context.Background(),
 	}
 }
@@ -96,13 +96,13 @@ func (c *Context) WithTeamID(teamID string) *Context {
 }
 
 // WithMetadata 设置元数据
-func (c *Context) WithMetadata(key string, value interface{}) *Context {
+func (c *Context) WithMetadata(key string, value any) *Context {
 	c.Metadata[key] = value
 	return c
 }
 
 // WithSessionState 设置会话状态
-func (c *Context) WithSessionState(state map[string]interface{}) *Context {
+func (c *Context) WithSessionState(state map[string]any) *Context {
 	c.SessionState = state
 	return c
 }
@@ -122,10 +122,10 @@ func (c *Context) Clone() *Context {
 		WorkflowID:       c.WorkflowID,
 		TeamID:           c.TeamID,
 		StartTime:        c.StartTime,
-		Metadata:         make(map[string]interface{}),
-		SessionState:     make(map[string]interface{}),
-		KnowledgeFilters: make(map[string]interface{}),
-		Dependencies:     make(map[string]interface{}),
+		Metadata:         make(map[string]any),
+		SessionState:     make(map[string]any),
+		KnowledgeFilters: make(map[string]any),
+		Dependencies:     make(map[string]any),
 		ctx:              c.ctx,
 	}
 

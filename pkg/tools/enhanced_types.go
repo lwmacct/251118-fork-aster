@@ -11,7 +11,7 @@ type Context interface {
 	Context() context.Context
 
 	// Value 获取上下文值
-	Value(key interface{}) interface{}
+	Value(key any) any
 }
 
 // BaseTool 基础工具实现（提供默认的空方法）
@@ -36,14 +36,14 @@ func (t *BaseTool) Description() string {
 	return t.ToolDescription
 }
 
-func (t *BaseTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *BaseTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type":       "object",
-		"properties": map[string]interface{}{},
+		"properties": map[string]any{},
 	}
 }
 
-func (t *BaseTool) Execute(ctx context.Context, input map[string]interface{}, tc *ToolContext) (interface{}, error) {
+func (t *BaseTool) Execute(ctx context.Context, input map[string]any, tc *ToolContext) (any, error) {
 	return nil, nil
 }
 

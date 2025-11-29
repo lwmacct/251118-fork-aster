@@ -20,19 +20,19 @@ func (t *mockTool) Description() string {
 	return "Mock tool for testing"
 }
 
-func (t *mockTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *mockTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"param": map[string]interface{}{
+		"properties": map[string]any{
+			"param": map[string]any{
 				"type": "string",
 			},
 		},
 	}
 }
 
-func (t *mockTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
-	return map[string]interface{}{
+func (t *mockTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
+	return map[string]any{
 		"ok":     true,
 		"result": "executed",
 		"param":  input["param"],
@@ -49,7 +49,7 @@ func TestHumanInTheLoopMiddleware_BasicApproval(t *testing.T) {
 
 	// 创建中间件
 	middleware, err := NewHumanInTheLoopMiddleware(&HumanInTheLoopMiddlewareConfig{
-		InterruptOn: map[string]interface{}{
+		InterruptOn: map[string]any{
 			"sensitive_tool": true,  // 需要审核
 			"safe_tool":      false, // 不需要审核
 		},
@@ -74,7 +74,7 @@ func TestHumanInTheLoopMiddleware_BasicApproval(t *testing.T) {
 		req := &ToolCallRequest{
 			ToolCallID: "test-1",
 			ToolName:   "sensitive_tool",
-			ToolInput: map[string]interface{}{
+			ToolInput: map[string]any{
 				"param": "value1",
 			},
 			Tool: &mockTool{name: "sensitive_tool"},
@@ -93,7 +93,7 @@ func TestHumanInTheLoopMiddleware_BasicApproval(t *testing.T) {
 			t.Fatalf("WrapToolCall failed: %v", err)
 		}
 
-		resultMap, ok := resp.Result.(map[string]interface{})
+		resultMap, ok := resp.Result.(map[string]any)
 		if !ok {
 			t.Fatal("Result is not a map")
 		}
@@ -112,7 +112,7 @@ func TestHumanInTheLoopMiddleware_BasicApproval(t *testing.T) {
 		req := &ToolCallRequest{
 			ToolCallID: "test-2",
 			ToolName:   "safe_tool",
-			ToolInput: map[string]interface{}{
+			ToolInput: map[string]any{
 				"param": "value2",
 			},
 			Tool: &mockTool{name: "safe_tool"},
@@ -130,7 +130,7 @@ func TestHumanInTheLoopMiddleware_BasicApproval(t *testing.T) {
 			t.Fatalf("WrapToolCall failed: %v", err)
 		}
 
-		resultMap, ok := resp.Result.(map[string]interface{})
+		resultMap, ok := resp.Result.(map[string]any)
 		if !ok {
 			t.Fatal("Result is not a map")
 		}
@@ -146,9 +146,9 @@ func TestHumanInTheLoopMiddleware_Reject(t *testing.T) {
 	ctx := context.Background()
 
 	middleware, err := NewHumanInTheLoopMiddleware(&HumanInTheLoopMiddlewareConfig{
-		InterruptOn: map[string]interface{}{
-			"dangerous_tool": map[string]interface{}{
-				"allowed_decisions": []interface{}{"approve", "reject"},
+		InterruptOn: map[string]any{
+			"dangerous_tool": map[string]any{
+				"allowed_decisions": []any{"approve", "reject"},
 			},
 		},
 		ApprovalHandler: func(ctx context.Context, request *ReviewRequest) ([]Decision, error) {
@@ -168,7 +168,7 @@ func TestHumanInTheLoopMiddleware_Reject(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "test-reject",
 		ToolName:   "dangerous_tool",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"action": "delete_all",
 		},
 		Tool: &mockTool{name: "dangerous_tool"},
@@ -184,7 +184,7 @@ func TestHumanInTheLoopMiddleware_Reject(t *testing.T) {
 		t.Fatalf("WrapToolCall failed: %v", err)
 	}
 
-	resultMap, ok := resp.Result.(map[string]interface{})
+	resultMap, ok := resp.Result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
@@ -207,12 +207,12 @@ func TestHumanInTheLoopMiddleware_Edit(t *testing.T) {
 	ctx := context.Background()
 
 	middleware, err := NewHumanInTheLoopMiddleware(&HumanInTheLoopMiddlewareConfig{
-		InterruptOn: map[string]interface{}{
+		InterruptOn: map[string]any{
 			"editable_tool": true,
 		},
 		ApprovalHandler: func(ctx context.Context, request *ReviewRequest) ([]Decision, error) {
 			// 编辑参数
-			editedInput := make(map[string]interface{})
+			editedInput := make(map[string]any)
 			for k, v := range request.ActionRequests[0].Input {
 				editedInput[k] = v
 			}
@@ -234,7 +234,7 @@ func TestHumanInTheLoopMiddleware_Edit(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "test-edit",
 		ToolName:   "editable_tool",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"param": "original_value",
 		},
 		Tool: &mockTool{name: "editable_tool"},
@@ -252,7 +252,7 @@ func TestHumanInTheLoopMiddleware_Edit(t *testing.T) {
 		t.Fatalf("WrapToolCall failed: %v", err)
 	}
 
-	resultMap, ok := resp.Result.(map[string]interface{})
+	resultMap, ok := resp.Result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
@@ -273,7 +273,7 @@ func TestHumanInTheLoopMiddleware_DefaultApproval(t *testing.T) {
 
 	// 不提供 ApprovalHandler, 应该自动批准
 	middleware, err := NewHumanInTheLoopMiddleware(&HumanInTheLoopMiddlewareConfig{
-		InterruptOn: map[string]interface{}{
+		InterruptOn: map[string]any{
 			"test_tool": true,
 		},
 		// ApprovalHandler: nil, // 默认自动批准
@@ -285,7 +285,7 @@ func TestHumanInTheLoopMiddleware_DefaultApproval(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "test-auto",
 		ToolName:   "test_tool",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"param": "value",
 		},
 		Tool: &mockTool{name: "test_tool"},
@@ -303,7 +303,7 @@ func TestHumanInTheLoopMiddleware_DefaultApproval(t *testing.T) {
 		t.Fatalf("WrapToolCall failed: %v", err)
 	}
 
-	resultMap, ok := resp.Result.(map[string]interface{})
+	resultMap, ok := resp.Result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}
@@ -316,11 +316,11 @@ func TestHumanInTheLoopMiddleware_DefaultApproval(t *testing.T) {
 // TestHumanInTheLoopMiddleware_InterruptConfig 测试审核配置解析
 func TestHumanInTheLoopMiddleware_InterruptConfig(t *testing.T) {
 	middleware, err := NewHumanInTheLoopMiddleware(&HumanInTheLoopMiddlewareConfig{
-		InterruptOn: map[string]interface{}{
+		InterruptOn: map[string]any{
 			"tool1": true,  // 简单启用
 			"tool2": false, // 禁用
-			"tool3": map[string]interface{}{ // 自定义配置
-				"allowed_decisions": []interface{}{"approve", "reject"},
+			"tool3": map[string]any{ // 自定义配置
+				"allowed_decisions": []any{"approve", "reject"},
 				"message":           "Custom message",
 			},
 		},
@@ -365,7 +365,7 @@ func TestHumanInTheLoopMiddleware_SetApprovalHandler(t *testing.T) {
 	ctx := context.Background()
 
 	middleware, err := NewHumanInTheLoopMiddleware(&HumanInTheLoopMiddlewareConfig{
-		InterruptOn: map[string]interface{}{
+		InterruptOn: map[string]any{
 			"test_tool": true,
 		},
 	})
@@ -383,13 +383,13 @@ func TestHumanInTheLoopMiddleware_SetApprovalHandler(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "test-set",
 		ToolName:   "test_tool",
-		ToolInput:  map[string]interface{}{},
+		ToolInput:  map[string]any{},
 		Tool:       &mockTool{name: "test_tool"},
 	}
 
 	handler := func(ctx context.Context, req *ToolCallRequest) (*ToolCallResponse, error) {
 		return &ToolCallResponse{
-			Result: map[string]interface{}{"ok": true},
+			Result: map[string]any{"ok": true},
 		}, nil
 	}
 

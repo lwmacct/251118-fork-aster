@@ -62,7 +62,7 @@ func (p *Pipeline) Ingest(ctx context.Context, req IngestRequest) ([]Chunk, erro
 		ns = strings.TrimSpace(req.Namespace)
 	}
 
-	meta := make(map[string]interface{})
+	meta := make(map[string]any)
 	for k, v := range req.Metadata {
 		meta[k] = v
 	}
@@ -87,7 +87,7 @@ func (p *Pipeline) Ingest(ctx context.Context, req IngestRequest) ([]Chunk, erro
 	docs := make([]vector.Document, 0, len(rawChunks))
 	for i, ctext := range rawChunks {
 		chunkID := fmt.Sprintf("%s#%d", id, i)
-		chunkMeta := make(map[string]interface{}, len(meta)+2)
+		chunkMeta := make(map[string]any, len(meta)+2)
 		for k, v := range meta {
 			chunkMeta[k] = v
 		}
@@ -117,7 +117,7 @@ func (p *Pipeline) Ingest(ctx context.Context, req IngestRequest) ([]Chunk, erro
 }
 
 // Search 执行向量检索。
-func (p *Pipeline) Search(ctx context.Context, query string, topK int, metadata map[string]interface{}) ([]SearchHit, error) {
+func (p *Pipeline) Search(ctx context.Context, query string, topK int, metadata map[string]any) ([]SearchHit, error) {
 	if strings.TrimSpace(query) == "" {
 		return nil, fmt.Errorf("knowledge core: query is empty")
 	}

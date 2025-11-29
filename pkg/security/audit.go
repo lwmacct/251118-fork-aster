@@ -88,7 +88,7 @@ type AuditEvent struct {
 	Duration   time.Duration          `json:"duration,omitempty"`
 	RequestID  string                 `json:"request_id,omitempty"`
 	TraceID    string                 `json:"trace_id,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   map[string]any `json:"metadata,omitempty"`
 	RiskScore  float64                `json:"risk_score,omitempty"`
 	Tags       []string               `json:"tags,omitempty"`
 }
@@ -182,7 +182,7 @@ type AuditQuery struct {
 	OrderDesc bool   `json:"order_desc"` // 是否降序
 
 	// 元数据过滤
-	MetadataFilters map[string]interface{} `json:"metadata_filters,omitempty"`
+	MetadataFilters map[string]any `json:"metadata_filters,omitempty"`
 
 	// 风险评分范围
 	RiskScoreMin *float64 `json:"risk_score_min,omitempty"`
@@ -266,7 +266,7 @@ type AccessEventStats struct {
 type EventSummary struct {
 	TimeRange       TimeRange              `json:"time_range"`
 	TotalEvents     int64                  `json:"total_events"`
-	KeyMetrics      map[string]interface{} `json:"key_metrics"`
+	KeyMetrics      map[string]any `json:"key_metrics"`
 	Trends          []TrendData            `json:"trends"`
 	Alerts          []SecurityAlert        `json:"alerts"`
 	Recommendations []string               `json:"recommendations"`
@@ -288,7 +288,7 @@ type SecurityAlert struct {
 	Description string                 `json:"description"`
 	Events      []string               `json:"events"` // 相关事件ID
 	DetectedAt  time.Time              `json:"detected_at"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // AlertType 警报类型
@@ -382,8 +382,8 @@ type AuditLogStatus struct {
 	LastEventTime    time.Time              `json:"last_event_time"`
 	ErrorCount       int64                  `json:"error_count"`
 	LastError        string                 `json:"last_error,omitempty"`
-	WorkerPoolStatus map[string]interface{} `json:"worker_pool_status"`
-	MemoryUsage      map[string]interface{} `json:"memory_usage"`
+	WorkerPoolStatus map[string]any `json:"worker_pool_status"`
+	MemoryUsage      map[string]any `json:"memory_usage"`
 }
 
 // InMemoryAuditLog 内存审计日志实现
@@ -749,7 +749,7 @@ func (al *InMemoryAuditLog) GetEventSummary(timeRange TimeRange) (*EventSummary,
 	summary := &EventSummary{
 		TimeRange:   timeRange,
 		TotalEvents: result.Total,
-		KeyMetrics:  make(map[string]interface{}),
+		KeyMetrics:  make(map[string]any),
 		Trends:      []TrendData{},
 		Alerts:      []SecurityAlert{},
 	}

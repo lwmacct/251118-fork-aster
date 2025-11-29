@@ -148,7 +148,7 @@ func createDependencies() *agent.Dependencies {
 		ID:           "default",
 		SystemPrompt: "You are a helpful AI assistant.",
 		Model:        "claude-3-5-sonnet-20241022",
-		Tools:        []interface{}{"*"},
+		Tools:        []any{"*"},
 	})
 
 	// 创建工具注册表和存储

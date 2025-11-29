@@ -11,7 +11,7 @@ import (
 type MockTool struct {
 	name        string
 	description string
-	executeFunc func(context.Context, map[string]interface{}, *ToolContext) (interface{}, error)
+	executeFunc func(context.Context, map[string]any, *ToolContext) (any, error)
 	callCount   int
 }
 
@@ -23,11 +23,11 @@ func (m *MockTool) Description() string {
 	return m.description
 }
 
-func (m *MockTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (m *MockTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"input": map[string]interface{}{
+		"properties": map[string]any{
+			"input": map[string]any{
 				"type": "string",
 			},
 		},
@@ -38,12 +38,12 @@ func (m *MockTool) Prompt() string {
 	return ""
 }
 
-func (m *MockTool) Execute(ctx context.Context, input map[string]interface{}, tc *ToolContext) (interface{}, error) {
+func (m *MockTool) Execute(ctx context.Context, input map[string]any, tc *ToolContext) (any, error) {
 	m.callCount++
 	if m.executeFunc != nil {
 		return m.executeFunc(ctx, input, tc)
 	}
-	return map[string]interface{}{
+	return map[string]any{
 		"result": "mock result",
 		"input":  input,
 	}, nil
@@ -62,7 +62,7 @@ func TestToolCache_MemoryCache(t *testing.T) {
 	// 测试设置和获取
 	ctx := context.Background()
 	key := "test_key"
-	value := map[string]interface{}{"data": "test"}
+	value := map[string]any{"data": "test"}
 
 	err := cache.Set(ctx, key, value, config.TTL)
 	if err != nil {
@@ -75,9 +75,9 @@ func TestToolCache_MemoryCache(t *testing.T) {
 		t.Fatal("Expected cache hit")
 	}
 
-	cachedMap, ok := cached.(map[string]interface{})
+	cachedMap, ok := cached.(map[string]any)
 	if !ok {
-		t.Fatal("Expected map[string]interface{}")
+		t.Fatal("Expected map[string]any")
 	}
 
 	if cachedMap["data"] != "test" {
@@ -147,7 +147,7 @@ func TestToolCache_FileCache(t *testing.T) {
 	cache := NewToolCache(config)
 	ctx := context.Background()
 	key := "test_key"
-	value := map[string]interface{}{"data": "test"}
+	value := map[string]any{"data": "test"}
 
 	// 设置缓存
 	err := cache.Set(ctx, key, value, config.TTL)
@@ -161,9 +161,9 @@ func TestToolCache_FileCache(t *testing.T) {
 		t.Fatal("Expected cache hit")
 	}
 
-	cachedMap, ok := cached.(map[string]interface{})
+	cachedMap, ok := cached.(map[string]any)
 	if !ok {
-		t.Fatal("Expected map[string]interface{}")
+		t.Fatal("Expected map[string]any")
 	}
 
 	if cachedMap["data"] != "test" {
@@ -242,7 +242,7 @@ func TestToolCache_MaxMemoryItems(t *testing.T) {
 
 	// 添加4个条目，应该驱逐最旧的
 	for i := 0; i < 4; i++ {
-		key := cache.GenerateKey("tool", map[string]interface{}{"index": i})
+		key := cache.GenerateKey("tool", map[string]any{"index": i})
 		err := cache.Set(ctx, key, i, config.TTL)
 		if err != nil {
 			t.Fatalf("Failed to set cache: %v", err)
@@ -257,13 +257,13 @@ func TestToolCache_MaxMemoryItems(t *testing.T) {
 	}
 
 	// 第一个条目应该被驱逐
-	firstKey := cache.GenerateKey("tool", map[string]interface{}{"index": 0})
+	firstKey := cache.GenerateKey("tool", map[string]any{"index": 0})
 	if _, ok := cache.Get(ctx, firstKey); ok {
 		t.Fatal("Expected first entry to be evicted")
 	}
 
 	// 最后一个条目应该存在
-	lastKey := cache.GenerateKey("tool", map[string]interface{}{"index": 3})
+	lastKey := cache.GenerateKey("tool", map[string]any{"index": 3})
 	if _, ok := cache.Get(ctx, lastKey); !ok {
 		t.Fatal("Expected last entry to exist")
 	}
@@ -316,7 +316,7 @@ func TestToolCache_Clear(t *testing.T) {
 
 	// 添加多个条目
 	for i := 0; i < 5; i++ {
-		key := cache.GenerateKey("tool", map[string]interface{}{"index": i})
+		key := cache.GenerateKey("tool", map[string]any{"index": i})
 		err := cache.Set(ctx, key, i, config.TTL)
 		if err != nil {
 			t.Fatalf("Failed to set cache: %v", err)
@@ -346,8 +346,8 @@ func TestToolCache_GenerateKey(t *testing.T) {
 	cache := NewToolCache(DefaultCacheConfig())
 
 	// 相同输入应该生成相同的键
-	input1 := map[string]interface{}{"a": 1, "b": "test"}
-	input2 := map[string]interface{}{"a": 1, "b": "test"}
+	input1 := map[string]any{"a": 1, "b": "test"}
+	input2 := map[string]any{"a": 1, "b": "test"}
 
 	key1 := cache.GenerateKey("tool1", input1)
 	key2 := cache.GenerateKey("tool1", input2)
@@ -357,7 +357,7 @@ func TestToolCache_GenerateKey(t *testing.T) {
 	}
 
 	// 不同输入应该生成不同的键
-	input3 := map[string]interface{}{"a": 2, "b": "test"}
+	input3 := map[string]any{"a": 2, "b": "test"}
 	key3 := cache.GenerateKey("tool1", input3)
 
 	if key1 == key3 {
@@ -391,7 +391,7 @@ func TestCachedTool_Execute(t *testing.T) {
 	cachedTool := NewCachedTool(mockTool, cache)
 
 	ctx := context.Background()
-	input := map[string]interface{}{"test": "value"}
+	input := map[string]any{"test": "value"}
 
 	// 第一次执行
 	result1, err := cachedTool.Execute(ctx, input, nil)
@@ -414,8 +414,8 @@ func TestCachedTool_Execute(t *testing.T) {
 	}
 
 	// 验证结果相同
-	result1Map := result1.(map[string]interface{})
-	result2Map := result2.(map[string]interface{})
+	result1Map := result1.(map[string]any)
+	result2Map := result2.(map[string]any)
 
 	if result1Map["result"] != result2Map["result"] {
 		t.Error("Expected same result from cache")
@@ -447,8 +447,8 @@ func TestCachedTool_DifferentInputs(t *testing.T) {
 	ctx := context.Background()
 
 	// 不同的输入应该执行不同的调用
-	input1 := map[string]interface{}{"test": "value1"}
-	input2 := map[string]interface{}{"test": "value2"}
+	input1 := map[string]any{"test": "value1"}
+	input2 := map[string]any{"test": "value2"}
 
 	_, err := cachedTool.Execute(ctx, input1, nil)
 	if err != nil {
@@ -517,7 +517,7 @@ func TestToolCache_Cleanup(t *testing.T) {
 
 	// 添加多个条目
 	for i := 0; i < 5; i++ {
-		key := cache.GenerateKey("tool", map[string]interface{}{"index": i})
+		key := cache.GenerateKey("tool", map[string]any{"index": i})
 		err := cache.Set(ctx, key, i, config.TTL)
 		if err != nil {
 			t.Fatalf("Failed to set cache: %v", err)

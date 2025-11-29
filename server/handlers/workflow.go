@@ -15,7 +15,7 @@ type WorkflowStep struct {
 	ID        string                 `json:"id"`
 	Name      string                 `json:"name"`
 	Type      string                 `json:"type"` // agent, tool, condition, loop
-	Config    map[string]interface{} `json:"config,omitempty"`
+	Config    map[string]any `json:"config,omitempty"`
 	DependsOn []string               `json:"depends_on,omitempty"`
 	Timeout   int                    `json:"timeout,omitempty"` // seconds
 }
@@ -23,7 +23,7 @@ type WorkflowStep struct {
 // WorkflowTrigger Workflow 触发器
 type WorkflowTrigger struct {
 	Type   string                 `json:"type"` // manual, scheduled, event
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config map[string]any `json:"config,omitempty"`
 }
 
 // WorkflowExecution Workflow 执行记录
@@ -33,11 +33,11 @@ type WorkflowExecution struct {
 	Status      string                 `json:"status"` // pending, running, completed, failed, cancelled
 	StartedAt   time.Time              `json:"started_at"`
 	CompletedAt *time.Time             `json:"completed_at,omitempty"`
-	Result      map[string]interface{} `json:"result,omitempty"`
+	Result      map[string]any `json:"result,omitempty"`
 	Error       string                 `json:"error,omitempty"`
 	Logs        []ExecutionLog         `json:"logs,omitempty"`
-	Context     map[string]interface{} `json:"context,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Context     map[string]any `json:"context,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // ExecutionLog 执行日志
@@ -46,7 +46,7 @@ type ExecutionLog struct {
 	Level     string                 `json:"level"` // info, warn, error
 	StepID    string                 `json:"step_id,omitempty"`
 	Message   string                 `json:"message"`
-	Data      map[string]interface{} `json:"data,omitempty"`
+	Data      map[string]any `json:"data,omitempty"`
 }
 
 // WorkflowHandler handles workflow-related requests
@@ -67,7 +67,7 @@ func (h *WorkflowHandler) Create(c *gin.Context) {
 		Version     string                 `json:"version"`
 		Steps       []WorkflowStep         `json:"steps" binding:"required"`
 		Triggers    []WorkflowTrigger      `json:"triggers"`
-		Metadata    map[string]interface{} `json:"metadata"`
+		Metadata    map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -89,14 +89,14 @@ func (h *WorkflowHandler) Create(c *gin.Context) {
 		version = "1.0.0"
 	}
 
-	// Convert steps to []interface{}
-	steps := make([]interface{}, len(req.Steps))
+	// Convert steps to []any
+	steps := make([]any, len(req.Steps))
 	for i, step := range req.Steps {
 		steps[i] = step
 	}
 
-	// Convert triggers to []interface{}
-	triggers := make([]interface{}, len(req.Triggers))
+	// Convert triggers to []any
+	triggers := make([]any, len(req.Triggers))
 	for i, trigger := range req.Triggers {
 		triggers[i] = trigger
 	}
@@ -125,7 +125,7 @@ func (h *WorkflowHandler) Create(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "workflow.created", map[string]interface{}{
+	logging.Info(ctx, "workflow.created", map[string]any{
 		"id":   workflow.ID,
 		"name": req.Name,
 	})
@@ -219,7 +219,7 @@ func (h *WorkflowHandler) Update(c *gin.Context) {
 		Steps       []WorkflowStep         `json:"steps"`
 		Triggers    []WorkflowTrigger      `json:"triggers"`
 		Status      *string                `json:"status"`
-		Metadata    map[string]interface{} `json:"metadata"`
+		Metadata    map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -266,14 +266,14 @@ func (h *WorkflowHandler) Update(c *gin.Context) {
 		workflow.Version = *req.Version
 	}
 	if req.Steps != nil {
-		steps := make([]interface{}, len(req.Steps))
+		steps := make([]any, len(req.Steps))
 		for i, step := range req.Steps {
 			steps[i] = step
 		}
 		workflow.Steps = steps
 	}
 	if req.Triggers != nil {
-		triggers := make([]interface{}, len(req.Triggers))
+		triggers := make([]any, len(req.Triggers))
 		for i, trigger := range req.Triggers {
 			triggers[i] = trigger
 		}
@@ -298,7 +298,7 @@ func (h *WorkflowHandler) Update(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "workflow.updated", map[string]interface{}{
+	logging.Info(ctx, "workflow.updated", map[string]any{
 		"id": id,
 	})
 
@@ -334,7 +334,7 @@ func (h *WorkflowHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "workflow.deleted", map[string]interface{}{
+	logging.Info(ctx, "workflow.deleted", map[string]any{
 		"id": id,
 	})
 
@@ -347,12 +347,12 @@ func (h *WorkflowHandler) Execute(c *gin.Context) {
 	id := c.Param("id")
 
 	var req struct {
-		Context  map[string]interface{} `json:"context"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Context  map[string]any `json:"context"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		req.Context = make(map[string]interface{})
+		req.Context = make(map[string]any)
 	}
 
 	// Check if workflow exists
@@ -400,7 +400,7 @@ func (h *WorkflowHandler) Execute(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "workflow.execution.started", map[string]interface{}{
+	logging.Info(ctx, "workflow.execution.started", map[string]any{
 		"workflow_id":  id,
 		"execution_id": execution.ID,
 	})

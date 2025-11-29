@@ -32,7 +32,7 @@ func TestSkillCallTool_InputSchema(t *testing.T) {
 		t.Fatal("Input schema should not be nil")
 	}
 
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -61,8 +61,8 @@ func TestSkillCallTool_MissingSkill(t *testing.T) {
 		t.Fatalf("Failed to create SkillCall tool: %v", err)
 	}
 
-	input := map[string]interface{}{
-		"parameters": map[string]interface{}{},
+	input := map[string]any{
+		"parameters": map[string]any{},
 	}
 
 	result := ExecuteToolWithInput(t, tool, input)
@@ -81,7 +81,7 @@ func TestSkillCallTool_InvalidSkill(t *testing.T) {
 		t.Fatalf("Failed to create SkillCall tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"skill": "nonexistent_skill",
 	}
 
@@ -105,9 +105,9 @@ func TestSkillCallTool_WithParameters(t *testing.T) {
 		t.Fatalf("Failed to create SkillCall tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"skill": "test_skill",
-		"parameters": map[string]interface{}{
+		"parameters": map[string]any{
 			"param1": "value1",
 			"param2": 42,
 			"param3": true,
@@ -138,7 +138,7 @@ func TestSkillCallTool_WithTimeout(t *testing.T) {
 		t.Fatalf("Failed to create SkillCall tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"skill":           "test_skill",
 		"timeout_seconds": 5,
 	}
@@ -162,9 +162,9 @@ func TestSkillCallTool_WithEmptyParameters(t *testing.T) {
 		t.Fatalf("Failed to create SkillCall tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"skill":      "test_skill",
-		"parameters": map[string]interface{}{},
+		"parameters": map[string]any{},
 	}
 
 	result := ExecuteToolWithInput(t, tool, input)
@@ -193,9 +193,9 @@ func TestSkillCallTool_ConcurrentCalls(t *testing.T) {
 
 	concurrency := 3
 	result := RunConcurrentTest(concurrency, func() error {
-		input := map[string]interface{}{
+		input := map[string]any{
 			"skill": "test_skill",
-			"parameters": map[string]interface{}{
+			"parameters": map[string]any{
 				"test_id": concurrency,
 			},
 		}
@@ -234,9 +234,9 @@ func BenchmarkSkillCallTool_SimpleCall(b *testing.B) {
 		b.Fatalf("Failed to create SkillCall tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"skill": "test_skill",
-		"parameters": map[string]interface{}{
+		"parameters": map[string]any{
 			"benchmark": true,
 		},
 	}

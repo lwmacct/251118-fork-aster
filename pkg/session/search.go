@@ -242,15 +242,8 @@ func generateSnippet(content, query string, maxLen int) string {
 	}
 
 	// 计算片段范围
-	start := index - maxLen/2
-	if start < 0 {
-		start = 0
-	}
-
-	end := start + maxLen
-	if end > len(content) {
-		end = len(content)
-	}
+	start := max(index-maxLen/2, 0)
+	end := min(start+maxLen, len(content))
 
 	snippet := content[start:end]
 

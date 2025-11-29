@@ -30,7 +30,7 @@ func TestSemanticSearchTool_InputSchema(t *testing.T) {
 		t.Fatal("Input schema should not be nil")
 	}
 
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -53,12 +53,12 @@ func TestSemanticSearchTool_InputSchema(t *testing.T) {
 
 	// 验证required字段
 	required := schema["required"]
-	var requiredArray []interface{}
+	var requiredArray []any
 	switch v := required.(type) {
-	case []interface{}:
+	case []any:
 		requiredArray = v
 	case []string:
-		requiredArray = make([]interface{}, len(v))
+		requiredArray = make([]any, len(v))
 		for i, s := range v {
 			requiredArray[i] = s
 		}
@@ -78,7 +78,7 @@ func TestSemanticSearchTool_MissingQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"top_k": 5,
 	}
 
@@ -98,7 +98,7 @@ func TestSemanticSearchTool_EmptyQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"query": "", // 空查询
 	}
 
@@ -118,7 +118,7 @@ func TestSemanticSearchTool_WithTopK(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"query": "test query",
 		"top_k": 3,
 	}
@@ -147,9 +147,9 @@ func TestSemanticSearchTool_WithMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"query": "test query",
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"user_id":    "test_user",
 			"project_id": "test_project",
 		},

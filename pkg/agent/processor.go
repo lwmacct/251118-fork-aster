@@ -135,7 +135,7 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 			Messages:     messages,
 			SystemPrompt: currentSystemPrompt,
 			Tools:        nil, // TODO: 转换 toolMap 为 []tools.Tool
-			Metadata:     make(map[string]interface{}),
+			Metadata:     make(map[string]any),
 		}
 
 		// 定义 finalHandler: 实际调用 Provider
@@ -159,7 +159,7 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 
 			return &middleware.ModelResponse{
 				Message:  message,
-				Metadata: make(map[string]interface{}),
+				Metadata: make(map[string]any),
 			}, nil
 		}
 
@@ -326,7 +326,7 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 	toolCtx.Reporter = a.makeToolReporter(tu.ID, tu.Name)
 
 	// 兼容旧版 Emit 回调
-	toolCtx.Emit = func(eventType string, data interface{}) {
+	toolCtx.Emit = func(eventType string, data any) {
 		switch eventType {
 		case "progress":
 			if p, ok := data.(float64); ok {
@@ -448,7 +448,7 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 			ToolInput:  tu.Input,
 			Tool:       tool,
 			Context:    toolCtx,
-			Metadata:   make(map[string]interface{}),
+			Metadata:   make(map[string]any),
 		}
 
 		// 定义 finalHandler: 实际执行工具
@@ -462,7 +462,7 @@ func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) t
 
 			return &middleware.ToolCallResponse{
 				Result:   result,
-				Metadata: make(map[string]interface{}),
+				Metadata: make(map[string]any),
 			}, nil
 		}
 
@@ -603,7 +603,7 @@ func (a *Agent) updateToolRecord(id string, state types.ToolCallState, errorMsg 
 }
 
 // handleStreamResponse 处理流式响应(Phase 6C - 提取为独立方法以支持Middleware)
-func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider.StreamChunk) (types.Message, error) {
+func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.StreamChunk) (types.Message, error) {
 	assistantContent := make([]types.ContentBlock, 0)
 	currentBlockIndex := -1
 	textBuffers := make(map[int]string)
@@ -615,7 +615,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 		switch chunk.Type {
 		// 处理 reasoning_delta (DeepSeek Reasoner 模型的思考过程)
 		case "reasoning_delta":
-			if delta, ok := chunk.Delta.(map[string]interface{}); ok {
+			if delta, ok := chunk.Delta.(map[string]any); ok {
 				if content, ok := delta["content"].(string); ok && content != "" {
 					// 首次收到思考内容时，发送开始事件
 					if !reasoningStarted {
@@ -636,7 +636,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 
 		case "content_block_start":
 			currentBlockIndex = chunk.Index
-			if delta, ok := chunk.Delta.(map[string]interface{}); ok {
+			if delta, ok := chunk.Delta.(map[string]any); ok {
 				blockType, _ := delta["type"].(string)
 				switch blockType {
 				case "text":
@@ -673,7 +673,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 					assistantContent[currentBlockIndex] = &types.ToolUseBlock{
 						ID:    toolID,
 						Name:  toolName,
-						Input: make(map[string]interface{}),
+						Input: make(map[string]any),
 					}
 				default:
 					log.Printf("[handleStreamResponse] Unknown block type: %s", blockType)
@@ -681,17 +681,14 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 			}
 
 		case "content_block_delta":
-			if delta, ok := chunk.Delta.(map[string]interface{}); ok {
+			if delta, ok := chunk.Delta.(map[string]any); ok {
 				deltaType, _ := delta["type"].(string)
 				switch deltaType {
 				case "text_delta":
 					text, _ := delta["text"].(string)
 					// 如果 currentBlockIndex 未初始化，使用 chunk.Index 或默认为 0
 					if currentBlockIndex < 0 {
-						currentBlockIndex = chunk.Index
-						if currentBlockIndex < 0 {
-							currentBlockIndex = 0
-						}
+						currentBlockIndex = max(chunk.Index, 0)
 					}
 
 					// 确保有足够的空间
@@ -751,7 +748,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 					})
 				} else if block, ok := assistantContent[currentBlockIndex].(*types.ToolUseBlock); ok {
 					if jsonStr, exists := inputJSONBuffers[currentBlockIndex]; exists && jsonStr != "" {
-						var input map[string]interface{}
+						var input map[string]any
 						if err := json.Unmarshal([]byte(jsonStr), &input); err == nil {
 							block.Input = input
 						} else {
@@ -825,7 +822,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 					assistantContent[blockIndex] = &types.ToolUseBlock{
 						ID:    tc.ID,
 						Name:  tc.Name,
-						Input: make(map[string]interface{}),
+						Input: make(map[string]any),
 					}
 					inputJSONBuffers[blockIndex] = ""
 				}
@@ -866,7 +863,7 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 		for i, block := range assistantContent {
 			if tu, ok := block.(*types.ToolUseBlock); ok {
 				if jsonStr, exists := inputJSONBuffers[i]; exists && jsonStr != "" {
-					var input map[string]interface{}
+					var input map[string]any
 					if err := json.Unmarshal([]byte(jsonStr), &input); err == nil {
 						tu.Input = input
 					}

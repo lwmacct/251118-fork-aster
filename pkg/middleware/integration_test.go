@@ -63,7 +63,7 @@ func TestSubAgentMiddleware_Integration(t *testing.T) {
 
 	// 2. 创建工厂
 	factory := func(ctx context.Context, spec SubAgentSpec) (SubAgent, error) {
-		execFn := func(ctx context.Context, description string, parentContext map[string]interface{}) (string, error) {
+		execFn := func(ctx context.Context, description string, parentContext map[string]any) (string, error) {
 			return "Test result: " + description, nil
 		}
 		return NewSimpleSubAgent(spec.Name, spec.Prompt, execFn), nil
@@ -90,7 +90,7 @@ func TestSubAgentMiddleware_Integration(t *testing.T) {
 	}
 
 	// 5. 测试 task 执行
-	result, err := taskTool.Execute(ctx, map[string]interface{}{
+	result, err := taskTool.Execute(ctx, map[string]any{
 		"description":   "Test task",
 		"subagent_type": "test-agent",
 	}, nil)
@@ -98,7 +98,7 @@ func TestSubAgentMiddleware_Integration(t *testing.T) {
 		t.Fatalf("Task execution failed: %v", err)
 	}
 
-	resultMap, ok := result.(map[string]interface{})
+	resultMap, ok := result.(map[string]any)
 	if !ok {
 		t.Fatal("Result is not a map")
 	}

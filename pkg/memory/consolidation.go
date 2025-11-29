@@ -62,7 +62,7 @@ func DefaultConsolidationConfig() ConsolidationConfig {
 // LLMProvider 提供 LLM 调用能力。
 type LLMProvider interface {
 	// Complete 完成文本生成
-	Complete(ctx context.Context, prompt string, options map[string]interface{}) (string, error)
+	Complete(ctx context.Context, prompt string, options map[string]any) (string, error)
 }
 
 // ConsolidationStrategy 合并策略接口。
@@ -91,7 +91,7 @@ const (
 type MemoryWithScore struct {
 	DocID      string
 	Text       string
-	Metadata   map[string]interface{}
+	Metadata   map[string]any
 	Provenance *MemoryProvenance
 	Score      float64 // 与查询的相似度
 }
@@ -99,7 +99,7 @@ type MemoryWithScore struct {
 // ConsolidatedMemory 合并后的记忆。
 type ConsolidatedMemory struct {
 	Text           string                 // 合并后的文本
-	Metadata       map[string]interface{} // 合并后的元数据
+	Metadata       map[string]any // 合并后的元数据
 	Provenance     *MemoryProvenance      // 合并后的溯源
 	SourceMemories []string               // 源记忆 ID 列表
 	Reason         ConsolidationReason    // 合并原因
@@ -243,7 +243,7 @@ func (ce *ConsolidationEngine) handleSourceMemories(ctx context.Context, memorie
 			// 标记为已合并
 			metadata := mem.Metadata
 			if metadata == nil {
-				metadata = make(map[string]interface{})
+				metadata = make(map[string]any)
 			}
 			metadata["consolidated"] = true
 			metadata["consolidated_to"] = consolidatedID

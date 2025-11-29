@@ -234,7 +234,7 @@ func TestUpdateStep(t *testing.T) {
 	stepID := chain.Steps[0].ID
 
 	// 更新步骤
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"result":     "Updated result",
 		"status":     StepStatusCompleted,
 		"confidence": 0.9,
@@ -292,7 +292,7 @@ func TestStepLifecycle(t *testing.T) {
 
 	// 更新步骤状态
 	stepID := current.ID
-	if err := chain.UpdateStep(stepID, map[string]interface{}{
+	if err := chain.UpdateStep(stepID, map[string]any{
 		"status": StepStatusRunning,
 	}); err != nil {
 		t.Fatalf("UpdateStep failed: %v", err)
@@ -303,7 +303,7 @@ func TestStepLifecycle(t *testing.T) {
 	}
 
 	// 完成步骤
-	if err := chain.UpdateStep(stepID, map[string]interface{}{
+	if err := chain.UpdateStep(stepID, map[string]any{
 		"status":     StepStatusCompleted,
 		"result":     "Test completed successfully",
 		"confidence": 0.95,

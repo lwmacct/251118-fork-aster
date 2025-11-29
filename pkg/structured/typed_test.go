@@ -173,7 +173,7 @@ func TestParseTyped_WithValidation(t *testing.T) {
 	spec := TypedOutputSpec{
 		StructType: &TestTask{},
 		Strict:     true,
-		CustomValidation: func(data interface{}) error {
+		CustomValidation: func(data any) error {
 			task := data.(*TestTask)
 			if task.Priority < 0 || task.Priority > 5 {
 				return &ValidationError{

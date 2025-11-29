@@ -142,7 +142,7 @@ func TestToolIndex_WithExamples(t *testing.T) {
 		Examples: []tools.ToolExample{
 			{
 				Description: "GET request",
-				Input:       map[string]interface{}{"url": "https://example.com"},
+				Input:       map[string]any{"url": "https://example.com"},
 			},
 		},
 	}

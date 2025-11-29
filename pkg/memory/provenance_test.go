@@ -134,7 +134,7 @@ func TestProvenance_ToMetadata(t *testing.T) {
 
 	meta := p.ToMetadata()
 
-	provData, ok := meta["provenance"].(map[string]interface{})
+	provData, ok := meta["provenance"].(map[string]any)
 	if !ok {
 		t.Fatal("provenance not found in metadata")
 	}
