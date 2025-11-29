@@ -53,7 +53,7 @@ func (a *JWTAuthenticator) Method() AuthMethod {
 }
 
 // Authenticate 生成 JWT 令牌
-func (a *JWTAuthenticator) Authenticate(ctx context.Context, credentials interface{}) (*User, error) {
+func (a *JWTAuthenticator) Authenticate(ctx context.Context, credentials any) (*User, error) {
 	user, ok := credentials.(*User)
 	if !ok {
 		return nil, ErrInvalidCredentials
@@ -65,7 +65,7 @@ func (a *JWTAuthenticator) Authenticate(ctx context.Context, credentials interfa
 
 // Validate 验证 JWT 令牌
 func (a *JWTAuthenticator) Validate(ctx context.Context, tokenString string) (*User, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (any, error) {
 		// 验证签名方法
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("invalid signing method")

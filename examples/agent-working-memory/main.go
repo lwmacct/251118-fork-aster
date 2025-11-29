@@ -70,7 +70,7 @@ When you learn something important about the user or their tasks, use the update
 Remember: Working Memory is automatically loaded at the start of each conversation, so you always have access to it.`,
 		Model: "claude-sonnet-4-5",
 		// 基础工具，working memory 工具由中间件自动注入
-		Tools: []interface{}{"Read", "Write", "Bash"},
+		Tools: []any{"Read", "Write", "Bash"},
 	})
 
 	deps := &agent.Dependencies{
@@ -102,7 +102,7 @@ Remember: Working Memory is automatically loaded at the start of each conversati
 		// 启用中间件: filesystem + agent_memory + working_memory
 		Middlewares: []string{"filesystem", "agent_memory", "working_memory"},
 		// 设置 threadID 用于 Working Memory 隔离
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"thread_id":   "demo-thread-001",
 			"resource_id": "demo-task",
 		},

@@ -63,7 +63,7 @@ func TestPromptBuilder_CodeAssistant(t *testing.T) {
 	deps.TemplateRegistry.Register(&types.AgentTemplateDefinition{
 		ID:           "code-assistant",
 		SystemPrompt: "You are a professional code assistant.",
-		Tools:        []interface{}{"Read", "Write"},
+		Tools:        []any{"Read", "Write"},
 	})
 
 	config := &types.AgentConfig{
@@ -77,7 +77,7 @@ func TestPromptBuilder_CodeAssistant(t *testing.T) {
 			Kind:    types.SandboxKindMock,
 			WorkDir: "/tmp/test",
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"agent_type": "code_assistant",
 		},
 	}
@@ -110,7 +110,7 @@ func TestPromptBuilder_TodoReminder(t *testing.T) {
 	deps.TemplateRegistry.Register(&types.AgentTemplateDefinition{
 		ID:           "todo-assistant",
 		SystemPrompt: "You are a task management assistant.",
-		Tools:        []interface{}{"Read", "Write"},
+		Tools:        []any{"Read", "Write"},
 		Runtime: &types.AgentTemplateRuntime{
 			Todo: &types.TodoConfig{
 				Enabled:         true,
@@ -160,7 +160,7 @@ func TestPromptBuilder_ToolsManualConfig(t *testing.T) {
 	deps.TemplateRegistry.Register(&types.AgentTemplateDefinition{
 		ID:           "selective-tools",
 		SystemPrompt: "You are a selective assistant.",
-		Tools:        []interface{}{"Read", "Write"},
+		Tools:        []any{"Read", "Write"},
 		Runtime: &types.AgentTemplateRuntime{
 			ToolsManual: &types.ToolsManualConfig{
 				Mode:    "listed",
@@ -228,7 +228,7 @@ func setupPromptTestDeps(t *testing.T) *Dependencies {
 		ID:           "test-template",
 		SystemPrompt: "You are a test assistant.",
 		Model:        "claude-sonnet-4-5",
-		Tools:        []interface{}{"Read", "Write"},
+		Tools:        []any{"Read", "Write"},
 	})
 
 	return &Dependencies{

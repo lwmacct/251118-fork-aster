@@ -18,7 +18,7 @@ func TestPatchToolCallsMiddleware_CatchPanic(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "test-panic",
 		ToolName:   "panic_tool",
-		ToolInput:  map[string]interface{}{},
+		ToolInput:  map[string]any{},
 	}
 
 	// 模拟会 panic 的处理器
@@ -37,7 +37,7 @@ func TestPatchToolCallsMiddleware_CatchPanic(t *testing.T) {
 		t.Fatal("Response should not be nil")
 	}
 
-	resultMap, ok := resp.Result.(map[string]interface{})
+	resultMap, ok := resp.Result.(map[string]any)
 	if !ok {
 		t.Fatal("Result should be a map")
 	}
@@ -68,7 +68,7 @@ func TestPatchToolCallsMiddleware_CatchError(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "test-error",
 		ToolName:   "error_tool",
-		ToolInput:  map[string]interface{}{},
+		ToolInput:  map[string]any{},
 	}
 
 	// 模拟返回 error 的处理器
@@ -87,7 +87,7 @@ func TestPatchToolCallsMiddleware_CatchError(t *testing.T) {
 		t.Fatal("Response should not be nil")
 	}
 
-	resultMap, ok := resp.Result.(map[string]interface{})
+	resultMap, ok := resp.Result.(map[string]any)
 	if !ok {
 		t.Fatal("Result should be a map")
 	}
@@ -126,7 +126,7 @@ func TestPatchToolCallsMiddleware_NilResponse(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "test-nil",
 		ToolName:   "nil_tool",
-		ToolInput:  map[string]interface{}{},
+		ToolInput:  map[string]any{},
 	}
 
 	// 模拟返回 nil 响应的处理器
@@ -144,7 +144,7 @@ func TestPatchToolCallsMiddleware_NilResponse(t *testing.T) {
 		t.Fatal("Response should not be nil")
 	}
 
-	resultMap, ok := resp.Result.(map[string]interface{})
+	resultMap, ok := resp.Result.(map[string]any)
 	if !ok {
 		t.Fatal("Result should be a map")
 	}
@@ -165,13 +165,13 @@ func TestPatchToolCallsMiddleware_SuccessfulCall(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "test-success",
 		ToolName:   "success_tool",
-		ToolInput:  map[string]interface{}{},
+		ToolInput:  map[string]any{},
 	}
 
 	// 正常的处理器
 	handler := func(ctx context.Context, req *ToolCallRequest) (*ToolCallResponse, error) {
 		return &ToolCallResponse{
-			Result: map[string]interface{}{
+			Result: map[string]any{
 				"ok":     true,
 				"result": "success",
 			},
@@ -188,7 +188,7 @@ func TestPatchToolCallsMiddleware_SuccessfulCall(t *testing.T) {
 		t.Fatal("Response should not be nil")
 	}
 
-	resultMap, ok := resp.Result.(map[string]interface{})
+	resultMap, ok := resp.Result.(map[string]any)
 	if !ok {
 		t.Fatal("Result should be a map")
 	}
@@ -217,7 +217,7 @@ func TestPatchToolCallsMiddleware_FailedCallsTracking(t *testing.T) {
 		req := &ToolCallRequest{
 			ToolCallID: "test",
 			ToolName:   "fail_tool",
-			ToolInput:  map[string]interface{}{},
+			ToolInput:  map[string]any{},
 		}
 
 		handler := func(ctx context.Context, req *ToolCallRequest) (*ToolCallResponse, error) {
@@ -259,7 +259,7 @@ func TestPatchToolCallsMiddleware_WithoutHints(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "test",
 		ToolName:   "test_tool",
-		ToolInput:  map[string]interface{}{},
+		ToolInput:  map[string]any{},
 	}
 
 	handler := func(ctx context.Context, req *ToolCallRequest) (*ToolCallResponse, error) {
@@ -271,7 +271,7 @@ func TestPatchToolCallsMiddleware_WithoutHints(t *testing.T) {
 		t.Errorf("WrapToolCall failed: %v", err)
 	}
 
-	resultMap := resp.Result.(map[string]interface{})
+	resultMap := resp.Result.(map[string]any)
 
 	// 不应该有 hints
 	if _, hasHints := resultMap["hints"]; hasHints {
@@ -295,7 +295,7 @@ func TestPatchToolCallsMiddleware_FailedCallDetails(t *testing.T) {
 	req := &ToolCallRequest{
 		ToolCallID: "call-123",
 		ToolName:   "test_tool",
-		ToolInput: map[string]interface{}{
+		ToolInput: map[string]any{
 			"param1": "value1",
 		},
 	}

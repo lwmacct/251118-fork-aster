@@ -183,7 +183,7 @@ func TestPostgresService_AppendEvent(t *testing.T) {
 				Content: "World",
 			},
 			Actions: session.EventActions{
-				StateDelta: map[string]interface{}{
+				StateDelta: map[string]any{
 					"session:counter": 42,
 					"session:name":    "test",
 				},

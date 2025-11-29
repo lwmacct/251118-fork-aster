@@ -249,7 +249,7 @@ func TestRunBatch_WithMetadata(t *testing.T) {
 			Input: &TextEvalInput{
 				Answer: "测试答案",
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"source":   "test",
 				"priority": 1,
 			},

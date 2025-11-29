@@ -308,7 +308,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, writer *stream.Writer
 			Messages:     messages,
 			SystemPrompt: a.template.SystemPrompt,
 			Tools:        toolList,
-			Metadata:     make(map[string]interface{}),
+			Metadata:     make(map[string]any),
 		}
 
 		// 创建适配器处理provider调用
@@ -362,7 +362,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, writer *stream.Writer
 					}
 				// Anthropic 格式 - content_block_delta
 				case "content_block_delta":
-					if delta, ok := chunk.Delta.(map[string]interface{}); ok {
+					if delta, ok := chunk.Delta.(map[string]any); ok {
 						if chunkType, ok := delta["type"].(string); ok {
 							switch chunkType {
 							case "text_delta":
@@ -476,7 +476,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, writer *stream.Writer
 				}
 			// Anthropic 格式 - content_block_delta
 			case "content_block_delta":
-				if delta, ok := chunk.Delta.(map[string]interface{}); ok {
+				if delta, ok := chunk.Delta.(map[string]any); ok {
 					if chunkType, ok := delta["type"].(string); ok {
 						switch chunkType {
 						case "text_delta":
@@ -514,7 +514,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, writer *stream.Writer
 				}
 			case "content_block_start":
 				// 开始新的工具调用
-				if toolInfo, ok := chunk.Delta.(map[string]interface{}); ok {
+				if toolInfo, ok := chunk.Delta.(map[string]any); ok {
 					if name, ok := toolInfo["name"].(string); ok {
 						if id, ok := toolInfo["id"].(string); ok {
 							log.Printf("[Agent Stream] 开始工具调用: name=%s, id=%s", name, id)
@@ -533,10 +533,10 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, writer *stream.Writer
 					log.Printf("[Agent Stream] 工具调用完成，参数: %s", truncate(argsStr, 200))
 
 					// 解析JSON参数
-					var input map[string]interface{}
+					var input map[string]any
 					if err := json.Unmarshal([]byte(argsStr), &input); err != nil {
 						log.Printf("[Agent Stream] 解析工具参数失败: %v", err)
-						input = make(map[string]interface{})
+						input = make(map[string]any)
 					}
 
 					currentToolCall.Arguments = input
@@ -555,7 +555,7 @@ func (a *Agent) runModelStepStreaming(ctx context.Context, writer *stream.Writer
 
 		resp = &middleware.ModelResponse{
 			Message:  assistantMessage,
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}
 	}
 
@@ -676,13 +676,13 @@ func (a *Agent) getToolsForProvider() []types.ToolDefinition {
 }
 
 // persistMessage 持久化消息
-func (a *Agent) persistMessage(ctx context.Context, msg *types.Message) error {
+func (a *Agent) persistMessage(_ context.Context, _ *types.Message) error {
 	// TODO: 实现消息持久化
 	return nil
 }
 
 // persistEvent 持久化事件
-func (a *Agent) persistEvent(ctx context.Context, event *session.Event) error {
+func (a *Agent) persistEvent(_ context.Context, _ *session.Event) error {
 	// TODO: 实现事件持久化到 SessionService
 	return nil
 }

@@ -16,13 +16,13 @@ type WorkingMemoryRecord struct {
 	SessionID string                 `json:"session_id,omitempty"`
 	AgentID   string                 `json:"agent_id,omitempty"`
 	Key       string                 `json:"key"`
-	Value     interface{}            `json:"value"`
+	Value     any            `json:"value"`
 	Type      string                 `json:"type"`
 	TTL       int                    `json:"ttl,omitempty"`
 	ExpiresAt *time.Time             `json:"expires_at,omitempty"`
 	CreatedAt time.Time              `json:"created_at"`
 	UpdatedAt time.Time              `json:"updated_at"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // SemanticMemoryRecord Semantic Memory 记录
@@ -35,7 +35,7 @@ type SemanticMemoryRecord struct {
 	AgentID   string                 `json:"agent_id,omitempty"`
 	Tags      []string               `json:"tags,omitempty"`
 	CreatedAt time.Time              `json:"created_at"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // ProvenanceRecord Provenance 溯源记录
@@ -46,8 +46,8 @@ type ProvenanceRecord struct {
 	Operation  string                 `json:"operation"`
 	Actor      string                 `json:"actor,omitempty"`
 	Timestamp  time.Time              `json:"timestamp"`
-	Changes    map[string]interface{} `json:"changes,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Changes    map[string]any `json:"changes,omitempty"`
+	Metadata   map[string]any `json:"metadata,omitempty"`
 }
 
 // MemoryHandler handles memory-related requests
@@ -66,10 +66,10 @@ func (h *MemoryHandler) CreateWorkingMemory(c *gin.Context) {
 		SessionID string                 `json:"session_id"`
 		AgentID   string                 `json:"agent_id"`
 		Key       string                 `json:"key" binding:"required"`
-		Value     interface{}            `json:"value" binding:"required"`
+		Value     any            `json:"value" binding:"required"`
 		Type      string                 `json:"type"`
 		TTL       int                    `json:"ttl"`
-		Metadata  map[string]interface{} `json:"metadata"`
+		Metadata  map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -115,7 +115,7 @@ func (h *MemoryHandler) CreateWorkingMemory(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "working_memory.created", map[string]interface{}{
+	logging.Info(ctx, "working_memory.created", map[string]any{
 		"id":  record.ID,
 		"key": req.Key,
 	})
@@ -226,9 +226,9 @@ func (h *MemoryHandler) UpdateWorkingMemory(c *gin.Context) {
 	id := c.Param("id")
 
 	var req struct {
-		Value    interface{}            `json:"value"`
+		Value    any            `json:"value"`
 		TTL      *int                   `json:"ttl"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -293,7 +293,7 @@ func (h *MemoryHandler) UpdateWorkingMemory(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "working_memory.updated", map[string]interface{}{
+	logging.Info(ctx, "working_memory.updated", map[string]any{
 		"id": id,
 	})
 
@@ -329,7 +329,7 @@ func (h *MemoryHandler) DeleteWorkingMemory(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "working_memory.deleted", map[string]interface{}{
+	logging.Info(ctx, "working_memory.deleted", map[string]any{
 		"id": id,
 	})
 
@@ -374,7 +374,7 @@ func (h *MemoryHandler) ClearWorkingMemory(c *gin.Context) {
 		}
 	}
 
-	logging.Info(ctx, "working_memory.cleared", map[string]interface{}{
+	logging.Info(ctx, "working_memory.cleared", map[string]any{
 		"deleted_count": deleted,
 	})
 
@@ -395,7 +395,7 @@ func (h *MemoryHandler) CreateSemanticMemory(c *gin.Context) {
 		SessionID string                 `json:"session_id"`
 		AgentID   string                 `json:"agent_id"`
 		Tags      []string               `json:"tags"`
-		Metadata  map[string]interface{} `json:"metadata"`
+		Metadata  map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -434,7 +434,7 @@ func (h *MemoryHandler) CreateSemanticMemory(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "semantic_memory.created", map[string]interface{}{
+	logging.Info(ctx, "semantic_memory.created", map[string]any{
 		"id": record.ID,
 	})
 
@@ -506,7 +506,7 @@ func (h *MemoryHandler) GetProvenance(c *gin.Context) {
 		"success": true,
 		"data": gin.H{
 			"entity_id": id,
-			"history":   []interface{}{},
+			"history":   []any{},
 		},
 	})
 }

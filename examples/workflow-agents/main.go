@@ -249,7 +249,7 @@ func (a *MockAgent) Execute(ctx context.Context, message string) *stream.Reader[
 				Role:    types.RoleAssistant,
 				Content: fmt.Sprintf("[%s] %s - 处理: %s", a.name, a.description, message),
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"agent_description": a.description,
 				"quality_score":     85 + (time.Now().Unix() % 10), // 模拟质量分数
 			},

@@ -14,10 +14,10 @@ import (
 // StorageManager 存储管理器接口
 type StorageManager interface {
 	// StoreData 存储数据
-	StoreData(key string, data interface{}) error
+	StoreData(key string, data any) error
 
 	// LoadData 加载数据
-	LoadData(key string, target interface{}) error
+	LoadData(key string, target any) error
 
 	// DeleteData 删除数据
 	DeleteData(key string) error
@@ -99,7 +99,7 @@ func NewFileStorageManager() *FileStorageManager {
 }
 
 // StoreData 存储数据
-func (fsm *FileStorageManager) StoreData(key string, data interface{}) error {
+func (fsm *FileStorageManager) StoreData(key string, data any) error {
 	fsm.mu.Lock()
 	defer fsm.mu.Unlock()
 
@@ -121,7 +121,7 @@ func (fsm *FileStorageManager) StoreData(key string, data interface{}) error {
 }
 
 // LoadData 加载数据
-func (fsm *FileStorageManager) LoadData(key string, target interface{}) error {
+func (fsm *FileStorageManager) LoadData(key string, target any) error {
 	fsm.mu.RLock()
 	defer fsm.mu.RUnlock()
 

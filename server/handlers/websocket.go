@@ -59,7 +59,7 @@ type WebSocketConnection struct {
 // WebSocketMessage represents a message sent over WebSocket
 type WebSocketMessage struct {
 	Type    string                 `json:"type"`
-	Payload map[string]interface{} `json:"payload"`
+	Payload map[string]any `json:"payload"`
 }
 
 // NewWebSocketHandler creates a new WebSocketHandler
@@ -84,7 +84,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	// Upgrade HTTP connection to WebSocket
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		logging.Error(c.Request.Context(), "websocket.upgrade.failed", map[string]interface{}{
+		logging.Error(c.Request.Context(), "websocket.upgrade.failed", map[string]any{
 			"error": err.Error(),
 		})
 		return
@@ -107,7 +107,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	h.connections[wsConn.ID] = wsConn
 	h.mu.Unlock()
 
-	logging.Info(ctx, "websocket.connected", map[string]interface{}{
+	logging.Info(ctx, "websocket.connected", map[string]any{
 		"connection_id": wsConn.ID,
 	})
 
@@ -133,12 +133,12 @@ func (h *WebSocketHandler) readPump(wsConn *WebSocketConnection) {
 	for {
 		_, message, err := wsConn.Conn.ReadMessage()
 		if err != nil {
-			logging.Info(wsConn.ctx, "websocket.read.closed", map[string]interface{}{
+			logging.Info(wsConn.ctx, "websocket.read.closed", map[string]any{
 				"connection_id": wsConn.ID,
 				"error":         err.Error(),
 			})
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				logging.Error(wsConn.ctx, "websocket.read.error", map[string]interface{}{
+				logging.Error(wsConn.ctx, "websocket.read.error", map[string]any{
 					"connection_id": wsConn.ID,
 					"error":         err.Error(),
 				})
@@ -146,7 +146,7 @@ func (h *WebSocketHandler) readPump(wsConn *WebSocketConnection) {
 			break
 		}
 
-		logging.Info(wsConn.ctx, "websocket.message.received", map[string]interface{}{
+		logging.Info(wsConn.ctx, "websocket.message.received", map[string]any{
 			"connection_id": wsConn.ID,
 			"message":       string(message),
 		})
@@ -221,7 +221,7 @@ func (h *WebSocketHandler) handleMessage(wsConn *WebSocketConnection, msg *WebSo
 }
 
 // handleChat handles chat messages
-func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[string]interface{}) {
+func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[string]any) {
 	// Reset read deadline to prevent timeout during long-running LLM requests
 	_ = wsConn.Conn.SetReadDeadline(time.Now().Add(5 * time.Minute))
 
@@ -243,7 +243,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 	// Reuse existing agent if available, otherwise create new one
 	if wsConn.Agent != nil {
 		ag = wsConn.Agent
-		logging.Info(wsConn.ctx, "websocket.agent.reused", map[string]interface{}{
+		logging.Info(wsConn.ctx, "websocket.agent.reused", map[string]any{
 			"agent_id": ag.ID(),
 		})
 	} else {
@@ -253,7 +253,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 		}
 
 		// Handle model config if provided
-		if modelConfigData, ok := payload["model_config"].(map[string]interface{}); ok {
+		if modelConfigData, ok := payload["model_config"].(map[string]any); ok {
 			modelConfig := &types.ModelConfig{}
 			if provider, ok := modelConfigData["provider"].(string); ok {
 				modelConfig.Provider = provider
@@ -294,7 +294,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 		}
 		wsConn.Agent = ag
 		h.registry.Register(ag)
-		logging.Info(wsConn.ctx, "websocket.agent.created", map[string]interface{}{
+		logging.Info(wsConn.ctx, "websocket.agent.created", map[string]any{
 			"agent_id": ag.ID(),
 		})
 
@@ -322,7 +322,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 						channel = string(ev.Channel())
 						eventType = ev.EventType()
 					}
-					h.sendMessage(wsConn, "agent_event", map[string]interface{}{
+					h.sendMessage(wsConn, "agent_event", map[string]any{
 						"channel":  channel,
 						"type":     eventType,
 						"cursor":   envelope.Cursor,
@@ -337,12 +337,12 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 	}
 
 	// Send start event
-	h.sendMessage(wsConn, "chat_start", map[string]interface{}{
+	h.sendMessage(wsConn, "chat_start", map[string]any{
 		"agent_id": ag.ID(),
 	})
 
 	// 发送 think_chunk_start (思考开始)
-	h.sendMessage(wsConn, "think_chunk_start", map[string]interface{}{
+	h.sendMessage(wsConn, "think_chunk_start", map[string]any{
 		"step": 0,
 	})
 
@@ -350,7 +350,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 	// 注意: 不在这里关闭 Agent,让 Agent 在整个 WebSocket 连接期间保持活跃
 	// Agent 会在 WebSocket 断开时由 handleDisconnect 关闭
 	go func() {
-		logging.Info(wsConn.ctx, "websocket.stream.starting", map[string]interface{}{
+		logging.Info(wsConn.ctx, "websocket.stream.starting", map[string]any{
 			"agent_id": ag.ID(),
 			"input":    input,
 		})
@@ -362,7 +362,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				logging.Error(wsConn.ctx, "stream.error", map[string]interface{}{
+				logging.Error(wsConn.ctx, "stream.error", map[string]any{
 					"agent_id": ag.ID(),
 					"error":    err.Error(),
 				})
@@ -371,7 +371,7 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 			}
 
 			if event != nil {
-				logging.Info(wsConn.ctx, "websocket.stream.event.received", map[string]interface{}{
+				logging.Info(wsConn.ctx, "websocket.stream.event.received", map[string]any{
 					"agent_id":      ag.ID(),
 					"event_id":      event.ID,
 					"author":        event.Author,
@@ -381,11 +381,11 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 
 				// 处理推理内容 (Kimi thinking, DeepSeek reasoner)
 				if event.Reasoning != "" {
-					logging.Info(wsConn.ctx, "websocket.stream.sending_think_chunk", map[string]interface{}{
+					logging.Info(wsConn.ctx, "websocket.stream.sending_think_chunk", map[string]any{
 						"agent_id":         ag.ID(),
 						"reasoning_length": len(event.Reasoning),
 					})
-					h.sendMessage(wsConn, "think_chunk", map[string]interface{}{
+					h.sendMessage(wsConn, "think_chunk", map[string]any{
 						"delta": event.Reasoning,
 					})
 				}
@@ -399,40 +399,40 @@ func (h *WebSocketHandler) handleChat(wsConn *WebSocketConnection, payload map[s
 				}
 
 				if textContent != "" {
-					logging.Info(wsConn.ctx, "websocket.stream.sending_text_delta", map[string]interface{}{
+					logging.Info(wsConn.ctx, "websocket.stream.sending_text_delta", map[string]any{
 						"agent_id":    ag.ID(),
 						"text_length": len(textContent),
 						"preview":     textContent[:min(50, len(textContent))],
 					})
-					h.sendMessage(wsConn, "text_delta", map[string]interface{}{
+					h.sendMessage(wsConn, "text_delta", map[string]any{
 						"text": textContent,
 					})
 				}
 			} else {
-				logging.Info(wsConn.ctx, "websocket.stream.nil_event", map[string]interface{}{
+				logging.Info(wsConn.ctx, "websocket.stream.nil_event", map[string]any{
 					"agent_id": ag.ID(),
 				})
 			}
 		}
 
 		// 发送 think_chunk_end (思考结束)
-		h.sendMessage(wsConn, "think_chunk_end", map[string]interface{}{
+		h.sendMessage(wsConn, "think_chunk_end", map[string]any{
 			"step": 0,
 		})
 
 		// Send completion event
-		h.sendMessage(wsConn, "chat_complete", map[string]interface{}{
+		h.sendMessage(wsConn, "chat_complete", map[string]any{
 			"agent_id": ag.ID(),
 		})
 
-		logging.Info(wsConn.ctx, "chat.completed", map[string]interface{}{
+		logging.Info(wsConn.ctx, "chat.completed", map[string]any{
 			"agent_id": ag.ID(),
 		})
 	}()
 }
 
 // sendMessage sends a message to the WebSocket client
-func (h *WebSocketHandler) sendMessage(wsConn *WebSocketConnection, msgType string, payload map[string]interface{}) {
+func (h *WebSocketHandler) sendMessage(wsConn *WebSocketConnection, msgType string, payload map[string]any) {
 	// 检查 context 是否已取消
 	if wsConn.ctx.Err() != nil {
 		return
@@ -445,7 +445,7 @@ func (h *WebSocketHandler) sendMessage(wsConn *WebSocketConnection, msgType stri
 
 	data, err := json.Marshal(msg)
 	if err != nil {
-		logging.Error(wsConn.ctx, "websocket.marshal.error", map[string]interface{}{
+		logging.Error(wsConn.ctx, "websocket.marshal.error", map[string]any{
 			"error": err.Error(),
 		})
 		return
@@ -454,7 +454,7 @@ func (h *WebSocketHandler) sendMessage(wsConn *WebSocketConnection, msgType stri
 	// 使用 defer recover 防止发送到已关闭的 channel 导致 panic
 	defer func() {
 		if r := recover(); r != nil {
-			logging.Warn(wsConn.ctx, "websocket.send.recovered", map[string]interface{}{
+			logging.Warn(wsConn.ctx, "websocket.send.recovered", map[string]any{
 				"connection_id": wsConn.ID,
 				"message_type":  msgType,
 				"panic":         r,
@@ -467,7 +467,7 @@ func (h *WebSocketHandler) sendMessage(wsConn *WebSocketConnection, msgType stri
 	case <-wsConn.ctx.Done():
 	default:
 		// Channel full, skip message
-		logging.Warn(wsConn.ctx, "websocket.send.dropped", map[string]interface{}{
+		logging.Warn(wsConn.ctx, "websocket.send.dropped", map[string]any{
 			"connection_id": wsConn.ID,
 			"message_type":  msgType,
 		})
@@ -476,7 +476,7 @@ func (h *WebSocketHandler) sendMessage(wsConn *WebSocketConnection, msgType stri
 
 // sendError sends an error message to the WebSocket client
 func (h *WebSocketHandler) sendError(wsConn *WebSocketConnection, code, message string) {
-	h.sendMessage(wsConn, "error", map[string]interface{}{
+	h.sendMessage(wsConn, "error", map[string]any{
 		"code":    code,
 		"message": message,
 	})
@@ -499,13 +499,13 @@ func (h *WebSocketHandler) closeConnection(wsConn *WebSocketConnection) {
 	if wsConn.Agent != nil {
 		h.registry.Unregister((*wsConn.Agent).ID())
 		if err := (*wsConn.Agent).Close(); err != nil {
-			logging.Error(wsConn.ctx, "failed to close agent", map[string]interface{}{
+			logging.Error(wsConn.ctx, "failed to close agent", map[string]any{
 				"error": err.Error(),
 			})
 		}
 	}
 
-	logging.Info(wsConn.ctx, "websocket.disconnected", map[string]interface{}{
+	logging.Info(wsConn.ctx, "websocket.disconnected", map[string]any{
 		"connection_id": wsConn.ID,
 	})
 }
@@ -524,7 +524,7 @@ func (h *WebSocketHandler) GetStats(c *gin.Context) {
 }
 
 // handleTodoListRequest handles todo list requests
-func (h *WebSocketHandler) handleTodoListRequest(wsConn *WebSocketConnection, payload map[string]interface{}) {
+func (h *WebSocketHandler) handleTodoListRequest(wsConn *WebSocketConnection, payload map[string]any) {
 	listName := "default"
 	if name, ok := payload["list_name"].(string); ok && name != "" {
 		listName = name
@@ -539,23 +539,23 @@ func (h *WebSocketHandler) handleTodoListRequest(wsConn *WebSocketConnection, pa
 			Todos:     []builtin.TodoItem{},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Metadata:  make(map[string]interface{}),
+			Metadata:  make(map[string]any),
 		}
 	}
 
-	h.sendMessage(wsConn, "todo_list_response", map[string]interface{}{
+	h.sendMessage(wsConn, "todo_list_response", map[string]any{
 		"todos": todoList.Todos,
 	})
 }
 
 // handleTodoCreate handles todo creation
-func (h *WebSocketHandler) handleTodoCreate(wsConn *WebSocketConnection, payload map[string]interface{}) {
+func (h *WebSocketHandler) handleTodoCreate(wsConn *WebSocketConnection, payload map[string]any) {
 	listName := "default"
 	if name, ok := payload["list_name"].(string); ok && name != "" {
 		listName = name
 	}
 
-	todoData, ok := payload["todo"].(map[string]interface{})
+	todoData, ok := payload["todo"].(map[string]any)
 	if !ok {
 		h.sendError(wsConn, "invalid_todo", "todo data is required")
 		return
@@ -571,7 +571,7 @@ func (h *WebSocketHandler) handleTodoCreate(wsConn *WebSocketConnection, payload
 			Todos:     []builtin.TodoItem{},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Metadata:  make(map[string]interface{}),
+			Metadata:  make(map[string]any),
 		}
 	}
 
@@ -580,7 +580,7 @@ func (h *WebSocketHandler) handleTodoCreate(wsConn *WebSocketConnection, payload
 		ID:        fmt.Sprintf("todo_%d", time.Now().UnixNano()),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 	}
 
 	if content, ok := todoData["content"].(string); ok {
@@ -625,19 +625,19 @@ func (h *WebSocketHandler) handleTodoCreate(wsConn *WebSocketConnection, payload
 	}
 
 	// 广播给所有连接
-	h.broadcastToAll("todo_created", map[string]interface{}{
+	h.broadcastToAll("todo_created", map[string]any{
 		"todo": todo,
 	})
 }
 
 // handleTodoUpdate handles todo updates
-func (h *WebSocketHandler) handleTodoUpdate(wsConn *WebSocketConnection, payload map[string]interface{}) {
+func (h *WebSocketHandler) handleTodoUpdate(wsConn *WebSocketConnection, payload map[string]any) {
 	listName := "default"
 	if name, ok := payload["list_name"].(string); ok && name != "" {
 		listName = name
 	}
 
-	todoData, ok := payload["todo"].(map[string]interface{})
+	todoData, ok := payload["todo"].(map[string]any)
 	if !ok {
 		h.sendError(wsConn, "invalid_todo", "todo data is required")
 		return
@@ -693,7 +693,7 @@ func (h *WebSocketHandler) handleTodoUpdate(wsConn *WebSocketConnection, payload
 			}
 			if dueDate, ok := todoData["dueDate"].(string); ok {
 				if todoList.Todos[i].Metadata == nil {
-					todoList.Todos[i].Metadata = make(map[string]interface{})
+					todoList.Todos[i].Metadata = make(map[string]any)
 				}
 				todoList.Todos[i].Metadata["dueDate"] = dueDate
 			}
@@ -716,13 +716,13 @@ func (h *WebSocketHandler) handleTodoUpdate(wsConn *WebSocketConnection, payload
 	}
 
 	// 广播给所有连接
-	h.broadcastToAll("todo_updated", map[string]interface{}{
+	h.broadcastToAll("todo_updated", map[string]any{
 		"todo": todoData,
 	})
 }
 
 // handleTodoDelete handles todo deletion
-func (h *WebSocketHandler) handleTodoDelete(wsConn *WebSocketConnection, payload map[string]interface{}) {
+func (h *WebSocketHandler) handleTodoDelete(wsConn *WebSocketConnection, payload map[string]any) {
 	listName := "default"
 	if name, ok := payload["list_name"].(string); ok && name != "" {
 		listName = name
@@ -764,13 +764,13 @@ func (h *WebSocketHandler) handleTodoDelete(wsConn *WebSocketConnection, payload
 	}
 
 	// 广播给所有连接
-	h.broadcastToAll("todo_deleted", map[string]interface{}{
+	h.broadcastToAll("todo_deleted", map[string]any{
 		"id": todoID,
 	})
 }
 
 // handleToolControl 处理工具控制指令
-func (h *WebSocketHandler) handleToolControl(wsConn *WebSocketConnection, payload map[string]interface{}) {
+func (h *WebSocketHandler) handleToolControl(wsConn *WebSocketConnection, payload map[string]any) {
 	if wsConn.Agent == nil {
 		h.sendError(wsConn, "agent_not_ready", "agent is not initialized")
 		return
@@ -795,7 +795,7 @@ func (h *WebSocketHandler) handleToolControl(wsConn *WebSocketConnection, payloa
 }
 
 // broadcastToAll broadcasts a message to all connected WebSocket clients
-func (h *WebSocketHandler) broadcastToAll(messageType string, payload map[string]interface{}) {
+func (h *WebSocketHandler) broadcastToAll(messageType string, payload map[string]any) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 

@@ -17,7 +17,7 @@ func main() {
 	// 1. 创建 stdout logger
 	stdLogger := logging.NewLogger(logging.LevelDebug, logging.NewStdoutTransport())
 
-	stdLogger.Info(ctx, "server.started", map[string]interface{}{
+	stdLogger.Info(ctx, "server.started", map[string]any{
 		"addr": ":8080",
 		"env":  "dev",
 	})
@@ -31,7 +31,7 @@ func main() {
 
 	fileLogger := logging.NewLogger(logging.LevelInfo, fileTransport)
 
-	fileLogger.Info(ctx, "agent.chat.started", map[string]interface{}{
+	fileLogger.Info(ctx, "agent.chat.started", map[string]any{
 		"agent_id":   "agt-demo",
 		"user_id":    "alice",
 		"templateID": "assistant",
@@ -42,7 +42,7 @@ func main() {
 	time.Sleep(150 * time.Millisecond)
 	duration := time.Since(start)
 
-	fileLogger.Info(ctx, "tool.call.completed", map[string]interface{}{
+	fileLogger.Info(ctx, "tool.call.completed", map[string]any{
 		"agent_id":  "agt-demo",
 		"tool_name": "Read",
 		"duration":  duration.Seconds(),
@@ -50,7 +50,7 @@ func main() {
 	})
 
 	// 3. 使用全局 Default logger
-	logging.Info(ctx, "request.completed", map[string]interface{}{
+	logging.Info(ctx, "request.completed", map[string]any{
 		"status":  "ok",
 		"latency": 0.123,
 	})

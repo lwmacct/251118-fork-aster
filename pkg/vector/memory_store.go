@@ -109,7 +109,7 @@ func (s *MemoryStore) Query(_ context.Context, q Query) ([]Hit, error) {
 	type scored struct {
 		id    string
 		score float64
-		meta  map[string]interface{}
+		meta  map[string]any
 	}
 
 	var results []scored

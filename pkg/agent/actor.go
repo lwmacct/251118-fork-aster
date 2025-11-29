@@ -42,7 +42,7 @@ func (m *StreamMsg) Kind() string { return "agent.stream" }
 // StreamEventMsg 流式事件消息
 type StreamEventMsg struct {
 	Type    string // "text", "tool_start", "tool_end", "done", "error"
-	Content interface{}
+	Content any
 	Error   error
 }
 
@@ -59,7 +59,7 @@ func (m *ToolCallMsg) Kind() string { return "agent.tool_call" }
 // ToolResultMsg 工具调用结果
 type ToolResultMsg struct {
 	CallID  string
-	Result  interface{}
+	Result  any
 	IsError bool
 	Error   string
 }
@@ -69,7 +69,7 @@ func (m *ToolResultMsg) Kind() string { return "agent.tool_result" }
 // DirectToolCallMsg 直接工具调用请求
 type DirectToolCallMsg struct {
 	ToolName string
-	Input    map[string]interface{}
+	Input    map[string]any
 	Ctx      context.Context
 	ReplyTo  chan *DirectToolResultMsg
 }
@@ -79,7 +79,7 @@ func (m *DirectToolCallMsg) Kind() string { return "agent.direct_tool_call" }
 // DirectToolResultMsg 直接工具调用结果
 type DirectToolResultMsg struct {
 	ToolName string
-	Result   interface{}
+	Result   any
 	Error    error
 }
 
@@ -312,7 +312,7 @@ func (a *AgentActor) handleChat(ctx *actor.Context, msg *ChatMsg) {
 }
 
 // handleStream 处理流式对话
-func (a *AgentActor) handleStream(ctx *actor.Context, msg *StreamMsg) {
+func (a *AgentActor) handleStream(_ *actor.Context, msg *StreamMsg) {
 	execCtx, cancel := a.withCancellation(msg.Ctx)
 	defer cancel()
 
@@ -429,7 +429,7 @@ func (a *AgentActor) handleBatchToolCall(ctx *actor.Context, msg *BatchToolCallM
 }
 
 // handleGetStatus 处理获取状态
-func (a *AgentActor) handleGetStatus(ctx *actor.Context, msg *GetStatusMsg) {
+func (a *AgentActor) handleGetStatus(_ *actor.Context, msg *GetStatusMsg) {
 	status := a.agent.Status()
 
 	if msg.ReplyTo != nil {
@@ -552,7 +552,7 @@ func AgentActorChat(pid *actor.PID, text string, timeout time.Duration) (*ChatRe
 }
 
 // AgentActorCallTool 向 Agent Actor 发送工具调用请求并等待响应
-func AgentActorCallTool(pid *actor.PID, toolName string, input map[string]interface{}, timeout time.Duration) (*DirectToolResultMsg, error) {
+func AgentActorCallTool(pid *actor.PID, toolName string, input map[string]any, timeout time.Duration) (*DirectToolResultMsg, error) {
 	replyCh := make(chan *DirectToolResultMsg, 1)
 
 	pid.Tell(&DirectToolCallMsg{

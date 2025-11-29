@@ -43,7 +43,7 @@ func main() {
 			Model:    "claude-3-5-sonnet-20241022",
 		},
 		Middlewares: []string{"reasoning"},
-		MiddlewareConfig: map[string]map[string]interface{}{
+		MiddlewareConfig: map[string]map[string]any{
 			"reasoning": {
 				"enabled":        true,
 				"min_steps":      2,
@@ -52,7 +52,7 @@ func main() {
 				"use_json":       true,
 			},
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"enable_reasoning": true,
 		},
 	}

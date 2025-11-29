@@ -619,8 +619,8 @@ func (pc *PromptCompressor) extractSectionTitle(section string) string {
 	lines := strings.Split(section, "\n")
 	if len(lines) > 0 {
 		firstLine := strings.TrimSpace(lines[0])
-		if strings.HasPrefix(firstLine, "##") {
-			return strings.TrimSpace(strings.TrimPrefix(firstLine, "##"))
+		if after, found := strings.CutPrefix(firstLine, "##"); found {
+			return strings.TrimSpace(after)
 		}
 	}
 	return ""

@@ -255,7 +255,7 @@ func (m *manager) Add(ctx context.Context, item *KnowledgeItem) error {
 			ID:        item.ID,
 			Text:      item.Content,
 			Embedding: item.Embedding,
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"type":     string(item.Type),
 				"category": item.Category,
 				"tags":     strings.Join(item.Tags, ","),
@@ -375,7 +375,7 @@ func (m *manager) Update(ctx context.Context, item *KnowledgeItem) error {
 			ID:        item.ID,
 			Text:      item.Content,
 			Embedding: item.Embedding,
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"type":     string(item.Type),
 				"category": item.Category,
 				"tags":     strings.Join(item.Tags, ","),
@@ -452,7 +452,7 @@ func (m *manager) Search(ctx context.Context, query *SearchQuery) ([]*SearchResu
 
 	// 轻量路径：仅使用向量检索，避开复杂策略
 	if m.corePipeline != nil && (query.Strategy == "" || query.Strategy == StrategyVector) {
-		meta := map[string]interface{}{}
+		meta := map[string]any{}
 		for k, v := range query.Filters {
 			meta[k] = v
 		}
@@ -540,7 +540,7 @@ func (m *manager) SearchSimilar(ctx context.Context, id string, maxResults int) 
 
 	// 回退到核心管线的向量检索（使用文本重新嵌入）
 	if m.corePipeline != nil {
-		hits, err := m.corePipeline.Search(ctx, item.Content, maxResults, map[string]interface{}{
+		hits, err := m.corePipeline.Search(ctx, item.Content, maxResults, map[string]any{
 			"namespace": item.Namespace,
 		})
 		if err != nil {
@@ -899,32 +899,32 @@ func (m *manager) cleanupCache() {
 
 // search methods are placeholder implementations
 // 实际的搜索方法将在后续实现
-func (m *manager) searchText(ctx context.Context, query *SearchQuery) ([]*SearchResult, error) {
+func (m *manager) searchText(_ context.Context, _ *SearchQuery) ([]*SearchResult, error) {
 	// TODO: 实现文本搜索
 	return nil, nil
 }
 
-func (m *manager) searchVector(ctx context.Context, query *SearchQuery) ([]*SearchResult, error) {
+func (m *manager) searchVector(_ context.Context, _ *SearchQuery) ([]*SearchResult, error) {
 	// TODO: 实现向量搜索
 	return nil, nil
 }
 
-func (m *manager) searchHybrid(ctx context.Context, query *SearchQuery) ([]*SearchResult, error) {
+func (m *manager) searchHybrid(_ context.Context, _ *SearchQuery) ([]*SearchResult, error) {
 	// TODO: 实现混合搜索
 	return nil, nil
 }
 
-func (m *manager) searchGraph(ctx context.Context, query *SearchQuery) ([]*SearchResult, error) {
+func (m *manager) searchGraph(_ context.Context, _ *SearchQuery) ([]*SearchResult, error) {
 	// TODO: 实现图搜索
 	return nil, nil
 }
 
-func (m *manager) applyFilters(results []*SearchResult, query *SearchQuery) []*SearchResult {
+func (m *manager) applyFilters(results []*SearchResult, _ *SearchQuery) []*SearchResult {
 	// TODO: 实现过滤逻辑
 	return results
 }
 
-func (m *manager) traverseRelations(ctx context.Context, id string, relationTypes []RelationType, depth, maxDepth int, visited map[string]bool, results *[]*KnowledgeItem) error {
+func (m *manager) traverseRelations(_ context.Context, _ string, _ []RelationType, _, _ int, _ map[string]bool, _ *[]*KnowledgeItem) error {
 	// TODO: 实现关系遍历
 	return nil
 }
@@ -955,12 +955,12 @@ func (m *manager) saveItemToMemory(ctx context.Context, item *KnowledgeItem) err
 	return err
 }
 
-func (m *manager) removeItemFromMemory(ctx context.Context, id string) error {
+func (m *manager) removeItemFromMemory(_ context.Context, _ string) error {
 	// TODO: 实现从内存删除
 	return nil
 }
 
-func (m *manager) calculateStats(ctx context.Context, namespace string) (*KnowledgeStats, error) {
+func (m *manager) calculateStats(_ context.Context, _ string) (*KnowledgeStats, error) {
 	// TODO: 实现统计计算
 	return &KnowledgeStats{
 		TotalItems:      0,

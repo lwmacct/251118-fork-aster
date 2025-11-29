@@ -20,7 +20,7 @@ func main() {
 	funcStep := workflow.NewFunctionStep("func", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		return &workflow.StepOutput{
 			Content:  "Function executed",
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	})
 	fmt.Printf("   ✅ Created: %s (type: %s)\n\n", funcStep.Name(), funcStep.Type())
@@ -28,10 +28,10 @@ func main() {
 	// 2. ConditionStep
 	fmt.Println("2️⃣ ConditionStep")
 	trueStep := workflow.NewFunctionStep("true", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "True branch", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "True branch", Metadata: make(map[string]any)}, nil
 	})
 	falseStep := workflow.NewFunctionStep("false", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "False branch", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "False branch", Metadata: make(map[string]any)}, nil
 	})
 	condStep := workflow.NewConditionStep("cond", func(input *workflow.StepInput) bool {
 		return true
@@ -41,7 +41,7 @@ func main() {
 	// 3. LoopStep
 	fmt.Println("3️⃣ LoopStep")
 	loopBody := workflow.NewFunctionStep("body", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "Loop iteration", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "Loop iteration", Metadata: make(map[string]any)}, nil
 	})
 	loopStep := workflow.NewLoopStep("loop", loopBody, 3)
 	fmt.Printf("   ✅ Created: %s (type: %s, max: 3 iterations)\n\n", loopStep.Name(), loopStep.Type())
@@ -50,11 +50,11 @@ func main() {
 	fmt.Println("4️⃣ ParallelStep")
 	task1 := workflow.NewFunctionStep("task1", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		time.Sleep(10 * time.Millisecond)
-		return &workflow.StepOutput{Content: "Task 1", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "Task 1", Metadata: make(map[string]any)}, nil
 	})
 	task2 := workflow.NewFunctionStep("task2", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		time.Sleep(10 * time.Millisecond)
-		return &workflow.StepOutput{Content: "Task 2", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "Task 2", Metadata: make(map[string]any)}, nil
 	})
 	parallelStep := workflow.NewParallelStep("parallel", task1, task2)
 	fmt.Printf("   ✅ Created: %s (type: %s, tasks: 2)\n\n", parallelStep.Name(), parallelStep.Type())
@@ -62,10 +62,10 @@ func main() {
 	// 5. RouterStep
 	fmt.Println("5️⃣ RouterStep")
 	routeA := workflow.NewFunctionStep("route_a", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "Route A", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "Route A", Metadata: make(map[string]any)}, nil
 	})
 	routeB := workflow.NewFunctionStep("route_b", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "Route B", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "Route B", Metadata: make(map[string]any)}, nil
 	})
 	routerStep := workflow.NewRouterStep("router", func(input *workflow.StepInput) string {
 		return "route_a"
@@ -78,10 +78,10 @@ func main() {
 	// 6. StepsGroup
 	fmt.Println("6️⃣ StepsGroup")
 	step1 := workflow.NewFunctionStep("step1", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "Step 1", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "Step 1", Metadata: make(map[string]any)}, nil
 	})
 	step2 := workflow.NewFunctionStep("step2", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "Step 2", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "Step 2", Metadata: make(map[string]any)}, nil
 	})
 	stepsGroup := workflow.NewStepsGroup("group", step1, step2)
 	fmt.Printf("   ✅ Created: %s (type: %s, steps: 2)\n\n", stepsGroup.Name(), stepsGroup.Type())

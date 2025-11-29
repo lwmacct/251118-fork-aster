@@ -42,7 +42,7 @@ func (s *InMemoryService) Create(ctx context.Context, req *CreateRequest) (Sessi
 	}
 
 	if session.metadata == nil {
-		session.metadata = make(map[string]interface{})
+		session.metadata = make(map[string]any)
 	}
 
 	s.sessions[sessionID] = session
@@ -198,7 +198,7 @@ func (s *InMemoryService) GetEvents(ctx context.Context, sessionID string, filte
 }
 
 // UpdateState 更新状态
-func (s *InMemoryService) UpdateState(ctx context.Context, sessionID string, delta map[string]interface{}) error {
+func (s *InMemoryService) UpdateState(ctx context.Context, sessionID string, delta map[string]any) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -225,7 +225,7 @@ type inMemorySession struct {
 	agentID        string
 	state          *inMemoryState
 	events         *inMemoryEvents
-	metadata       map[string]interface{}
+	metadata       map[string]any
 	lastUpdateTime time.Time
 }
 
@@ -257,23 +257,23 @@ func (s *inMemorySession) LastUpdateTime() time.Time {
 	return s.lastUpdateTime
 }
 
-func (s *inMemorySession) Metadata() map[string]interface{} {
+func (s *inMemorySession) Metadata() map[string]any {
 	return s.metadata
 }
 
 // inMemoryState 内存状态实现
 type inMemoryState struct {
 	mu   sync.RWMutex
-	data map[string]interface{}
+	data map[string]any
 }
 
 func newInMemoryState() *inMemoryState {
 	return &inMemoryState{
-		data: make(map[string]interface{}),
+		data: make(map[string]any),
 	}
 }
 
-func (s *inMemoryState) Get(key string) (interface{}, error) {
+func (s *inMemoryState) Get(key string) (any, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -284,7 +284,7 @@ func (s *inMemoryState) Get(key string) (interface{}, error) {
 	return val, nil
 }
 
-func (s *inMemoryState) Set(key string, value interface{}) error {
+func (s *inMemoryState) Set(key string, value any) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -300,17 +300,17 @@ func (s *inMemoryState) Delete(key string) error {
 	return nil
 }
 
-func (s *inMemoryState) All() iter.Seq2[string, interface{}] {
+func (s *inMemoryState) All() iter.Seq2[string, any] {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	// 复制数据以避免并发问题
-	snapshot := make(map[string]interface{}, len(s.data))
+	snapshot := make(map[string]any, len(s.data))
 	for k, v := range s.data {
 		snapshot[k] = v
 	}
 
-	return func(yield func(string, interface{}) bool) {
+	return func(yield func(string, any) bool) {
 		for k, v := range snapshot {
 			if !yield(k, v) {
 				return

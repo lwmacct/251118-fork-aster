@@ -30,7 +30,7 @@ type RouteIntent struct {
 	// TemplateID 可选，对应当前 Agent 使用的模板 ID。
 	TemplateID string `json:"template_id,omitempty"`
 	// Metadata 预留扩展字段，比如调用方、业务场景等。
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 // Router 抽象的模型路由器。

@@ -12,16 +12,16 @@ type ToolContext struct {
 	Sandbox    sandbox.Sandbox
 	Signal     context.Context
 	Reporter   Reporter
-	Emit       func(eventType string, data interface{}) // Deprecated: use Reporter
-	Services   map[string]interface{}
+	Emit       func(eventType string, data any) // Deprecated: use Reporter
+	Services   map[string]any
 	ThreadID   string // Working Memory 会话 ID
 	ResourceID string // Working Memory 资源 ID
 }
 
 // Reporter 工具执行实时反馈接口
 type Reporter interface {
-	Progress(progress float64, message string, step, total int, metadata map[string]interface{}, etaMs int64)
-	Intermediate(label string, data interface{})
+	Progress(progress float64, message string, step, total int, metadata map[string]any, etaMs int64)
+	Intermediate(label string, data any)
 }
 
 // Interruptible 可中断/恢复的工具接口
@@ -40,10 +40,10 @@ type Tool interface {
 	Description() string
 
 	// InputSchema JSON Schema定义
-	InputSchema() map[string]interface{}
+	InputSchema() map[string]any
 
 	// Execute 执行工具
-	Execute(ctx context.Context, input map[string]interface{}, tc *ToolContext) (interface{}, error)
+	Execute(ctx context.Context, input map[string]any, tc *ToolContext) (any, error)
 
 	// Prompt 工具使用说明(可选)
 	Prompt() string
@@ -56,10 +56,10 @@ type ToolExample struct {
 	Description string `json:"description"`
 
 	// Input 示例输入参数
-	Input map[string]interface{} `json:"input"`
+	Input map[string]any `json:"input"`
 
 	// Output 可选的预期输出，用于展示工具返回格式
-	Output interface{} `json:"output,omitempty"`
+	Output any `json:"output,omitempty"`
 }
 
 // ExampleableTool 支持使用示例的工具接口
@@ -97,11 +97,11 @@ type DeferrableTool interface {
 type ToolConfig struct {
 	Name       string                 `json:"name"`
 	RegistryID string                 `json:"registry_id,omitempty"`
-	Config     map[string]interface{} `json:"config,omitempty"`
+	Config     map[string]any `json:"config,omitempty"`
 }
 
 // ToolFactory 工具工厂函数
-type ToolFactory func(config map[string]interface{}) (Tool, error)
+type ToolFactory func(config map[string]any) (Tool, error)
 
 // Registry 工具注册表
 type Registry struct {
@@ -121,7 +121,7 @@ func (r *Registry) Register(name string, factory ToolFactory) {
 }
 
 // Create 创建工具实例
-func (r *Registry) Create(name string, config map[string]interface{}) (Tool, error) {
+func (r *Registry) Create(name string, config map[string]any) (Tool, error) {
 	factory, ok := r.factories[name]
 	if !ok {
 		return nil, &ToolNotFoundError{Name: name}

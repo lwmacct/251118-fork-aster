@@ -302,10 +302,7 @@ func (c *DefaultObservationCompressor) compressFileRead(content string) string {
 
 	// 保留最后 20 行
 	summary.WriteString("\n=== Last 20 lines ===\n")
-	start := totalLines - 20
-	if start < 20 {
-		start = 20
-	}
+	start := max(totalLines-20, 20)
 	for i := start; i < totalLines; i++ {
 		summary.WriteString(lines[i])
 		summary.WriteString("\n")

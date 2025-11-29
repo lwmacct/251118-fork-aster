@@ -151,9 +151,9 @@ func (p *OpenAICompatibleProvider) Stream(
 		_ = resp.Body.Close()
 
 		// 解析错误响应
-		var errResp map[string]interface{}
+		var errResp map[string]any
 		if json.Unmarshal(body, &errResp) == nil {
-			if errObj, ok := errResp["error"].(map[string]interface{}); ok {
+			if errObj, ok := errResp["error"].(map[string]any); ok {
 				errType, _ := errObj["type"].(string)
 				errMsg, _ := errObj["message"].(string)
 
@@ -214,7 +214,7 @@ func (p *OpenAICompatibleProvider) Complete(
 	}
 
 	// 解析响应
-	var apiResp map[string]interface{}
+	var apiResp map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
@@ -239,8 +239,8 @@ func (p *OpenAICompatibleProvider) buildRequest(
 	messages []types.Message,
 	opts *StreamOptions,
 	stream bool,
-) map[string]interface{} {
-	requestBody := map[string]interface{}{
+) map[string]any {
+	requestBody := map[string]any{
 		"model":  p.config.Model,
 		"stream": stream,
 	}
@@ -255,8 +255,8 @@ func (p *OpenAICompatibleProvider) buildRequest(
 			systemMsg = opts.System
 		}
 		// 将 system 作为第一条消息
-		msgs := requestBody["messages"].([]map[string]interface{})
-		msgs = append([]map[string]interface{}{
+		msgs := requestBody["messages"].([]map[string]any)
+		msgs = append([]map[string]any{
 			{
 				"role":    "system",
 				"content": systemMsg,
@@ -284,8 +284,8 @@ func (p *OpenAICompatibleProvider) buildRequest(
 }
 
 // convertMessages 转换消息格式为 OpenAI 格式
-func (p *OpenAICompatibleProvider) convertMessages(messages []types.Message) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(messages))
+func (p *OpenAICompatibleProvider) convertMessages(messages []types.Message) []map[string]any {
+	result := make([]map[string]any, 0, len(messages))
 
 	for _, msg := range messages {
 		// 跳过 system 消息（在 buildRequest 中单独处理）
@@ -313,7 +313,7 @@ func (p *OpenAICompatibleProvider) convertMessages(messages []types.Message) []m
 		// OpenAI API 要求每个工具结果作为独立的 role: "tool" 消息
 		if len(toolResultBlocks) > 0 {
 			for _, tr := range toolResultBlocks {
-				toolMsg := map[string]interface{}{
+				toolMsg := map[string]any{
 					"role":         "tool",
 					"tool_call_id": tr.ToolUseID,
 					"content":      tr.Content,
@@ -323,7 +323,7 @@ func (p *OpenAICompatibleProvider) convertMessages(messages []types.Message) []m
 			continue // 跳过常规消息处理
 		}
 
-		msgMap := map[string]interface{}{
+		msgMap := map[string]any{
 			"role": string(msg.Role),
 		}
 
@@ -338,15 +338,15 @@ func (p *OpenAICompatibleProvider) convertMessages(messages []types.Message) []m
 		// 处理 assistant 消息的工具调用
 		// 优先从 ToolCalls 字段获取，如果没有则从 ContentBlocks 中的 ToolUseBlock 提取
 		if msg.Role == types.RoleAssistant {
-			var toolCalls []map[string]interface{}
+			var toolCalls []map[string]any
 
 			// 从 msg.ToolCalls 获取
 			for _, tc := range msg.ToolCalls {
 				argsJSON, _ := json.Marshal(tc.Arguments)
-				toolCalls = append(toolCalls, map[string]interface{}{
+				toolCalls = append(toolCalls, map[string]any{
 					"id":   tc.ID,
 					"type": "function",
-					"function": map[string]interface{}{
+					"function": map[string]any{
 						"name":      tc.Name,
 						"arguments": string(argsJSON),
 					},
@@ -356,10 +356,10 @@ func (p *OpenAICompatibleProvider) convertMessages(messages []types.Message) []m
 			// 从 ContentBlocks 中的 ToolUseBlock 提取
 			for _, tu := range toolUseBlocks {
 				argsJSON, _ := json.Marshal(tu.Input)
-				toolCalls = append(toolCalls, map[string]interface{}{
+				toolCalls = append(toolCalls, map[string]any{
 					"id":   tu.ID,
 					"type": "function",
-					"function": map[string]interface{}{
+					"function": map[string]any{
 						"name":      tu.Name,
 						"arguments": string(argsJSON),
 					},
@@ -389,7 +389,7 @@ func (p *OpenAICompatibleProvider) convertMessages(messages []types.Message) []m
 }
 
 // convertContentBlocks 转换 ContentBlocks 为 OpenAI 格式
-func (p *OpenAICompatibleProvider) convertContentBlocks(blocks []types.ContentBlock) interface{} {
+func (p *OpenAICompatibleProvider) convertContentBlocks(blocks []types.ContentBlock) any {
 	// 如果只有一个文本块，直接返回字符串
 	if len(blocks) == 1 {
 		if tb, ok := blocks[0].(*types.TextBlock); ok {
@@ -398,31 +398,31 @@ func (p *OpenAICompatibleProvider) convertContentBlocks(blocks []types.ContentBl
 	}
 
 	// 多个块或包含多模态内容，返回数组
-	content := make([]map[string]interface{}, 0, len(blocks))
+	content := make([]map[string]any, 0, len(blocks))
 	for _, block := range blocks {
 		switch b := block.(type) {
 		case *types.TextBlock:
-			content = append(content, map[string]interface{}{
+			content = append(content, map[string]any{
 				"type": "text",
 				"text": b.Text,
 			})
 
 		case *types.ImageContent:
-			imageBlock := map[string]interface{}{
+			imageBlock := map[string]any{
 				"type": "image_url",
 			}
 			switch b.Type {
 			case "url":
-				imageBlock["image_url"] = map[string]interface{}{
+				imageBlock["image_url"] = map[string]any{
 					"url": b.Source,
 				}
 				if b.Detail != "" {
-					imageBlock["image_url"].(map[string]interface{})["detail"] = b.Detail
+					imageBlock["image_url"].(map[string]any)["detail"] = b.Detail
 				}
 			case "base64":
 				// base64 格式
 				dataURL := fmt.Sprintf("data:%s;base64,%s", b.MimeType, b.Source)
-				imageBlock["image_url"] = map[string]interface{}{
+				imageBlock["image_url"] = map[string]any{
 					"url": dataURL,
 				}
 			}
@@ -442,12 +442,12 @@ func (p *OpenAICompatibleProvider) convertContentBlocks(blocks []types.ContentBl
 }
 
 // convertTools 转换工具定义为 OpenAI 格式
-func (p *OpenAICompatibleProvider) convertTools(tools []ToolSchema) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(tools))
+func (p *OpenAICompatibleProvider) convertTools(tools []ToolSchema) []map[string]any {
+	result := make([]map[string]any, 0, len(tools))
 	for _, tool := range tools {
-		result = append(result, map[string]interface{}{
+		result = append(result, map[string]any{
 			"type": "function",
-			"function": map[string]interface{}{
+			"function": map[string]any{
 				"name":        tool.Name,
 				"description": tool.Description,
 				"parameters":  tool.InputSchema,
@@ -464,7 +464,7 @@ func (p *OpenAICompatibleProvider) convertTools(tools []ToolSchema) []map[string
 }
 
 // createHTTPRequest 创建 HTTP 请求
-func (p *OpenAICompatibleProvider) createHTTPRequest(ctx context.Context, requestBody map[string]interface{}) (*http.Request, error) {
+func (p *OpenAICompatibleProvider) createHTTPRequest(ctx context.Context, requestBody map[string]any) (*http.Request, error) {
 	// 使用确定性序列化以优化 KV-Cache 命中率
 	bodyBytes, err := util.MarshalDeterministic(requestBody)
 	if err != nil {
@@ -579,7 +579,7 @@ func (p *OpenAICompatibleProvider) parseSSEStream(body io.ReadCloser, chunks cha
 		}
 
 		// 解析 JSON
-		var chunk map[string]interface{}
+		var chunk map[string]any
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			log.Printf("[%s] JSON parse error: %v", p.providerName, err)
 			continue
@@ -608,17 +608,17 @@ func (p *OpenAICompatibleProvider) parseSSEStream(body io.ReadCloser, chunks cha
 }
 
 // parseStreamChunk 解析单个流式 chunk
-func (p *OpenAICompatibleProvider) parseStreamChunk(chunk map[string]interface{}) []StreamChunk {
+func (p *OpenAICompatibleProvider) parseStreamChunk(chunk map[string]any) []StreamChunk {
 	result := make([]StreamChunk, 0)
 
 	// 获取 choices
-	choices, ok := chunk["choices"].([]interface{})
+	choices, ok := chunk["choices"].([]any)
 	if !ok || len(choices) == 0 {
 		return result
 	}
 
-	choice := choices[0].(map[string]interface{})
-	delta, ok := choice["delta"].(map[string]interface{})
+	choice := choices[0].(map[string]any)
+	delta, ok := choice["delta"].(map[string]any)
 	if !ok {
 		// 检查是否完成
 		if finishReason, ok := choice["finish_reason"].(string); ok && finishReason != "" {
@@ -656,9 +656,9 @@ func (p *OpenAICompatibleProvider) parseStreamChunk(chunk map[string]interface{}
 	}
 
 	// 解析工具调用
-	if toolCalls, ok := delta["tool_calls"].([]interface{}); ok {
+	if toolCalls, ok := delta["tool_calls"].([]any); ok {
 		for _, tc := range toolCalls {
-			toolCall := tc.(map[string]interface{})
+			toolCall := tc.(map[string]any)
 			index := int(toolCall["index"].(float64))
 
 			tcDelta := &ToolCallDelta{
@@ -671,7 +671,7 @@ func (p *OpenAICompatibleProvider) parseStreamChunk(chunk map[string]interface{}
 			if tcType, ok := toolCall["type"].(string); ok {
 				tcDelta.Type = tcType
 			}
-			if function, ok := toolCall["function"].(map[string]interface{}); ok {
+			if function, ok := toolCall["function"].(map[string]any); ok {
 				if name, ok := function["name"].(string); ok {
 					tcDelta.Name = name
 				}
@@ -688,7 +688,7 @@ func (p *OpenAICompatibleProvider) parseStreamChunk(chunk map[string]interface{}
 	}
 
 	// 解析 usage（如果有）
-	if usageData, ok := chunk["usage"].(map[string]interface{}); ok {
+	if usageData, ok := chunk["usage"].(map[string]any); ok {
 		usage := p.parseUsageFromMap(usageData)
 		result = append(result, StreamChunk{
 			Type:  string(ChunkTypeUsage),
@@ -700,14 +700,14 @@ func (p *OpenAICompatibleProvider) parseStreamChunk(chunk map[string]interface{}
 }
 
 // parseCompleteResponse 解析完整响应
-func (p *OpenAICompatibleProvider) parseCompleteResponse(apiResp map[string]interface{}) (types.Message, error) {
-	choices, ok := apiResp["choices"].([]interface{})
+func (p *OpenAICompatibleProvider) parseCompleteResponse(apiResp map[string]any) (types.Message, error) {
+	choices, ok := apiResp["choices"].([]any)
 	if !ok || len(choices) == 0 {
 		return types.Message{}, fmt.Errorf("no choices in response")
 	}
 
-	choice := choices[0].(map[string]interface{})
-	message, ok := choice["message"].(map[string]interface{})
+	choice := choices[0].(map[string]any)
+	message, ok := choice["message"].(map[string]any)
 	if !ok {
 		return types.Message{}, fmt.Errorf("no message in choice")
 	}
@@ -736,14 +736,14 @@ func (p *OpenAICompatibleProvider) parseCompleteResponse(apiResp map[string]inte
 	}
 
 	// 解析工具调用
-	if toolCalls, ok := message["tool_calls"].([]interface{}); ok && len(toolCalls) > 0 {
+	if toolCalls, ok := message["tool_calls"].([]any); ok && len(toolCalls) > 0 {
 		// 添加工具调用块
 		for _, tc := range toolCalls {
-			toolCall := tc.(map[string]interface{})
-			function := toolCall["function"].(map[string]interface{})
+			toolCall := tc.(map[string]any)
+			function := toolCall["function"].(map[string]any)
 
 			// 解析参数
-			var args map[string]interface{}
+			var args map[string]any
 			if argsStr, ok := function["arguments"].(string); ok {
 				_ = json.Unmarshal([]byte(argsStr), &args)
 			}
@@ -765,8 +765,8 @@ func (p *OpenAICompatibleProvider) parseCompleteResponse(apiResp map[string]inte
 }
 
 // parseUsage 解析 usage 信息
-func (p *OpenAICompatibleProvider) parseUsage(apiResp map[string]interface{}) *TokenUsage {
-	usageData, ok := apiResp["usage"].(map[string]interface{})
+func (p *OpenAICompatibleProvider) parseUsage(apiResp map[string]any) *TokenUsage {
+	usageData, ok := apiResp["usage"].(map[string]any)
 	if !ok {
 		return nil
 	}
@@ -774,7 +774,7 @@ func (p *OpenAICompatibleProvider) parseUsage(apiResp map[string]interface{}) *T
 }
 
 // parseUsageFromMap 从 map 解析 usage
-func (p *OpenAICompatibleProvider) parseUsageFromMap(usageData map[string]interface{}) *TokenUsage {
+func (p *OpenAICompatibleProvider) parseUsageFromMap(usageData map[string]any) *TokenUsage {
 	usage := &TokenUsage{}
 
 	if promptTokens, ok := usageData["prompt_tokens"].(float64); ok {
@@ -788,14 +788,14 @@ func (p *OpenAICompatibleProvider) parseUsageFromMap(usageData map[string]interf
 	}
 
 	// 推理 tokens (o1/o3 models)
-	if reasoningTokens, ok := usageData["completion_tokens_details"].(map[string]interface{}); ok {
+	if reasoningTokens, ok := usageData["completion_tokens_details"].(map[string]any); ok {
 		if reasoning, ok := reasoningTokens["reasoning_tokens"].(float64); ok {
 			usage.ReasoningTokens = int64(reasoning)
 		}
 	}
 
 	// Prompt Caching tokens
-	if cachedTokens, ok := usageData["prompt_tokens_details"].(map[string]interface{}); ok {
+	if cachedTokens, ok := usageData["prompt_tokens_details"].(map[string]any); ok {
 		if cached, ok := cachedTokens["cached_tokens"].(float64); ok {
 			usage.CachedTokens = int64(cached)
 		}

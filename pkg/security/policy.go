@@ -44,7 +44,7 @@ type SecurityPolicy struct {
 
 	// 元数据
 	Tags     []string               `json:"tags"`
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata map[string]any `json:"metadata"`
 
 	// 审计
 	AuditEnabled bool       `json:"audit_enabled"`
@@ -88,11 +88,11 @@ type PolicyRule struct {
 	Type        RuleType               `json:"type"`
 	Field       string                 `json:"field"`
 	Operator    RuleOperator           `json:"operator"`
-	Value       interface{}            `json:"value"`
+	Value       any            `json:"value"`
 	Description string                 `json:"description"`
 	Enabled     bool                   `json:"enabled"`
 	Priority    int                    `json:"priority"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    map[string]any `json:"metadata"`
 }
 
 // RuleType 规则类型
@@ -132,11 +132,11 @@ type PolicyCondition struct {
 	Type        ConditionType          `json:"type"`
 	Field       string                 `json:"field"`
 	Operator    ConditionOperator      `json:"operator"`
-	Value       interface{}            `json:"value"`
+	Value       any            `json:"value"`
 	Logic       ConditionLogic         `json:"logic"` // AND, OR, NOT
 	Description string                 `json:"description"`
 	Enabled     bool                   `json:"enabled"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    map[string]any `json:"metadata"`
 }
 
 // ConditionType 条件类型
@@ -222,7 +222,7 @@ type PolicyResponse struct {
 	RedirectURL string                 `json:"redirect_url,omitempty"`
 	Challenge   *ChallengeInfo         `json:"challenge,omitempty"`
 	Transform   *TransformInfo         `json:"transform,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    map[string]any `json:"metadata"`
 }
 
 // ChallengeInfo 挑战信息
@@ -230,13 +230,13 @@ type ChallengeInfo struct {
 	Type        string                 `json:"type"` // CAPTCHA, MFA, 知识问答等
 	Duration    time.Duration          `json:"duration"`
 	MaxAttempts int                    `json:"max_attempts"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Parameters  map[string]any `json:"parameters"`
 }
 
 // TransformInfo 转换信息
 type TransformInfo struct {
 	Type       string                 `json:"type"` // 数据脱敏、格式转换等
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters map[string]any `json:"parameters"`
 }
 
 // AuditLevel 审计级别
@@ -262,7 +262,7 @@ type PolicyEvaluation struct {
 	MatchedRules        []string               `json:"matched_rules"`
 	TriggeredConditions []string               `json:"triggered_conditions"`
 	Response            *PolicyResponse        `json:"response,omitempty"`
-	Metadata            map[string]interface{} `json:"metadata"`
+	Metadata            map[string]any `json:"metadata"`
 	EvaluatedAt         time.Time              `json:"evaluated_at"`
 }
 
@@ -283,13 +283,13 @@ type PolicyRequest struct {
 	AgentID     string                 `json:"agent_id,omitempty"`
 	Action      string                 `json:"action"`
 	Resource    string                 `json:"resource"`
-	Context     map[string]interface{} `json:"context"`
+	Context     map[string]any `json:"context"`
 	IPAddress   string                 `json:"ip_address,omitempty"`
 	UserAgent   string                 `json:"user_agent,omitempty"`
 	Timestamp   time.Time              `json:"timestamp"`
 	Environment string                 `json:"environment,omitempty"`
 	Location    string                 `json:"location,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    map[string]any `json:"metadata"`
 }
 
 // PolicyEngine 策略引擎接口
@@ -299,7 +299,7 @@ type PolicyEngine interface {
 	UpdatePolicy(policy *SecurityPolicy) error
 	DeletePolicy(policyID string) error
 	GetPolicy(policyID string) (*SecurityPolicy, error)
-	ListPolicies(filters map[string]interface{}) ([]*SecurityPolicy, error)
+	ListPolicies(filters map[string]any) ([]*SecurityPolicy, error)
 	EnablePolicy(policyID string) error
 	DisablePolicy(policyID string) error
 
@@ -320,7 +320,7 @@ type PolicyEngine interface {
 
 	// 分析和报告
 	AnalyzePolicy(policyID string, timeRange TimeRange) (*PolicyAnalysis, error)
-	GenerateReport(reportType ReportType, filters map[string]interface{}) (*PolicyReport, error)
+	GenerateReport(reportType ReportType, filters map[string]any) (*PolicyReport, error)
 
 	// 配置和状态
 	GetEngineStatus() *EngineStatus
@@ -368,7 +368,7 @@ type PolicyReport struct {
 	Period      TimeRange              `json:"period"`
 	GeneratedAt time.Time              `json:"generated_at"`
 	GeneratedBy string                 `json:"generated_by"`
-	Content     map[string]interface{} `json:"content"`
+	Content     map[string]any `json:"content"`
 	Format      ReportFormat           `json:"format"`
 }
 
@@ -393,8 +393,8 @@ type EngineStatus struct {
 	AverageLatency    time.Duration          `json:"average_latency"`
 	ErrorRate         float64                `json:"error_rate"`
 	LastReload        time.Time              `json:"last_reload"`
-	MemoryUsage       map[string]interface{} `json:"memory_usage"`
-	CPUUsage          map[string]interface{} `json:"cpu_usage"`
+	MemoryUsage       map[string]any `json:"memory_usage"`
+	CPUUsage          map[string]any `json:"cpu_usage"`
 }
 
 // BasicPolicyEngine 基础策略引擎实现
@@ -471,7 +471,7 @@ func (bpe *BasicPolicyEngine) AddPolicy(policy *SecurityPolicy) error {
 			UserID:    policy.CreatedBy,
 			Timestamp: time.Now(),
 			Message:   fmt.Sprintf("Policy %s (%s) created", policy.ID, policy.Name),
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"policy_id":     policy.ID,
 				"policy_name":   policy.Name,
 				"policy_scope":  policy.Scope,
@@ -511,7 +511,7 @@ func (bpe *BasicPolicyEngine) UpdatePolicy(policy *SecurityPolicy) error {
 			UserID:    policy.UpdatedBy,
 			Timestamp: time.Now(),
 			Message:   fmt.Sprintf("Policy %s (%s) updated", policy.ID, policy.Name),
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"policy_id":      policy.ID,
 				"policy_name":    policy.Name,
 				"policy_version": policy.Version,
@@ -540,7 +540,7 @@ func (bpe *BasicPolicyEngine) DeletePolicy(policyID string) error {
 			Type:      AuditTypePolicyDeleted,
 			Timestamp: time.Now(),
 			Message:   fmt.Sprintf("Policy %s deleted", policyID),
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"policy_id":         policyID,
 				"deleted_policy_id": policyID,
 			},
@@ -564,7 +564,7 @@ func (bpe *BasicPolicyEngine) GetPolicy(policyID string) (*SecurityPolicy, error
 }
 
 // ListPolicies 列出策略
-func (bpe *BasicPolicyEngine) ListPolicies(filters map[string]interface{}) ([]*SecurityPolicy, error) {
+func (bpe *BasicPolicyEngine) ListPolicies(filters map[string]any) ([]*SecurityPolicy, error) {
 	bpe.mu.RLock()
 	defer bpe.mu.RUnlock()
 
@@ -579,7 +579,7 @@ func (bpe *BasicPolicyEngine) ListPolicies(filters map[string]interface{}) ([]*S
 }
 
 // matchesFilters 检查策略是否匹配过滤条件
-func (bpe *BasicPolicyEngine) matchesFilters(policy *SecurityPolicy, filters map[string]interface{}) bool {
+func (bpe *BasicPolicyEngine) matchesFilters(policy *SecurityPolicy, filters map[string]any) bool {
 	if len(filters) == 0 {
 		return true
 	}
@@ -905,7 +905,7 @@ func (bpe *BasicPolicyEngine) evaluateRule(rule PolicyRule, request *PolicyReque
 }
 
 // getFieldValue 从请求中获取字段值
-func (bpe *BasicPolicyEngine) getFieldValue(request *PolicyRequest, field string) (interface{}, bool) {
+func (bpe *BasicPolicyEngine) getFieldValue(request *PolicyRequest, field string) (any, bool) {
 	switch field {
 	case "user_id":
 		return request.UserID, request.UserID != ""
@@ -933,7 +933,7 @@ func (bpe *BasicPolicyEngine) getFieldValue(request *PolicyRequest, field string
 }
 
 // compareValues 比较值
-func (bpe *BasicPolicyEngine) compareValues(a, b interface{}) int {
+func (bpe *BasicPolicyEngine) compareValues(a, b any) int {
 	// 简化的值比较，实际实现应该处理更多类型
 	aStr := fmt.Sprintf("%v", a)
 	bStr := fmt.Sprintf("%v", b)
@@ -947,18 +947,18 @@ func (bpe *BasicPolicyEngine) compareValues(a, b interface{}) int {
 }
 
 // stringContains 字符串包含检查
-func (bpe *BasicPolicyEngine) stringContains(a, b interface{}) bool {
+func (bpe *BasicPolicyEngine) stringContains(a, b any) bool {
 	aStr := fmt.Sprintf("%v", a)
 	bStr := fmt.Sprintf("%v", b)
 	return strings.Contains(aStr, bStr)
 }
 
 // valueInList 值是否在列表中
-func (bpe *BasicPolicyEngine) valueInList(value, list interface{}) bool {
+func (bpe *BasicPolicyEngine) valueInList(value, list any) bool {
 	valStr := fmt.Sprintf("%v", value)
 
 	switch list := list.(type) {
-	case []interface{}:
+	case []any:
 		for _, item := range list {
 			if fmt.Sprintf("%v", item) == valStr {
 				return true
@@ -976,7 +976,7 @@ func (bpe *BasicPolicyEngine) valueInList(value, list interface{}) bool {
 }
 
 // regexMatch 正则匹配
-func (bpe *BasicPolicyEngine) regexMatch(value, pattern interface{}) bool {
+func (bpe *BasicPolicyEngine) regexMatch(value, pattern any) bool {
 	valStr := fmt.Sprintf("%v", value)
 	patternStr := fmt.Sprintf("%v", pattern)
 

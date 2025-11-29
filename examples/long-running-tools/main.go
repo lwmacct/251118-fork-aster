@@ -46,7 +46,7 @@ func basicAsyncExample(ctx context.Context) {
 	tool := NewMockDataProcessingTool(executor)
 
 	// 3. 启动异步任务
-	taskID, err := tool.StartAsync(ctx, map[string]interface{}{
+	taskID, err := tool.StartAsync(ctx, map[string]any{
 		"data_size": 1000,
 		"delay_ms":  500,
 	})
@@ -71,7 +71,7 @@ func progressTrackingExample(ctx context.Context) {
 	tool := NewMockFileUploadTool(executor)
 
 	// 启动任务
-	taskID, _ := tool.StartAsync(ctx, map[string]interface{}{
+	taskID, _ := tool.StartAsync(ctx, map[string]any{
 		"file_size":  10000,
 		"chunk_size": 1000,
 	})
@@ -82,7 +82,7 @@ func progressTrackingExample(ctx context.Context) {
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-ticker.C
 
 		status, err := executor.GetStatus(ctx, taskID)
@@ -106,7 +106,7 @@ func cancellationExample(ctx context.Context) {
 	tool := NewMockDataProcessingTool(executor)
 
 	// 启动一个耗时任务
-	taskID, _ := tool.StartAsync(ctx, map[string]interface{}{
+	taskID, _ := tool.StartAsync(ctx, map[string]any{
 		"data_size": 10000,
 		"delay_ms":  3000, // 3秒
 	})
@@ -136,8 +136,8 @@ func concurrentTasksExample(ctx context.Context) {
 
 	// 启动多个任务
 	taskIDs := make([]string, 5)
-	for i := 0; i < 5; i++ {
-		taskID, _ := tool.StartAsync(ctx, map[string]interface{}{
+	for i := range 5 {
+		taskID, _ := tool.StartAsync(ctx, map[string]any{
 			"data_size": 100 * (i + 1),
 			"delay_ms":  200,
 		})
@@ -169,8 +169,8 @@ func cleanupExample(ctx context.Context) {
 	tool := NewMockDataProcessingTool(executor)
 
 	// 创建一些任务
-	for i := 0; i < 3; i++ {
-		taskID, _ := tool.StartAsync(ctx, map[string]interface{}{
+	for range 3 {
+		taskID, _ := tool.StartAsync(ctx, map[string]any{
 			"data_size": 100,
 			"delay_ms":  100,
 		})
@@ -207,14 +207,14 @@ func NewMockDataProcessingTool(executor *tools.LongRunningExecutor) *MockDataPro
 	}
 }
 
-func (t *MockDataProcessingTool) Execute(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+func (t *MockDataProcessingTool) Execute(ctx context.Context, args map[string]any) (any, error) {
 	dataSize := args["data_size"].(int)
 	delayMs := args["delay_ms"].(int)
 
 	// 模拟处理
 	select {
 	case <-time.After(time.Duration(delayMs) * time.Millisecond):
-		return map[string]interface{}{
+		return map[string]any{
 			"processed_items": dataSize,
 			"duration_ms":     delayMs,
 		}, nil
@@ -240,7 +240,7 @@ func NewMockFileUploadTool(executor *tools.LongRunningExecutor) *MockFileUploadT
 	}
 }
 
-func (t *MockFileUploadTool) StartAsync(ctx context.Context, args map[string]interface{}) (string, error) {
+func (t *MockFileUploadTool) StartAsync(ctx context.Context, args map[string]any) (string, error) {
 	// 使用自定义的执行逻辑
 	taskID := "task_" + fmt.Sprintf("%d", time.Now().UnixNano())
 
@@ -250,7 +250,7 @@ func (t *MockFileUploadTool) StartAsync(ctx context.Context, args map[string]int
 		State:     tools.TaskStatePending,
 		Progress:  0.0,
 		StartTime: time.Now(),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 	}
 	_ = t.executor.UpdateProgress(taskID, 0.0, nil)
 
@@ -260,13 +260,13 @@ func (t *MockFileUploadTool) StartAsync(ctx context.Context, args map[string]int
 		chunkSize := args["chunk_size"].(int)
 
 		chunks := fileSize / chunkSize
-		for i := 0; i < chunks; i++ {
+		for i := range chunks {
 			select {
 			case <-ctx.Done():
 				return
 			case <-time.After(100 * time.Millisecond):
 				progress := float64(i+1) / float64(chunks)
-				_ = t.executor.UpdateProgress(taskID, progress, map[string]interface{}{
+				_ = t.executor.UpdateProgress(taskID, progress, map[string]any{
 					"uploaded_chunks": i + 1,
 					"total_chunks":    chunks,
 				})
@@ -278,7 +278,7 @@ func (t *MockFileUploadTool) StartAsync(ctx context.Context, args map[string]int
 		status.State = tools.TaskStateCompleted
 		status.Progress = 1.0
 		status.EndTime = &now
-		status.Result = map[string]interface{}{
+		status.Result = map[string]any{
 			"uploaded_bytes": fileSize,
 			"chunks":         chunks,
 		}
@@ -287,7 +287,7 @@ func (t *MockFileUploadTool) StartAsync(ctx context.Context, args map[string]int
 	return taskID, nil
 }
 
-func (t *MockFileUploadTool) Execute(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+func (t *MockFileUploadTool) Execute(ctx context.Context, args map[string]any) (any, error) {
 	// 简化的同步执行
 	return nil, fmt.Errorf("use StartAsync for file upload")
 }
@@ -308,12 +308,12 @@ var _ = func() {
 		       *tools.BaseLongRunningTool
 		   }
 
-		   func (t *FileProcessingTool) Execute(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+		   func (t *FileProcessingTool) Execute(ctx context.Context, args map[string]any) (any, error) {
 		       filePath := args["file_path"].(string)
 
 		       // 处理文件，定期更新进度
 		       for progress := 0.0; progress < 1.0; progress += 0.1 {
-		           t.executor.UpdateProgress(taskID, progress, map[string]interface{}{
+		           t.executor.UpdateProgress(taskID, progress, map[string]any{
 		               "current_file": filePath,
 		           })
 
@@ -328,7 +328,7 @@ var _ = func() {
 		       *tools.BaseLongRunningTool
 		   }
 
-		   func (t *DatabaseBackupTool) Execute(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+		   func (t *DatabaseBackupTool) Execute(ctx context.Context, args map[string]any) (any, error) {
 		       dbName := args["database"].(string)
 
 		       // 备份逻辑
@@ -344,7 +344,7 @@ var _ = func() {
 		       *tools.BaseLongRunningTool
 		   }
 
-		   func (t *BatchAPITool) Execute(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+		   func (t *BatchAPITool) Execute(ctx context.Context, args map[string]any) (any, error) {
 		       requests := args["requests"].([]Request)
 
 		       results := make([]Result, 0)

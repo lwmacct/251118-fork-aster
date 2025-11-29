@@ -71,7 +71,7 @@ func DefaultInMemoryPipeline() (*Pipeline, error) {
 // UpsertText 将纯文本写入向量库。
 // - 自动按段落切分；ID 会追加 chunk 索引（id#0, id#1...）
 // - metadata 会透传到向量文档。
-func (p *Pipeline) UpsertText(ctx context.Context, id, text string, metadata map[string]interface{}) ([]string, error) {
+func (p *Pipeline) UpsertText(ctx context.Context, id, text string, metadata map[string]any) ([]string, error) {
 	if strings.TrimSpace(id) == "" {
 		return nil, fmt.Errorf("knowledge: id is required")
 	}
@@ -98,7 +98,7 @@ func (p *Pipeline) UpsertText(ctx context.Context, id, text string, metadata map
 	}
 	for i, chunk := range chunks {
 		chunkID := fmt.Sprintf("%s#%d", id, i)
-		metaCopy := make(map[string]interface{}, len(metadata)+2)
+		metaCopy := make(map[string]any, len(metadata)+2)
 		for k, v := range metadata {
 			metaCopy[k] = v
 		}
@@ -123,7 +123,7 @@ func (p *Pipeline) UpsertText(ctx context.Context, id, text string, metadata map
 
 // Search 根据查询语句执行向量检索。
 // 返回向量命中列表；不在此处做 rerank/过滤，保持简洁。
-func (p *Pipeline) Search(ctx context.Context, query string, topK int, metadata map[string]interface{}) ([]vector.Hit, error) {
+func (p *Pipeline) Search(ctx context.Context, query string, topK int, metadata map[string]any) ([]vector.Hit, error) {
 	if strings.TrimSpace(query) == "" {
 		return nil, fmt.Errorf("knowledge: query is empty")
 	}

@@ -87,10 +87,7 @@ func (b *FilesystemBackend) Read(ctx context.Context, path string, offset, limit
 	// 处理 limit
 	endLine := totalLines
 	if limit > 0 {
-		endLine = offset + limit
-		if endLine > totalLines {
-			endLine = totalLines
-		}
+		endLine = min(offset+limit, totalLines)
 	}
 
 	selectedLines := lines[offset:endLine]

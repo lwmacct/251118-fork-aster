@@ -82,7 +82,7 @@ func main() {
 	qualityAgent, err := agent.Create(ctx, &types.AgentConfig{
 		TemplateID:     "router-demo",
 		RoutingProfile: string(router.PriorityQuality),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"demo": "quality-first",
 		},
 	}, deps)
@@ -95,7 +95,7 @@ func main() {
 	costAgent, err := agent.Create(ctx, &types.AgentConfig{
 		TemplateID:     "router-demo",
 		RoutingProfile: string(router.PriorityCost),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"demo": "cost-first",
 		},
 	}, deps)

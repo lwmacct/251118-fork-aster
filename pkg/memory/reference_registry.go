@@ -53,7 +53,7 @@ type ReferenceInfo struct {
 	ToolName string `json:"tool_name,omitempty"`
 
 	// Metadata 额外元数据
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 // RegistryStats 注册表统计信息

@@ -94,7 +94,7 @@ func NewActorEngine(config *EngineConfig, actorConfig *ActorEngineConfig) (*Acto
 }
 
 // ExecuteWithActors 使用 Actor 模型执行工作流
-func (e *ActorEngine) ExecuteWithActors(ctx context.Context, workflowID string, inputs map[string]interface{}) (*WorkflowResult, error) {
+func (e *ActorEngine) ExecuteWithActors(ctx context.Context, workflowID string, inputs map[string]any) (*WorkflowResult, error) {
 	// 加载工作流定义
 	def, err := e.loadWorkflowDefinition(workflowID)
 	if err != nil {
@@ -418,7 +418,7 @@ func (c *CoordinatorActor) executeTaskNodeWithActor(execution *WorkflowExecution
 			NodeName: node.Name,
 			NodeType: node.Type,
 			Status:   StatusCompleted,
-			Outputs: map[string]interface{}{
+			Outputs: map[string]any{
 				"content": result.Result.Text,
 			},
 		}
@@ -483,7 +483,7 @@ func (c *CoordinatorActor) executeParallelNodeWithActors(execution *WorkflowExec
 	}()
 
 	// 收集结果
-	branchResults := make(map[string]interface{})
+	branchResults := make(map[string]any)
 	for result := range results {
 		if result.result.Error == nil {
 			branchResults[result.branchID] = result.result.Result.Text
@@ -510,7 +510,7 @@ func (c *CoordinatorActor) executeParallelNodeWithActors(execution *WorkflowExec
 		NodeName: node.Name,
 		NodeType: node.Type,
 		Status:   StatusCompleted,
-		Outputs: map[string]interface{}{
+		Outputs: map[string]any{
 			"branches": branchResults,
 		},
 	}
@@ -642,7 +642,7 @@ func (m *ExecuteWorkflowMsg) Kind() string { return "coordinator.execute_workflo
 type NodeCompletedMsg struct {
 	ExecutionID string
 	NodeID      string
-	Result      interface{}
+	Result      any
 }
 
 func (m *NodeCompletedMsg) Kind() string { return "coordinator.node_completed" }

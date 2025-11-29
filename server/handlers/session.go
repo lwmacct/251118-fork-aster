@@ -34,8 +34,8 @@ func NewSessionHandler(st store.Store) *SessionHandler {
 func (h *SessionHandler) Create(c *gin.Context) {
 	var req struct {
 		AgentID  string                 `json:"agent_id" binding:"required"`
-		Context  map[string]interface{} `json:"context"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Context  map[string]any `json:"context"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -72,7 +72,7 @@ func (h *SessionHandler) Create(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "session.created", map[string]interface{}{
+	logging.Info(ctx, "session.created", map[string]any{
 		"session_id": record.ID,
 		"agent_id":   req.AgentID,
 	})
@@ -165,8 +165,8 @@ func (h *SessionHandler) Update(c *gin.Context) {
 
 	var req struct {
 		Status   *string                `json:"status"`
-		Context  map[string]interface{} `json:"context"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Context  map[string]any `json:"context"`
+		Metadata map[string]any `json:"metadata"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -225,7 +225,7 @@ func (h *SessionHandler) Update(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "session.updated", map[string]interface{}{
+	logging.Info(ctx, "session.updated", map[string]any{
 		"session_id": id,
 	})
 
@@ -261,7 +261,7 @@ func (h *SessionHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "session.deleted", map[string]interface{}{
+	logging.Info(ctx, "session.deleted", map[string]any{
 		"session_id": id,
 	})
 
@@ -376,7 +376,7 @@ func (h *SessionHandler) Resume(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "session.resumed", map[string]interface{}{
+	logging.Info(ctx, "session.resumed", map[string]any{
 		"session_id": id,
 	})
 

@@ -3,7 +3,7 @@ package run
 // Input 统一的运行输入
 type Input struct {
 	// Content 输入内容
-	Content interface{}
+	Content any
 
 	// Images 图片列表
 	Images []string
@@ -18,17 +18,17 @@ type Input struct {
 	Files []string
 
 	// Metadata 元数据
-	Metadata map[string]interface{}
+	Metadata map[string]any
 
 	// AdditionalMessages 额外消息
-	AdditionalMessages []interface{}
+	AdditionalMessages []any
 }
 
 // NewInput 创建输入
-func NewInput(content interface{}) *Input {
+func NewInput(content any) *Input {
 	return &Input{
 		Content:  content,
-		Metadata: make(map[string]interface{}),
+		Metadata: make(map[string]any),
 	}
 }
 
@@ -57,7 +57,7 @@ func (i *Input) WithFiles(files ...string) *Input {
 }
 
 // WithMetadata 添加元数据
-func (i *Input) WithMetadata(key string, value interface{}) *Input {
+func (i *Input) WithMetadata(key string, value any) *Input {
 	i.Metadata[key] = value
 	return i
 }

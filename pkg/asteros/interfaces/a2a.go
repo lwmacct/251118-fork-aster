@@ -160,7 +160,7 @@ func (i *A2AInterface) BroadcastMessage(ctx context.Context, fromID, message str
 }
 
 // QueryAgent 查询 Agent 状态
-func (i *A2AInterface) QueryAgent(agentID string) (map[string]interface{}, error) {
+func (i *A2AInterface) QueryAgent(agentID string) (map[string]any, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
@@ -171,7 +171,7 @@ func (i *A2AInterface) QueryAgent(agentID string) (map[string]interface{}, error
 
 	status := ag.Status()
 
-	return map[string]interface{}{
+	return map[string]any{
 		"agent_id": status.AgentID,
 		"state":    status.State,
 	}, nil

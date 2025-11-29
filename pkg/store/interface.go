@@ -36,10 +36,10 @@ type Store interface {
 	LoadInfo(ctx context.Context, agentID string) (*types.AgentInfo, error)
 
 	// SaveTodos 保存Todo列表
-	SaveTodos(ctx context.Context, agentID string, todos interface{}) error
+	SaveTodos(ctx context.Context, agentID string, todos any) error
 
 	// LoadTodos 加载Todo列表
-	LoadTodos(ctx context.Context, agentID string) (interface{}, error)
+	LoadTodos(ctx context.Context, agentID string) (any, error)
 
 	// DeleteAgent 删除Agent所有数据
 	DeleteAgent(ctx context.Context, agentID string) error
@@ -50,16 +50,16 @@ type Store interface {
 	// --- 通用 CRUD 方法 ---
 
 	// Get 获取单个资源
-	Get(ctx context.Context, collection, key string, dest interface{}) error
+	Get(ctx context.Context, collection, key string, dest any) error
 
 	// Set 设置资源
-	Set(ctx context.Context, collection, key string, value interface{}) error
+	Set(ctx context.Context, collection, key string, value any) error
 
 	// Delete 删除资源
 	Delete(ctx context.Context, collection, key string) error
 
 	// List 列出资源
-	List(ctx context.Context, collection string) ([]interface{}, error)
+	List(ctx context.Context, collection string) ([]any, error)
 
 	// Exists 检查资源是否存在
 	Exists(ctx context.Context, collection, key string) (bool, error)

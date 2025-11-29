@@ -33,7 +33,7 @@ func TestBashTool_InputSchema(t *testing.T) {
 		t.Fatal("Input schema should not be nil")
 	}
 
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -53,7 +53,7 @@ func TestBashTool_SimpleCommand(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command": "echo 'Hello, World!'",
 	}
 
@@ -88,7 +88,7 @@ func TestBashTool_CommandWithArguments(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command": "echo",
 		"args":    []string{"arg1", "arg2", "arg3"},
 	}
@@ -127,7 +127,7 @@ func TestBashTool_WorkingDirectory(t *testing.T) {
 	helper := NewTestHelper(t)
 	defer helper.CleanupAll()
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command": "pwd",
 		"cwd":     helper.TmpDir,
 	}
@@ -162,7 +162,7 @@ func TestBashTool_Timeout(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command":      "sleep 10",
 		"timeout":      2, // 2秒超时
 		"timeout_unit": "seconds",
@@ -193,7 +193,7 @@ func TestBashTool_DangerousCommands(t *testing.T) {
 
 	for _, cmd := range dangerousCommands {
 		t.Run("Dangerous_"+cmd, func(t *testing.T) {
-			input := map[string]interface{}{
+			input := map[string]any{
 				"command": cmd,
 			}
 
@@ -221,7 +221,7 @@ func TestBashTool_EnvironmentVariables(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command": "echo $TEST_VAR",
 		"env": map[string]string{
 			"TEST_VAR": "test_value",
@@ -251,7 +251,7 @@ func TestBashTool_BackgroundExecution(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command":    "echo 'Background task started'",
 		"background": true,
 	}
@@ -284,7 +284,7 @@ func TestBashTool_ConcurrentExecution(t *testing.T) {
 
 	concurrency := 5
 	result := RunConcurrentTest(concurrency, func() error {
-		input := map[string]interface{}{
+		input := map[string]any{
 			"command": "echo 'Concurrent test'",
 		}
 		result := ExecuteToolWithInput(t, tool, input)
@@ -313,7 +313,7 @@ func TestBashTool_DifferentShellTypes(t *testing.T) {
 
 	for _, shellType := range shellTypes {
 		t.Run("Shell_"+shellType, func(t *testing.T) {
-			input := map[string]interface{}{
+			input := map[string]any{
 				"command": "echo 'Shell test'",
 				"shell":   shellType,
 			}
@@ -344,7 +344,7 @@ func TestBashTool_PipeAndRedirection(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command": "echo 'Hello' | tr '[:lower:]' '[:upper:]'",
 	}
 
@@ -371,7 +371,7 @@ func TestBashTool_CommandChaining(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command": "echo 'First' && echo 'Second' || echo 'This should not run'",
 	}
 
@@ -402,7 +402,7 @@ func BenchmarkBashTool_SimpleCommand(b *testing.B) {
 		b.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command": "echo 'benchmark'",
 	}
 
@@ -419,7 +419,7 @@ func BenchmarkBashTool_ComplexCommand(b *testing.B) {
 		b.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"command": "seq 1 100 | tail -10",
 	}
 

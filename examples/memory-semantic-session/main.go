@@ -29,7 +29,7 @@ func main() {
 		AppName:  appName,
 		UserID:   userID,
 		AgentID:  "teacher-agent",
-		Metadata: map[string]interface{}{"kind": "teaching"},
+		Metadata: map[string]any{"kind": "teaching"},
 	})
 	if err != nil {
 		log.Fatalf("create teaching session: %v", err)
@@ -38,7 +38,7 @@ func main() {
 		// 使用固定 sessionID 方便演示
 		if err := svc.Update(ctx, &session.UpdateRequest{
 			SessionID: teachingSess.ID(),
-			Metadata:  map[string]interface{}{"_alias": teachingSessionID},
+			Metadata:  map[string]any{"_alias": teachingSessionID},
 		}); err != nil {
 			log.Printf("update teaching session metadata: %v", err)
 		}
@@ -99,7 +99,7 @@ func main() {
 		appName,
 		userID,
 		teachingSess.ID(),
-		map[string]interface{}{"user_id": userID},
+		map[string]any{"user_id": userID},
 		&memory.LongTermBridgeConfig{MinTokens: 3},
 	); err != nil {
 		log.Fatalf("save session to semantic memory: %v", err)
@@ -112,7 +112,7 @@ func main() {
 		AppName:  appName,
 		UserID:   userID,
 		AgentID:  "student-agent",
-		Metadata: map[string]interface{}{"kind": "student"},
+		Metadata: map[string]any{"kind": "student"},
 	})
 	if err != nil {
 		log.Fatalf("create student session: %v", err)
@@ -121,7 +121,7 @@ func main() {
 	question := "What is my secret?"
 	fmt.Printf("Question: %s\n", question)
 
-	hits, err := semMem.Search(ctx, question, map[string]interface{}{"user_id": userID}, 3)
+	hits, err := semMem.Search(ctx, question, map[string]any{"user_id": userID}, 3)
 	if err != nil {
 		log.Fatalf("semantic search failed: %v", err)
 	}

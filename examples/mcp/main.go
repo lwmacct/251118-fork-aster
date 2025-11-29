@@ -157,7 +157,7 @@ func createDependencies(toolRegistry *tools.Registry) *agent.Dependencies {
 		ID:           "assistant",
 		SystemPrompt: "You are a helpful assistant with access to file system tools and MCP tools.",
 		Model:        "claude-sonnet-4-5",
-		Tools:        []interface{}{}, // 将使用 Registry 中的所有工具
+		Tools:        []any{}, // 将使用 Registry 中的所有工具
 	})
 
 	return &agent.Dependencies{

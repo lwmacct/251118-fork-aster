@@ -25,7 +25,7 @@ type SessionSummary struct {
 	KeyPoints   []string               `json:"key_points"`   // 关键要点
 	Decisions   []string               `json:"decisions"`    // 做出的决策
 	ActionItems []string               `json:"action_items"` // 行动项
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    map[string]any `json:"metadata"`
 
 	// 统计信息
 	MessageCount int `json:"message_count"` // 消息数量
@@ -343,7 +343,7 @@ func (m *SessionSummaryManager) buildPrompt(messages []types.Message) string {
 
 func (m *SessionSummaryManager) buildIncrementalPrompt(existingSummary *SessionSummary, newMessages []types.Message) string {
 	// 格式化现有摘要
-	existingSummaryJSON, _ := json.MarshalIndent(map[string]interface{}{
+	existingSummaryJSON, _ := json.MarshalIndent(map[string]any{
 		"summary":      existingSummary.Summary,
 		"topics":       existingSummary.Topics,
 		"key_points":   existingSummary.KeyPoints,
@@ -401,7 +401,7 @@ func (m *SessionSummaryManager) parseSummaryResponse(content string) (*SessionSu
 		KeyPoints:   data.KeyPoints,
 		Decisions:   data.Decisions,
 		ActionItems: data.ActionItems,
-		Metadata:    make(map[string]interface{}),
+		Metadata:    make(map[string]any),
 	}
 
 	// 确保切片不为 nil

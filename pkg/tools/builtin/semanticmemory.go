@@ -27,7 +27,7 @@ type SemanticSearchTool struct {
 	sm *memory.SemanticMemory
 }
 
-func NewSemanticSearchTool(config map[string]interface{}) (tools.Tool, error) {
+func NewSemanticSearchTool(config map[string]any) (tools.Tool, error) {
 	// 尝试从配置中获取 SemanticMemory 实例
 	var sm *memory.SemanticMemory
 	if config != nil {
@@ -49,19 +49,19 @@ func (t *SemanticSearchTool) Description() string {
 	return "Perform semantic search over indexed texts using a configured vector store and embedder."
 }
 
-func (t *SemanticSearchTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *SemanticSearchTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"query": map[string]interface{}{
+		"properties": map[string]any{
+			"query": map[string]any{
 				"type":        "string",
 				"description": "Natural language query text.",
 			},
-			"top_k": map[string]interface{}{
+			"top_k": map[string]any{
 				"type":        "integer",
 				"description": "Optional number of results to return.",
 			},
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"type":                 "object",
 				"additionalProperties": true,
 				"description":          "Optional metadata map (e.g. user_id, project_id) to scope search.",
@@ -71,7 +71,7 @@ func (t *SemanticSearchTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *SemanticSearchTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *SemanticSearchTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	if t.sm == nil || !t.sm.Enabled() {
 		return nil, fmt.Errorf("semantic memory not configured")
 	}
@@ -88,8 +88,8 @@ func (t *SemanticSearchTool) Execute(ctx context.Context, input map[string]inter
 	}
 
 	// 可选 metadata
-	meta := map[string]interface{}{}
-	if m, ok := input["metadata"].(map[string]interface{}); ok && m != nil {
+	meta := map[string]any{}
+	if m, ok := input["metadata"].(map[string]any); ok && m != nil {
 		meta = m
 	}
 
@@ -99,9 +99,9 @@ func (t *SemanticSearchTool) Execute(ctx context.Context, input map[string]inter
 	}
 
 	// 简单序列化 hits 为 JSON 友好的结构
-	out := make([]map[string]interface{}, 0, len(hits))
+	out := make([]map[string]any, 0, len(hits))
 	for _, h := range hits {
-		out = append(out, map[string]interface{}{
+		out = append(out, map[string]any{
 			"id":       h.ID,
 			"score":    h.Score,
 			"metadata": h.Metadata,

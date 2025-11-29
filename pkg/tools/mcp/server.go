@@ -140,7 +140,7 @@ func (s *MCPServer) GetToolIndexEntries() []search.ToolIndexEntry {
 			Keywords:    []string{"mcp", s.serverID, mcpTool.Name},
 			Deferred:    true,
 			Source:      "mcp",
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"server_id":     s.serverID,
 				"original_name": mcpTool.Name,
 				"mcp_tool":      true,

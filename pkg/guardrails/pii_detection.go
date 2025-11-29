@@ -141,7 +141,7 @@ func (g *PIIDetectionGuardrail) Check(ctx context.Context, input *GuardrailInput
 			GuardrailName: g.Name(),
 			Trigger:       CheckTriggerPIIDetected,
 			Message:       "检测到 PII，已自动掩码",
-			Details: map[string]interface{}{
+			Details: map[string]any{
 				"detected_pii": detectedPII,
 			},
 			ShouldMask:    true,
@@ -154,7 +154,7 @@ func (g *PIIDetectionGuardrail) Check(ctx context.Context, input *GuardrailInput
 		GuardrailName: g.Name(),
 		Trigger:       CheckTriggerPIIDetected,
 		Message:       "检测到输入中包含个人身份信息（PII）",
-		Details: map[string]interface{}{
+		Details: map[string]any{
 			"detected_pii": detectedPII,
 		},
 	}

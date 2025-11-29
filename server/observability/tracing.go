@@ -147,7 +147,7 @@ func (t *TracingManager) StartSpan(ctx context.Context, name string, opts ...tra
 }
 
 // AddEvent 添加事件到当前 span
-func AddEvent(ctx context.Context, name string, attributes ...interface{}) {
+func AddEvent(ctx context.Context, name string, attributes ...any) {
 	span := trace.SpanFromContext(ctx)
 	if span != nil && span.IsRecording() {
 		span.AddEvent(name)
@@ -155,7 +155,7 @@ func AddEvent(ctx context.Context, name string, attributes ...interface{}) {
 }
 
 // SetAttribute 设置属性到当前 span
-func SetAttribute(ctx context.Context, key string, value interface{}) {
+func SetAttribute(ctx context.Context, key string, value any) {
 	span := trace.SpanFromContext(ctx)
 	if span != nil && span.IsRecording() {
 		switch v := value.(type) {

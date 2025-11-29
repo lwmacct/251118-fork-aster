@@ -11,35 +11,35 @@ import (
 type mockTool struct {
 	name        string
 	description string
-	executeFunc func(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error)
+	executeFunc func(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error)
 }
 
 func (m *mockTool) Name() string        { return m.name }
 func (m *mockTool) Description() string { return m.description }
-func (m *mockTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (m *mockTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type":       "object",
-		"properties": map[string]interface{}{},
+		"properties": map[string]any{},
 	}
 }
 func (m *mockTool) Prompt() string { return "" }
-func (m *mockTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (m *mockTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	if m.executeFunc != nil {
 		return m.executeFunc(ctx, input, tc)
 	}
-	return map[string]interface{}{"result": "ok"}, nil
+	return map[string]any{"result": "ok"}, nil
 }
 
 func TestToolBridge_CallTool(t *testing.T) {
 	registry := tools.NewRegistry()
 
 	// 注册模拟工具
-	registry.Register("TestTool", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("TestTool", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{
 			name:        "TestTool",
 			description: "A test tool",
-			executeFunc: func(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
-				return map[string]interface{}{
+			executeFunc: func(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
+				return map[string]any{
 					"input_received": input,
 				}, nil
 			},
@@ -50,7 +50,7 @@ func TestToolBridge_CallTool(t *testing.T) {
 	ctx := context.Background()
 
 	// 测试调用工具
-	result, err := bridge.CallTool(ctx, "TestTool", map[string]interface{}{"key": "value"}, nil)
+	result, err := bridge.CallTool(ctx, "TestTool", map[string]any{"key": "value"}, nil)
 	if err != nil {
 		t.Fatalf("CallTool failed: %v", err)
 	}
@@ -82,10 +82,10 @@ func TestToolBridge_CallToolNotFound(t *testing.T) {
 func TestToolBridge_CallToolJSON(t *testing.T) {
 	registry := tools.NewRegistry()
 
-	registry.Register("EchoTool", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("EchoTool", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{
 			name: "EchoTool",
-			executeFunc: func(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+			executeFunc: func(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 				return input, nil
 			},
 		}, nil
@@ -123,12 +123,12 @@ func TestToolBridge_BatchCall(t *testing.T) {
 	registry := tools.NewRegistry()
 
 	callCount := 0
-	registry.Register("CountTool", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("CountTool", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{
 			name: "CountTool",
-			executeFunc: func(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+			executeFunc: func(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 				callCount++
-				return map[string]interface{}{"count": callCount}, nil
+				return map[string]any{"count": callCount}, nil
 			},
 		}, nil
 	})
@@ -160,11 +160,11 @@ func TestToolBridge_BatchCall(t *testing.T) {
 func TestToolBridge_ParallelCall(t *testing.T) {
 	registry := tools.NewRegistry()
 
-	registry.Register("SlowTool", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("SlowTool", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{
 			name: "SlowTool",
-			executeFunc: func(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
-				return map[string]interface{}{"done": true}, nil
+			executeFunc: func(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
+				return map[string]any{"done": true}, nil
 			},
 		}, nil
 	})
@@ -188,10 +188,10 @@ func TestToolBridge_ParallelCall(t *testing.T) {
 func TestToolBridge_ListAvailableTools(t *testing.T) {
 	registry := tools.NewRegistry()
 
-	registry.Register("Tool1", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("Tool1", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{name: "Tool1"}, nil
 	})
-	registry.Register("Tool2", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("Tool2", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{name: "Tool2"}, nil
 	})
 
@@ -206,24 +206,24 @@ func TestToolBridge_ListAvailableTools(t *testing.T) {
 func TestToolChain_Execute(t *testing.T) {
 	registry := tools.NewRegistry()
 
-	registry.Register("AddTool", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("AddTool", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{
 			name: "AddTool",
-			executeFunc: func(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+			executeFunc: func(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 				a := input["a"].(float64)
 				b := input["b"].(float64)
-				return map[string]interface{}{"result": a + b}, nil
+				return map[string]any{"result": a + b}, nil
 			},
 		}, nil
 	})
 
-	registry.Register("MultiplyTool", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("MultiplyTool", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{
 			name: "MultiplyTool",
-			executeFunc: func(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+			executeFunc: func(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 				x := input["x"].(float64)
 				y := input["y"].(float64)
-				return map[string]interface{}{"result": x * y}, nil
+				return map[string]any{"result": x * y}, nil
 			},
 		}, nil
 	})
@@ -233,14 +233,14 @@ func TestToolChain_Execute(t *testing.T) {
 
 	chain.AddStep(ChainStep{
 		Name:  "AddTool",
-		Input: map[string]interface{}{"a": float64(5), "b": float64(3)},
+		Input: map[string]any{"a": float64(5), "b": float64(3)},
 	})
 
 	chain.AddStep(ChainStep{
 		Name: "MultiplyTool",
-		InputMapper: func(prevResult interface{}) map[string]interface{} {
-			prev := prevResult.(map[string]interface{})
-			return map[string]interface{}{
+		InputMapper: func(prevResult any) map[string]any {
+			prev := prevResult.(map[string]any)
+			return map[string]any{
 				"x": prev["result"],
 				"y": float64(2),
 			}
@@ -259,7 +259,7 @@ func TestToolChain_Execute(t *testing.T) {
 	}
 
 	// 最终结果应该是 (5+3)*2 = 16
-	finalResult := result.FinalResult.(map[string]interface{})
+	finalResult := result.FinalResult.(map[string]any)
 	if finalResult["result"] != float64(16) {
 		t.Errorf("expected final result 16, got %v", finalResult["result"])
 	}
@@ -268,19 +268,19 @@ func TestToolChain_Execute(t *testing.T) {
 func TestToolChain_FailureStopsChain(t *testing.T) {
 	registry := tools.NewRegistry()
 
-	registry.Register("FailTool", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("FailTool", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{
 			name: "FailTool",
-			executeFunc: func(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+			executeFunc: func(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 				return nil, context.DeadlineExceeded
 			},
 		}, nil
 	})
 
-	registry.Register("NeverCalled", func(config map[string]interface{}) (tools.Tool, error) {
+	registry.Register("NeverCalled", func(config map[string]any) (tools.Tool, error) {
 		return &mockTool{
 			name: "NeverCalled",
-			executeFunc: func(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+			executeFunc: func(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 				t.Error("this tool should not be called")
 				return nil, nil
 			},

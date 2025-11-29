@@ -179,7 +179,7 @@ func (t *OTelTracer) StartSpan(ctx context.Context, name string, opts ...SpanOpt
 }
 
 // Extract 从 carrier 中提取 trace context
-func (t *OTelTracer) Extract(ctx context.Context, carrier interface{}) context.Context {
+func (t *OTelTracer) Extract(ctx context.Context, carrier any) context.Context {
 	if textMapCarrier, ok := carrier.(propagation.TextMapCarrier); ok {
 		return t.propagator.Extract(ctx, textMapCarrier)
 	}
@@ -187,7 +187,7 @@ func (t *OTelTracer) Extract(ctx context.Context, carrier interface{}) context.C
 }
 
 // Inject 将 trace context 注入到 carrier
-func (t *OTelTracer) Inject(ctx context.Context, carrier interface{}) error {
+func (t *OTelTracer) Inject(ctx context.Context, carrier any) error {
 	if textMapCarrier, ok := carrier.(propagation.TextMapCarrier); ok {
 		t.propagator.Inject(ctx, textMapCarrier)
 		return nil

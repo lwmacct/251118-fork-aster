@@ -32,7 +32,7 @@ func TestGlobTool_InputSchema(t *testing.T) {
 		t.Fatal("Input schema should not be nil")
 	}
 
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -55,12 +55,12 @@ func TestGlobTool_InputSchema(t *testing.T) {
 
 	// 验证required字段
 	required := schema["required"]
-	var requiredArray []interface{}
+	var requiredArray []any
 	switch v := required.(type) {
-	case []interface{}:
+	case []any:
 		requiredArray = v
 	case []string:
-		requiredArray = make([]interface{}, len(v))
+		requiredArray = make([]any, len(v))
 		for i, s := range v {
 			requiredArray[i] = s
 		}
@@ -79,7 +79,7 @@ func TestGlobTool_SimplePattern(t *testing.T) {
 		t.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "*.go",
 	}
 
@@ -89,7 +89,7 @@ func TestGlobTool_SimplePattern(t *testing.T) {
 	// 验证基本响应字段
 	if matches, exists := result["matches"]; !exists {
 		t.Error("Result should contain 'matches' field")
-	} else if matchesArray, ok := matches.([]map[string]interface{}); !ok {
+	} else if matchesArray, ok := matches.([]map[string]any); !ok {
 		t.Error("matches should be an array of file info objects")
 	} else {
 		t.Logf("Found %d files", len(matchesArray))
@@ -123,7 +123,7 @@ func TestGlobTest_WithCustomPath(t *testing.T) {
 	}
 
 	// 测试在特定目录中搜索
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "*.md",
 		"path":    "./",
 	}
@@ -157,7 +157,7 @@ func TestGlobTool_WithExcludePatterns(t *testing.T) {
 		t.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":          "*.go",
 		"exclude_patterns": []string{"*_test.go", "mock_*.go"},
 	}
@@ -197,7 +197,7 @@ func TestGlobTool_WithMaxResults(t *testing.T) {
 		t.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":     "*.go",
 		"max_results": 3,
 	}
@@ -233,7 +233,7 @@ func TestGlobTool_CaseInsensitive(t *testing.T) {
 		t.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":        "*.MD",
 		"case_sensitive": false,
 	}
@@ -263,7 +263,7 @@ func TestGlobTool_RecursivePattern(t *testing.T) {
 		t.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "**/*.go",
 	}
 
@@ -295,7 +295,7 @@ func TestGlobTool_MissingPattern(t *testing.T) {
 		t.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"path": "./",
 	}
 
@@ -314,7 +314,7 @@ func TestGlobTool_EmptyPattern(t *testing.T) {
 		t.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "",
 	}
 
@@ -333,7 +333,7 @@ func TestGlobTool_InvalidPath(t *testing.T) {
 		t.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "*.go",
 		"path":    "/nonexistent/directory/path",
 	}
@@ -357,7 +357,7 @@ func TestGlobTool_PerformanceInfo(t *testing.T) {
 		t.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "*.go",
 	}
 
@@ -387,7 +387,7 @@ func TestGlobTool_DirectoryTraversalProtection(t *testing.T) {
 	}
 
 	// 测试路径遍历攻击保护
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "*.go",
 		"path":    "../../../etc",
 	}
@@ -420,7 +420,7 @@ func TestGlobTool_ConcurrentOperations(t *testing.T) {
 
 	concurrency := 3
 	result := RunConcurrentTest(concurrency, func() error {
-		input := map[string]interface{}{
+		input := map[string]any{
 			"pattern":     "*.go",
 			"max_results": 10,
 		}
@@ -457,7 +457,7 @@ func BenchmarkGlobTool_SimplePattern(b *testing.B) {
 		b.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern": "*.go",
 	}
 
@@ -474,7 +474,7 @@ func BenchmarkGlobTool_RecursivePattern(b *testing.B) {
 		b.Fatalf("Failed to create Glob tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"pattern":          "**/*.go",
 		"max_results":      100,
 		"exclude_patterns": []string{"*_test.go"},

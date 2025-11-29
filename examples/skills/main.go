@@ -132,7 +132,7 @@ func createDependencies() *agent.Dependencies {
 			"- 避免不必要的中间确认或多轮对话。\n" +
 			"- 例如：当被要求“把文件 A 翻译成 B”时，可以用 Read→翻译→Write 一次性完成。\n\n" +
 			"你是一个可以访问文件系统和记忆工具的智能助手，应在合适的时候使用这些工具读取/写入文件或管理长期记忆。",
-		Tools: []interface{}{"Read", "Write", "Bash"},
+		Tools: []any{"Read", "Write", "Bash"},
 	})
 
 	return &agent.Dependencies{

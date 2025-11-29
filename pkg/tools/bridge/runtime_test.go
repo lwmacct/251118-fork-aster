@@ -18,7 +18,7 @@ func TestPythonRuntime_Execute(t *testing.T) {
 result = _input['a'] + _input['b']
 print(result)
 `
-	input := map[string]interface{}{
+	input := map[string]any{
 		"a": 10,
 		"b": 20,
 	}
@@ -51,7 +51,7 @@ import json
 result = {"sum": _input['a'] + _input['b'], "product": _input['a'] * _input['b']}
 print(json.dumps(result))
 `
-	input := map[string]interface{}{
+	input := map[string]any{
 		"a": float64(5),
 		"b": float64(3),
 	}
@@ -66,7 +66,7 @@ print(json.dumps(result))
 	}
 
 	// 输出应该被解析为 JSON
-	output, ok := result.Output.(map[string]interface{})
+	output, ok := result.Output.(map[string]any)
 	if !ok {
 		t.Fatalf("expected map output, got %T", result.Output)
 	}
@@ -88,7 +88,7 @@ func TestNodeJSRuntime_Execute(t *testing.T) {
 const result = _input.a + _input.b;
 console.log(result);
 `
-	input := map[string]interface{}{
+	input := map[string]any{
 		"a": 10,
 		"b": 20,
 	}
@@ -116,7 +116,7 @@ func TestBashRuntime_Execute(t *testing.T) {
 
 	ctx := context.Background()
 	code := `echo "Hello, World!"`
-	input := map[string]interface{}{}
+	input := map[string]any{}
 
 	result, err := runtime.Execute(ctx, code, input)
 	if err != nil {

@@ -29,7 +29,7 @@ type PromptContext struct {
 	Environment *EnvironmentInfo
 	Sandbox     *SandboxInfo
 	Tools       map[string]tools.Tool
-	Metadata    map[string]interface{}
+	Metadata    map[string]any
 }
 
 // EnvironmentInfo 环境信息

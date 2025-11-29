@@ -38,7 +38,7 @@ func (h *Handler) GetAgentCard(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "a2a.get_agent_card", map[string]interface{}{
+	logging.Info(ctx, "a2a.get_agent_card", map[string]any{
 		"agent_id": agentID,
 	})
 
@@ -91,7 +91,7 @@ func (h *Handler) HandleJSONRPC(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "a2a.jsonrpc_request", map[string]interface{}{
+	logging.Info(ctx, "a2a.jsonrpc_request", map[string]any{
 		"agent_id": agentID,
 		"method":   req.Method,
 		"id":       req.ID,
@@ -115,14 +115,14 @@ func (h *Handler) HandleJSONRPC(c *gin.Context) {
 
 	// 记录响应
 	if resp.Error != nil {
-		logging.Warn(ctx, "a2a.jsonrpc_error", map[string]interface{}{
+		logging.Warn(ctx, "a2a.jsonrpc_error", map[string]any{
 			"agent_id":   agentID,
 			"method":     req.Method,
 			"error_code": resp.Error.Code,
 			"error_msg":  resp.Error.Message,
 		})
 	} else {
-		logging.Info(ctx, "a2a.jsonrpc_success", map[string]interface{}{
+		logging.Info(ctx, "a2a.jsonrpc_success", map[string]any{
 			"agent_id": agentID,
 			"method":   req.Method,
 		})
@@ -176,7 +176,7 @@ func (h *Handler) HandleBatchJSONRPC(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "a2a.batch_jsonrpc_request", map[string]interface{}{
+	logging.Info(ctx, "a2a.batch_jsonrpc_request", map[string]any{
 		"agent_id": agentID,
 		"count":    len(requests),
 	})
@@ -200,7 +200,7 @@ func (h *Handler) HandleBatchJSONRPC(c *gin.Context) {
 		responses = append(responses, resp)
 	}
 
-	logging.Info(ctx, "a2a.batch_jsonrpc_success", map[string]interface{}{
+	logging.Info(ctx, "a2a.batch_jsonrpc_success", map[string]any{
 		"agent_id": agentID,
 		"count":    len(responses),
 	})
@@ -227,7 +227,7 @@ func (h *Handler) GetTaskStatus(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "a2a.get_task_status", map[string]interface{}{
+	logging.Info(ctx, "a2a.get_task_status", map[string]any{
 		"agent_id": agentID,
 		"task_id":  taskID,
 	})

@@ -49,7 +49,7 @@ func (s *LLMScorer) Score(ctx context.Context, input *TextEvalInput) (*ScoreResu
 		return &ScoreResult{
 			Name:    s.cfg.Name,
 			Value:   0,
-			Details: make(map[string]interface{}),
+			Details: make(map[string]any),
 		}, nil
 	}
 
@@ -83,7 +83,7 @@ func (s *LLMScorer) Score(ctx context.Context, input *TextEvalInput) (*ScoreResu
 
 	// 4. 返回结果
 	if details == nil {
-		details = make(map[string]interface{})
+		details = make(map[string]any)
 	}
 	details["reason"] = reason
 	details["llm_output"] = llmOutput
@@ -115,7 +115,7 @@ func (s *LLMScorer) buildPrompt(input *TextEvalInput) string {
 
 // parseScoreResponse 解析LLM的评分响应
 // 期望格式: JSON {"score": 0.85, "reason": "..."} 或 纯文本中包含 "Score: 0.85"
-func parseScoreResponse(output string) (score float64, reason string, details map[string]interface{}, err error) {
+func parseScoreResponse(output string) (score float64, reason string, details map[string]any, err error) {
 	output = strings.TrimSpace(output)
 
 	// 尝试1: 解析JSON
@@ -123,7 +123,7 @@ func parseScoreResponse(output string) (score float64, reason string, details ma
 		var jsonResp struct {
 			Score   float64                `json:"score"`
 			Reason  string                 `json:"reason"`
-			Details map[string]interface{} `json:"details"`
+			Details map[string]any `json:"details"`
 		}
 		if err := json.Unmarshal([]byte(output), &jsonResp); err == nil {
 			return jsonResp.Score, jsonResp.Reason, jsonResp.Details, nil

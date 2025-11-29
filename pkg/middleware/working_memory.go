@@ -224,8 +224,8 @@ func (m *WorkingMemoryMiddleware) GetManager() *memory.WorkingMemoryManager {
 }
 
 // GetConfig 获取配置信息
-func (m *WorkingMemoryMiddleware) GetConfig() map[string]interface{} {
-	return map[string]interface{}{
+func (m *WorkingMemoryMiddleware) GetConfig() map[string]any {
+	return map[string]any{
 		"scope":        string(m.manager.GetScope()),
 		"has_schema":   m.manager.GetSchema() != nil,
 		"has_template": m.manager.GetTemplate() != "",

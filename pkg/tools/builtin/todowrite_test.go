@@ -9,7 +9,7 @@ import (
 )
 
 // getFirstTodoID 从结果中提取第一个todo的ID
-func getFirstTodoID(result map[string]interface{}) (string, error) {
+func getFirstTodoID(result map[string]any) (string, error) {
 	todos, exists := result["todos"]
 	if !exists {
 		return "", fmt.Errorf("result does not contain 'todos' field")
@@ -29,7 +29,7 @@ func getFirstTodoID(result map[string]interface{}) (string, error) {
 	firstTodo := reflectVal.Index(0).Interface()
 
 	// 检查是否是map类型
-	todoMap, ok := firstTodo.(map[string]interface{})
+	todoMap, ok := firstTodo.(map[string]any)
 	if !ok {
 		// 如果不是，尝试通过反射获取结构体的字段
 		todoStructVal := reflect.ValueOf(firstTodo)
@@ -80,15 +80,15 @@ func TestTodoWriteTool_CreateTodos(t *testing.T) {
 		t.Fatalf("Failed to create TodoWrite tool: %v", err)
 	}
 
-	input := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	input := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Implement user authentication",
 				"status":     "in_progress", // 只有一个 in_progress 任务
 				"activeForm": "实现用户认证功能",
 				"priority":   1,
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Design database schema",
 				"status":     "pending", // 其余为 pending
 				"activeForm": "设计数据库架构",
@@ -151,9 +151,9 @@ func TestTodoWriteTool_UpdateTodo(t *testing.T) {
 	}
 
 	// 首先创建一个todo
-	createInput := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	createInput := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Original task",
 				"status":     "pending",
 				"activeForm": "原始任务",
@@ -173,9 +173,9 @@ func TestTodoWriteTool_UpdateTodo(t *testing.T) {
 	}
 
 	// 更新todo
-	updateInput := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	updateInput := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Updated task",
 				"status":     "completed",
 				"activeForm": "已更新的任务",
@@ -211,9 +211,9 @@ func TestTodoWriteTool_DeleteTodo(t *testing.T) {
 	}
 
 	// 首先创建一个todo
-	createInput := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	createInput := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Task to be deleted",
 				"status":     "pending",
 				"activeForm": "待删除任务",
@@ -231,7 +231,7 @@ func TestTodoWriteTool_DeleteTodo(t *testing.T) {
 	}
 
 	// 删除todo
-	deleteInput := map[string]interface{}{
+	deleteInput := map[string]any{
 		"action":  "delete",
 		"todo_id": todoID,
 	}
@@ -257,19 +257,19 @@ func TestTodoWriteTool_ClearTodos(t *testing.T) {
 	}
 
 	// 先创建一些todos
-	createInput := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	createInput := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Task 1",
 				"status":     "pending",
 				"activeForm": "任务1",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Task 2",
 				"status":     "pending",
 				"activeForm": "任务2",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Task 3",
 				"status":     "pending",
 				"activeForm": "任务3",
@@ -282,7 +282,7 @@ func TestTodoWriteTool_ClearTodos(t *testing.T) {
 	_ = AssertToolSuccess(t, createResult)
 
 	// 清空所有todos
-	clearInput := map[string]interface{}{
+	clearInput := map[string]any{
 		"action": "clear",
 	}
 
@@ -310,24 +310,24 @@ func TestTodoWriteTool_StatusStatistics(t *testing.T) {
 		t.Fatalf("Failed to create TodoWrite tool: %v", err)
 	}
 
-	input := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	input := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Pending task",
 				"status":     "pending",
 				"activeForm": "待处理任务",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "In progress task",
 				"status":     "in_progress",
 				"activeForm": "进行中任务",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Completed task",
 				"status":     "completed",
 				"activeForm": "已完成任务",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Another completed task",
 				"status":     "completed",
 				"activeForm": "另一个已完成任务",
@@ -363,9 +363,9 @@ func TestTodoWriteTool_ListName(t *testing.T) {
 		t.Fatalf("Failed to create TodoWrite tool: %v", err)
 	}
 
-	input := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	input := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Custom list task",
 				"status":     "pending",
 				"activeForm": "自定义列表任务",
@@ -396,9 +396,9 @@ func TestTodoWrite_TodoValidation(t *testing.T) {
 
 	// 测试缺少必需字段
 	t.Run("MissingContent", func(t *testing.T) {
-		input := map[string]interface{}{
-			"todos": []interface{}{
-				map[string]interface{}{
+		input := map[string]any{
+			"todos": []any{
+				map[string]any{
 					// 缺少content
 					"status":     "pending",
 					"activeForm": "任务描述",
@@ -417,9 +417,9 @@ func TestTodoWrite_TodoValidation(t *testing.T) {
 
 	// 测试无效状态
 	t.Run("InvalidStatus", func(t *testing.T) {
-		input := map[string]interface{}{
-			"todos": []interface{}{
-				map[string]interface{}{
+		input := map[string]any{
+			"todos": []any{
+				map[string]any{
 					"content":    "Task content",
 					"status":     "invalid_status",
 					"activeForm": "任务描述",
@@ -437,9 +437,9 @@ func TestTodoWrite_TodoValidation(t *testing.T) {
 
 	// 测试缺少activeForm
 	t.Run("MissingActiveForm", func(t *testing.T) {
-		input := map[string]interface{}{
-			"todos": []interface{}{
-				map[string]interface{}{
+		input := map[string]any{
+			"todos": []any{
+				map[string]any{
 					"content": "Task content",
 					"status":  "pending",
 					// 缺少activeForm
@@ -458,27 +458,27 @@ func TestTodoWrite_TodoValidation(t *testing.T) {
 }
 
 func TestTodoWriteTool_PrioritySorting(t *testing.T) {
-	t.Skip("Skipping: TodoWriteTool returns []TodoItem instead of []interface{}, causing panic")
+	t.Skip("Skipping: TodoWriteTool returns []TodoItem instead of []any, causing panic")
 	tool, err := NewTodoWriteTool(nil)
 	if err != nil {
 		t.Fatalf("Failed to create TodoWrite tool: %v", err)
 	}
 
-	input := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	input := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Low priority task",
 				"status":     "pending",
 				"activeForm": "低优先级任务",
 				"priority":   1,
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "High priority task",
 				"status":     "pending",
 				"activeForm": "高优先级任务",
 				"priority":   10,
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Medium priority task",
 				"status":     "pending",
 				"activeForm": "中优先级任务",
@@ -492,7 +492,7 @@ func TestTodoWriteTool_PrioritySorting(t *testing.T) {
 	result = AssertToolSuccess(t, result)
 
 	// 验证todos被创建（顺序可能被保存在存储中）
-	todos := result["todos"].([]interface{})
+	todos := result["todos"].([]any)
 	if len(todos) != 3 {
 		t.Errorf("Expected 3 todos, got %d", len(todos))
 	}
@@ -500,7 +500,7 @@ func TestTodoWriteTool_PrioritySorting(t *testing.T) {
 	// 验证优先级字段被正确设置
 	priorities := make([]int, 0)
 	for _, todo := range todos {
-		todoMap := todo.(map[string]interface{})
+		todoMap := todo.(map[string]any)
 		if priority, exists := todoMap["priority"]; exists {
 			priorities = append(priorities, int(priority.(float64)))
 		}
@@ -521,9 +521,9 @@ func TestTodoWriteTool_Timestamps(t *testing.T) {
 
 	beforeCreate := time.Now()
 
-	input := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	input := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Task with timestamp",
 				"status":     "pending",
 				"activeForm": "带时间戳的任务",
@@ -553,7 +553,7 @@ func TestTodoWriteTool_Timestamps(t *testing.T) {
 }
 
 func TestTodoWriteTool_ConcurrentOperations(t *testing.T) {
-	t.Skip("Skipping: TodoWriteTool returns []TodoItem instead of []interface{}, causing panic in concurrent operations")
+	t.Skip("Skipping: TodoWriteTool returns []TodoItem instead of []any, causing panic in concurrent operations")
 
 	if testing.Short() {
 		t.Skip("Skipping concurrent test in short mode")
@@ -566,9 +566,9 @@ func TestTodoWriteTool_ConcurrentOperations(t *testing.T) {
 
 	concurrency := 3
 	result := RunConcurrentTest(concurrency, func() error {
-		input := map[string]interface{}{
-			"todos": []interface{}{
-				map[string]interface{}{
+		input := map[string]any{
+			"todos": []any{
+				map[string]any{
 					"content":    "Concurrent task",
 					"status":     "pending",
 					"activeForm": "并发任务",
@@ -585,7 +585,7 @@ func TestTodoWriteTool_ConcurrentOperations(t *testing.T) {
 		}
 
 		// 验证todo被创建
-		todos := result["todos"].([]interface{})
+		todos := result["todos"].([]any)
 		if len(todos) == 0 {
 			return fmt.Errorf("No todos created")
 		}
@@ -608,14 +608,14 @@ func BenchmarkTodoWriteTool_CreateTodos(b *testing.B) {
 		b.Fatalf("Failed to create TodoWrite tool: %v", err)
 	}
 
-	input := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	input := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Benchmark task",
 				"status":     "pending",
 				"activeForm": "基准测试任务",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Another benchmark task",
 				"status":     "in_progress",
 				"activeForm": "另一个基准测试任务",
@@ -637,9 +637,9 @@ func BenchmarkTodoWriteTool_WithPriority(b *testing.B) {
 		b.Fatalf("Failed to create TodoWrite tool: %v", err)
 	}
 
-	input := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	input := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "High priority benchmark",
 				"status":     "pending",
 				"activeForm": "高优先级基准任务",
@@ -663,9 +663,9 @@ func TestTodoWriteTool_SingleInProgressConstraint(t *testing.T) {
 	}
 
 	// 测试1: 创建单个 in_progress 任务应该成功
-	singleInput := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	singleInput := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "First task",
 				"status":     "in_progress",
 				"activeForm": "Working on first task",
@@ -682,9 +682,9 @@ func TestTodoWriteTool_SingleInProgressConstraint(t *testing.T) {
 	}
 
 	// 测试2: 尝试添加第二个 in_progress 任务应该失败
-	secondInput := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	secondInput := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Second task",
 				"status":     "in_progress",
 				"activeForm": "Working on second task",
@@ -721,19 +721,19 @@ func TestTodoWriteTool_InProgressWithPendingTasks(t *testing.T) {
 
 	// 一个 in_progress + pending + completed 应该成功
 	// 关键测试点：只有一个 in_progress 时应该成功
-	mixedInput := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	mixedInput := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "Pending task",
 				"status":     "pending",
 				"activeForm": "Pending task in progress",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Active task",
 				"status":     "in_progress",
 				"activeForm": "Working on active task",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Completed task",
 				"status":     "completed",
 				"activeForm": "Completed task done",
@@ -780,14 +780,14 @@ func TestTodoWriteTool_MultipleInProgressInSingleRequest(t *testing.T) {
 	}
 
 	// 同一请求中有两个 in_progress 任务应该失败
-	multipleInProgressInput := map[string]interface{}{
-		"todos": []interface{}{
-			map[string]interface{}{
+	multipleInProgressInput := map[string]any{
+		"todos": []any{
+			map[string]any{
 				"content":    "First in_progress",
 				"status":     "in_progress",
 				"activeForm": "Working on first",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"content":    "Second in_progress",
 				"status":     "in_progress",
 				"activeForm": "Working on second",

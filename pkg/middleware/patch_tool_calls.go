@@ -25,7 +25,7 @@ type FailedToolCall struct {
 	Timestamp  time.Time
 	ToolName   string
 	ToolCallID string
-	Input      map[string]interface{}
+	Input      map[string]any
 	Error      string
 }
 
@@ -140,8 +140,8 @@ func (m *PatchToolCallsMiddleware) recordFailedCall(req *ToolCallRequest, errorM
 }
 
 // buildErrorResponse 构建友好的错误响应
-func (m *PatchToolCallsMiddleware) buildErrorResponse(toolName, errorMsg, errorType string) map[string]interface{} {
-	response := map[string]interface{}{
+func (m *PatchToolCallsMiddleware) buildErrorResponse(toolName, errorMsg, errorType string) map[string]any {
+	response := map[string]any{
 		"ok":         false,
 		"error":      errorMsg,
 		"error_type": errorType,

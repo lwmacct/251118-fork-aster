@@ -22,8 +22,8 @@ type MiddlewareFactory func(config *MiddlewareFactoryConfig) (Middleware, error)
 type MiddlewareFactoryConfig struct {
 	Provider     provider.Provider
 	AgentID      string
-	Metadata     map[string]interface{}
-	CustomConfig map[string]interface{} // 自定义配置
+	Metadata     map[string]any
+	CustomConfig map[string]any // 自定义配置
 	Sandbox      sandbox.Sandbox        // 可选: 需要访问沙箱文件系统的中间件
 }
 

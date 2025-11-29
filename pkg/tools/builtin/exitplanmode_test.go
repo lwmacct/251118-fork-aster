@@ -35,7 +35,7 @@ func TestExitPlanModeTool_InputSchema(t *testing.T) {
 		t.Fatal("Input schema should not be nil")
 	}
 
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -47,12 +47,12 @@ func TestExitPlanModeTool_InputSchema(t *testing.T) {
 
 	// 验证required字段为空（所有参数都是可选的）
 	required := schema["required"]
-	var requiredArray []interface{}
+	var requiredArray []any
 	switch v := required.(type) {
-	case []interface{}:
+	case []any:
 		requiredArray = v
 	case []string:
-		requiredArray = make([]interface{}, len(v))
+		requiredArray = make([]any, len(v))
 		for i, s := range v {
 			requiredArray[i] = s
 		}
@@ -112,7 +112,7 @@ func TestExitPlanModeTool_BasicPlanReading(t *testing.T) {
 	planFilePath := setupTestPlanFile(t, basePath, planContent)
 
 	// 创建工具（使用自定义路径）
-	tool, err := NewExitPlanModeTool(map[string]interface{}{
+	tool, err := NewExitPlanModeTool(map[string]any{
 		"base_path": basePath,
 	})
 	if err != nil {
@@ -120,7 +120,7 @@ func TestExitPlanModeTool_BasicPlanReading(t *testing.T) {
 	}
 
 	// 执行工具（指定文件路径）
-	input := map[string]interface{}{
+	input := map[string]any{
 		"plan_file_path": planFilePath,
 	}
 
@@ -172,7 +172,7 @@ func TestExitPlanModeTool_AutoFindLatestPlan(t *testing.T) {
 	setupTestPlanFile(t, basePath, newContent)
 
 	// 创建工具
-	tool, err := NewExitPlanModeTool(map[string]interface{}{
+	tool, err := NewExitPlanModeTool(map[string]any{
 		"base_path": basePath,
 	})
 	if err != nil {
@@ -180,7 +180,7 @@ func TestExitPlanModeTool_AutoFindLatestPlan(t *testing.T) {
 	}
 
 	// 不指定文件路径，应该自动使用最新的
-	input := map[string]interface{}{}
+	input := map[string]any{}
 
 	result := ExecuteToolWithInput(t, tool, input)
 	result = AssertToolSuccess(t, result)
@@ -206,7 +206,7 @@ func TestExitPlanModeTool_NoPlanFiles(t *testing.T) {
 	}
 
 	// 创建工具
-	tool, err := NewExitPlanModeTool(map[string]interface{}{
+	tool, err := NewExitPlanModeTool(map[string]any{
 		"base_path": basePath,
 	})
 	if err != nil {
@@ -214,7 +214,7 @@ func TestExitPlanModeTool_NoPlanFiles(t *testing.T) {
 	}
 
 	// 不指定文件路径
-	input := map[string]interface{}{}
+	input := map[string]any{}
 
 	result := ExecuteToolWithInput(t, tool, input)
 
@@ -236,7 +236,7 @@ func TestExitPlanModeTool_NonExistentFile(t *testing.T) {
 	}
 
 	// 创建工具
-	tool, err := NewExitPlanModeTool(map[string]interface{}{
+	tool, err := NewExitPlanModeTool(map[string]any{
 		"base_path": basePath,
 	})
 	if err != nil {
@@ -244,7 +244,7 @@ func TestExitPlanModeTool_NonExistentFile(t *testing.T) {
 	}
 
 	// 指定不存在的文件路径
-	input := map[string]interface{}{
+	input := map[string]any{
 		"plan_file_path": "/non/existent/path/plan.md",
 	}
 
@@ -266,14 +266,14 @@ func TestExitPlanModeTool_PlanFilePath(t *testing.T) {
 	planFilePath := setupTestPlanFile(t, basePath, planContent)
 
 	// 创建工具
-	tool, err := NewExitPlanModeTool(map[string]interface{}{
+	tool, err := NewExitPlanModeTool(map[string]any{
 		"base_path": basePath,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create ExitPlanMode tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"plan_file_path": planFilePath,
 	}
 
@@ -297,14 +297,14 @@ func TestExitPlanModeTool_NextSteps(t *testing.T) {
 	planFilePath := setupTestPlanFile(t, basePath, planContent)
 
 	// 创建工具
-	tool, err := NewExitPlanModeTool(map[string]interface{}{
+	tool, err := NewExitPlanModeTool(map[string]any{
 		"base_path": basePath,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create ExitPlanMode tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"plan_file_path": planFilePath,
 	}
 
@@ -331,7 +331,7 @@ func TestExitPlanModeTool_ConcurrentAccess(t *testing.T) {
 	defer cleanupTestPlanDir(basePath)
 
 	// 创建工具
-	tool, err := NewExitPlanModeTool(map[string]interface{}{
+	tool, err := NewExitPlanModeTool(map[string]any{
 		"base_path": basePath,
 	})
 	if err != nil {
@@ -344,7 +344,7 @@ func TestExitPlanModeTool_ConcurrentAccess(t *testing.T) {
 		planContent := fmt.Sprintf("# Concurrent Plan %d\nCreated at %d", time.Now().UnixNano(), time.Now().UnixNano())
 		planFilePath := setupTestPlanFile(t, basePath, planContent)
 
-		input := map[string]interface{}{
+		input := map[string]any{
 			"plan_file_path": planFilePath,
 		}
 
@@ -383,14 +383,14 @@ func TestExitPlanModeTool_DurationMs(t *testing.T) {
 	planFilePath := setupTestPlanFile(t, basePath, planContent)
 
 	// 创建工具
-	tool, err := NewExitPlanModeTool(map[string]interface{}{
+	tool, err := NewExitPlanModeTool(map[string]any{
 		"base_path": basePath,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create ExitPlanMode tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"plan_file_path": planFilePath,
 	}
 
@@ -422,14 +422,14 @@ func BenchmarkExitPlanModeTool_ReadPlan(b *testing.B) {
 
 	planFilePath := setupTestPlanFile(nil, basePath, planContent)
 
-	tool, err := NewExitPlanModeTool(map[string]interface{}{
+	tool, err := NewExitPlanModeTool(map[string]any{
 		"base_path": basePath,
 	})
 	if err != nil {
 		b.Fatalf("Failed to create ExitPlanMode tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"plan_file_path": planFilePath,
 	}
 

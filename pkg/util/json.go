@@ -19,19 +19,19 @@ import (
 
 // MarshalDeterministic 确定性地序列化为 JSON
 // 对于 map 类型，会按 key 字典序排序
-func MarshalDeterministic(v interface{}) ([]byte, error) {
+func MarshalDeterministic(v any) ([]byte, error) {
 	normalized := normalizeValue(reflect.ValueOf(v))
 	return json.Marshal(normalized)
 }
 
 // MarshalDeterministicIndent 确定性地序列化为格式化的 JSON
-func MarshalDeterministicIndent(v interface{}, prefix, indent string) ([]byte, error) {
+func MarshalDeterministicIndent(v any, prefix, indent string) ([]byte, error) {
 	normalized := normalizeValue(reflect.ValueOf(v))
 	return json.MarshalIndent(normalized, prefix, indent)
 }
 
 // MarshalDeterministicToBuffer 确定性地序列化到 buffer（减少内存分配）
-func MarshalDeterministicToBuffer(v interface{}, buf *bytes.Buffer) error {
+func MarshalDeterministicToBuffer(v any, buf *bytes.Buffer) error {
 	normalized := normalizeValue(reflect.ValueOf(v))
 	encoder := json.NewEncoder(buf)
 	encoder.SetEscapeHTML(false)
@@ -39,7 +39,7 @@ func MarshalDeterministicToBuffer(v interface{}, buf *bytes.Buffer) error {
 }
 
 // normalizeValue 递归处理值，确保 map 的 key 有序
-func normalizeValue(v reflect.Value) interface{} {
+func normalizeValue(v reflect.Value) any {
 	if !v.IsValid() {
 		return nil
 	}
@@ -71,7 +71,7 @@ func normalizeValue(v reflect.Value) interface{} {
 }
 
 // normalizeMap 按 key 排序处理 map
-func normalizeMap(v reflect.Value) interface{} {
+func normalizeMap(v reflect.Value) any {
 	if v.IsNil() {
 		return nil
 	}
@@ -115,7 +115,7 @@ func normalizeMap(v reflect.Value) interface{} {
 // orderedMapEntry 有序 map 的条目
 type orderedMapEntry struct {
 	Key   string
-	Value interface{}
+	Value any
 }
 
 // orderedMap 有序 map，实现 json.Marshaler 接口
@@ -152,12 +152,12 @@ func (m orderedMap) MarshalJSON() ([]byte, error) {
 }
 
 // normalizeSlice 处理 slice
-func normalizeSlice(v reflect.Value) interface{} {
+func normalizeSlice(v reflect.Value) any {
 	if v.IsNil() {
 		return nil
 	}
 
-	result := make([]interface{}, v.Len())
+	result := make([]any, v.Len())
 	for i := 0; i < v.Len(); i++ {
 		result[i] = normalizeValue(v.Index(i))
 	}
@@ -165,8 +165,8 @@ func normalizeSlice(v reflect.Value) interface{} {
 }
 
 // normalizeArray 处理数组
-func normalizeArray(v reflect.Value) interface{} {
-	result := make([]interface{}, v.Len())
+func normalizeArray(v reflect.Value) any {
+	result := make([]any, v.Len())
 	for i := 0; i < v.Len(); i++ {
 		result[i] = normalizeValue(v.Index(i))
 	}
@@ -176,7 +176,7 @@ func normalizeArray(v reflect.Value) interface{} {
 // normalizeStruct 处理结构体
 // 注意：Go 的 json.Marshal 对结构体已经是确定性的（按字段定义顺序）
 // 但我们仍需递归处理嵌套的 map
-func normalizeStruct(v reflect.Value) interface{} {
+func normalizeStruct(v reflect.Value) any {
 	t := v.Type()
 	result := make(orderedMap, 0)
 

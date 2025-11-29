@@ -230,8 +230,8 @@ func (m *AgentMemoryMiddleware) ReloadMemory(ctx context.Context) error {
 }
 
 // GetConfig 获取配置信息
-func (m *AgentMemoryMiddleware) GetConfig() map[string]interface{} {
-	return map[string]interface{}{
+func (m *AgentMemoryMiddleware) GetConfig() map[string]any {
+	return map[string]any{
 		"memory_path":   m.memoryPath,
 		"memory_loaded": m.memoryLoaded,
 		"memory_size":   len(m.memoryContent),

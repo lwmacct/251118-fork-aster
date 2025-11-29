@@ -12,7 +12,7 @@ import (
 // Schema 字段目前仅用于文档/日志，不进行严格校验；RequiredFields 用于轻量必填校验。
 type OutputSpec struct {
 	Enabled         bool                   // 是否启用结构化解析
-	Schema          map[string]interface{} // 可选的 JSON Schema 信息（当前仅透传）
+	Schema          map[string]any // 可选的 JSON Schema 信息（当前仅透传）
 	RequiredFields  []string               // 期望在顶层出现的字段
 	AllowTextBackup bool                   // 解析失败时是否允许保留原始文本
 }
@@ -21,7 +21,7 @@ type OutputSpec struct {
 type ParseResult struct {
 	RawText       string      // 模型原始输出
 	RawJSON       string      // 提取出的 JSON 文本
-	Data          interface{} // JSON 解析结果
+	Data          any // JSON 解析结果
 	MissingFields []string    // 缺失的必填字段
 }
 
@@ -49,7 +49,7 @@ func (p *JSONParser) Parse(ctx context.Context, text string, spec OutputSpec) (*
 		return nil, fmt.Errorf("extract json: %w", err)
 	}
 
-	var data interface{}
+	var data any
 	if err := json.Unmarshal([]byte(rawJSON), &data); err != nil {
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
@@ -102,12 +102,12 @@ func extractJSONSegment(text string) (string, error) {
 }
 
 // checkRequiredFields 校验顶层字段是否存在。
-func checkRequiredFields(data interface{}, required []string) []string {
+func checkRequiredFields(data any, required []string) []string {
 	if len(required) == 0 {
 		return nil
 	}
 
-	obj, ok := data.(map[string]interface{})
+	obj, ok := data.(map[string]any)
 	if !ok {
 		return required
 	}

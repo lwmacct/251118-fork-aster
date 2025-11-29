@@ -13,10 +13,10 @@ type Tracer interface {
 	StartSpan(ctx context.Context, name string, opts ...SpanOption) (context.Context, Span)
 
 	// Extract 从 carrier 中提取 trace context
-	Extract(ctx context.Context, carrier interface{}) context.Context
+	Extract(ctx context.Context, carrier any) context.Context
 
 	// Inject 将 trace context 注入到 carrier
-	Inject(ctx context.Context, carrier interface{}) error
+	Inject(ctx context.Context, carrier any) error
 }
 
 // Span 表示一个追踪片段
@@ -50,7 +50,7 @@ type SpanContext interface {
 // Attribute 表示 span 的属性
 type Attribute struct {
 	Key   string
-	Value interface{}
+	Value any
 }
 
 // StatusCode 表示 span 的状态码
@@ -132,11 +132,11 @@ func (t *NoopTracer) StartSpan(ctx context.Context, name string, opts ...SpanOpt
 	return ctx, &NoopSpan{}
 }
 
-func (t *NoopTracer) Extract(ctx context.Context, carrier interface{}) context.Context {
+func (t *NoopTracer) Extract(ctx context.Context, carrier any) context.Context {
 	return ctx
 }
 
-func (t *NoopTracer) Inject(ctx context.Context, carrier interface{}) error {
+func (t *NoopTracer) Inject(ctx context.Context, carrier any) error {
 	return nil
 }
 
@@ -192,11 +192,11 @@ func (t *SimpleTracer) StartSpan(ctx context.Context, name string, opts ...SpanO
 	return ctx, span
 }
 
-func (t *SimpleTracer) Extract(ctx context.Context, carrier interface{}) context.Context {
+func (t *SimpleTracer) Extract(ctx context.Context, carrier any) context.Context {
 	return ctx
 }
 
-func (t *SimpleTracer) Inject(ctx context.Context, carrier interface{}) error {
+func (t *SimpleTracer) Inject(ctx context.Context, carrier any) error {
 	return nil
 }
 

@@ -9,13 +9,13 @@ type ToolCallRecord struct {
 	ID           string                 `json:"id"`                     // 工具调用 ID
 	Name         string                 `json:"name"`                   // 工具名称（新字段）
 	ToolName     string                 `json:"tool_name"`              // 工具名称（兼容）
-	Input        map[string]interface{} `json:"input"`                  // 输入参数
-	Output       interface{}            `json:"output"`                 // 输出结果
-	Result       interface{}            `json:"result"`                 // 执行结果（新字段）
+	Input        map[string]any `json:"input"`                  // 输入参数
+	Output       any            `json:"output"`                 // 输出结果
+	Result       any            `json:"result"`                 // 执行结果（新字段）
 	Error        string                 `json:"error,omitempty"`        // 错误信息
 	IsError      bool                   `json:"is_error"`               // 是否有错误（新字段）
 	Progress     float64                `json:"progress"`               // 执行进度 0-1
-	Intermediate map[string]interface{} `json:"intermediate,omitempty"` // 中间结果
+	Intermediate map[string]any `json:"intermediate,omitempty"` // 中间结果
 	StartTime    time.Time              `json:"start_time"`             // 开始时间
 	EndTime      time.Time              `json:"end_time"`               // 结束时间
 	StartedAt    *time.Time             `json:"started_at"`             // 开始时间（新字段，指针）
@@ -50,7 +50,7 @@ type Snapshot struct {
 	State       AgentState             `json:"state"`                 // Agent 状态
 	StepCount   int                    `json:"step_count"`            // 步骤计数
 	Cursor      int                    `json:"cursor"`                // 当前位置
-	Metadata    map[string]interface{} `json:"metadata"`              // 元数据
+	Metadata    map[string]any `json:"metadata"`              // 元数据
 	Description string                 `json:"description,omitempty"` // 快照描述
 }
 
@@ -91,7 +91,7 @@ type AgentInfo struct {
 	MessageCount  int                    `json:"message_count"`         // 消息数量（新字段）
 	Lineage       []string               `json:"lineage"`               // 血缘关系（新字段）
 	ConfigVersion string                 `json:"config_version"`        // 配置版本（新字段）
-	Metadata      map[string]interface{} `json:"metadata"`              // 自定义元数据
+	Metadata      map[string]any `json:"metadata"`              // 自定义元数据
 	Tags          []string               `json:"tags,omitempty"`        // 标签
 	Description   string                 `json:"description,omitempty"` // 描述
 }
@@ -99,17 +99,17 @@ type AgentInfo struct {
 // Event 事件类型（用于工具和 Agent 之间的通信）
 type Event struct {
 	Type      string                 `json:"type"`               // 事件类型
-	Data      interface{}            `json:"data"`               // 事件数据
+	Data      any            `json:"data"`               // 事件数据
 	Timestamp time.Time              `json:"timestamp"`          // 时间戳
 	Source    string                 `json:"source,omitempty"`   // 事件源
-	Metadata  map[string]interface{} `json:"metadata,omitempty"` // 元数据
+	Metadata  map[string]any `json:"metadata,omitempty"` // 元数据
 }
 
 // ToolDefinition 工具定义
 type ToolDefinition struct {
 	Name        string                 `json:"name"`         // 工具名称
 	Description string                 `json:"description"`  // 工具描述
-	InputSchema map[string]interface{} `json:"input_schema"` // 输入 Schema
+	InputSchema map[string]any `json:"input_schema"` // 输入 Schema
 }
 
 // ToolSchema 工具 Schema 定义
@@ -124,11 +124,11 @@ type ToolSchema struct {
 type PropertySchema struct {
 	Type        string                     `json:"type"`                  // string, number, boolean, array, object
 	Description string                     `json:"description,omitempty"` // 描述
-	Enum        []interface{}              `json:"enum,omitempty"`        // 枚举值
+	Enum        []any              `json:"enum,omitempty"`        // 枚举值
 	Items       *PropertySchema            `json:"items,omitempty"`       // 数组元素 schema
 	Properties  map[string]*PropertySchema `json:"properties,omitempty"`  // 对象属性（嵌套）
 	Required    []string                   `json:"required,omitempty"`    // 必需字段（对象）
-	Default     interface{}                `json:"default,omitempty"`     // 默认值
+	Default     any                `json:"default,omitempty"`     // 默认值
 }
 
 // ToolCallState 工具调用状态（用于并发控制）

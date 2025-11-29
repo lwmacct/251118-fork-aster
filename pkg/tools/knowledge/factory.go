@@ -57,23 +57,23 @@ func (t *addTool) Description() string {
 }
 func (t *addTool) Prompt() string { return "" }
 
-func (t *addTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *addTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type":     "object",
 		"required": []string{"text"},
-		"properties": map[string]interface{}{
-			"id":        map[string]interface{}{"type": "string", "description": "optional document id"},
-			"text":      map[string]interface{}{"type": "string", "description": "content to ingest"},
-			"namespace": map[string]interface{}{"type": "string", "description": "optional namespace override"},
-			"metadata":  map[string]interface{}{"type": "object", "description": "custom metadata map"},
+		"properties": map[string]any{
+			"id":        map[string]any{"type": "string", "description": "optional document id"},
+			"text":      map[string]any{"type": "string", "description": "content to ingest"},
+			"namespace": map[string]any{"type": "string", "description": "optional namespace override"},
+			"metadata":  map[string]any{"type": "object", "description": "custom metadata map"},
 		},
 	}
 }
 
-func (t *addTool) Execute(ctx context.Context, input map[string]interface{}, _ *tools.ToolContext) (interface{}, error) {
+func (t *addTool) Execute(ctx context.Context, input map[string]any, _ *tools.ToolContext) (any, error) {
 	text, _ := input["text"].(string)
 	if text == "" {
-		return map[string]interface{}{"ok": false, "error": "text is required"}, nil
+		return map[string]any{"ok": false, "error": "text is required"}, nil
 	}
 	id, _ := input["id"].(string)
 	if id == "" {
@@ -81,8 +81,8 @@ func (t *addTool) Execute(ctx context.Context, input map[string]interface{}, _ *
 	}
 	ns, _ := input["namespace"].(string)
 
-	meta := map[string]interface{}{}
-	if m, ok := input["metadata"].(map[string]interface{}); ok {
+	meta := map[string]any{}
+	if m, ok := input["metadata"].(map[string]any); ok {
 		for k, v := range m {
 			meta[k] = v
 		}
@@ -98,7 +98,7 @@ func (t *addTool) Execute(ctx context.Context, input map[string]interface{}, _ *
 		Metadata:  meta,
 	})
 	if err != nil {
-		return map[string]interface{}{"ok": false, "error": err.Error()}, nil
+		return map[string]any{"ok": false, "error": err.Error()}, nil
 	}
 
 	chunkIDs := make([]string, 0, len(chunks))
@@ -106,7 +106,7 @@ func (t *addTool) Execute(ctx context.Context, input map[string]interface{}, _ *
 		chunkIDs = append(chunkIDs, c.ID)
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":          true,
 		"doc_id":      id,
 		"chunk_ids":   chunkIDs,
@@ -123,31 +123,31 @@ func (t *searchTool) Name() string        { return "KnowledgeSearch" }
 func (t *searchTool) Description() string { return "Semantic search over core knowledge pipeline." }
 func (t *searchTool) Prompt() string      { return "" }
 
-func (t *searchTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *searchTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type":     "object",
 		"required": []string{"query"},
-		"properties": map[string]interface{}{
-			"query":     map[string]interface{}{"type": "string"},
-			"top_k":     map[string]interface{}{"type": "integer"},
-			"namespace": map[string]interface{}{"type": "string"},
-			"metadata":  map[string]interface{}{"type": "object"},
+		"properties": map[string]any{
+			"query":     map[string]any{"type": "string"},
+			"top_k":     map[string]any{"type": "integer"},
+			"namespace": map[string]any{"type": "string"},
+			"metadata":  map[string]any{"type": "object"},
 		},
 	}
 }
 
-func (t *searchTool) Execute(ctx context.Context, input map[string]interface{}, _ *tools.ToolContext) (interface{}, error) {
+func (t *searchTool) Execute(ctx context.Context, input map[string]any, _ *tools.ToolContext) (any, error) {
 	query, _ := input["query"].(string)
 	if query == "" {
-		return map[string]interface{}{"ok": false, "error": "query is required"}, nil
+		return map[string]any{"ok": false, "error": "query is required"}, nil
 	}
 	topK := 5
 	if v, ok := input["top_k"].(int); ok && v > 0 {
 		topK = v
 	}
 	ns, _ := input["namespace"].(string)
-	meta := map[string]interface{}{}
-	if m, ok := input["metadata"].(map[string]interface{}); ok {
+	meta := map[string]any{}
+	if m, ok := input["metadata"].(map[string]any); ok {
 		for k, v2 := range m {
 			meta[k] = v2
 		}
@@ -158,12 +158,12 @@ func (t *searchTool) Execute(ctx context.Context, input map[string]interface{}, 
 
 	hits, err := t.pipe.Search(ctx, query, topK, meta)
 	if err != nil {
-		return map[string]interface{}{"ok": false, "error": err.Error()}, nil
+		return map[string]any{"ok": false, "error": err.Error()}, nil
 	}
 
-	results := make([]map[string]interface{}, 0, len(hits))
+	results := make([]map[string]any, 0, len(hits))
 	for _, h := range hits {
-		results = append(results, map[string]interface{}{
+		results = append(results, map[string]any{
 			"id":       h.ID,
 			"score":    h.Score,
 			"text":     h.Text,
@@ -171,7 +171,7 @@ func (t *searchTool) Execute(ctx context.Context, input map[string]interface{}, 
 		})
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":        true,
 		"query":     query,
 		"namespace": ns,

@@ -34,7 +34,7 @@ func TestKillShellTool_InputSchema(t *testing.T) {
 		t.Fatal("Input schema should not be nil")
 	}
 
-	properties, ok := schema["properties"].(map[string]interface{})
+	properties, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -49,12 +49,12 @@ func TestKillShellTool_InputSchema(t *testing.T) {
 
 	// 验证 required 数组
 	required := schema["required"]
-	// required 可能是 []string 或 []interface{}
+	// required 可能是 []string 或 []any
 	var requiredFields []string
 	switch v := required.(type) {
 	case []string:
 		requiredFields = v
-	case []interface{}:
+	case []any:
 		for _, item := range v {
 			if str, ok := item.(string); ok {
 				requiredFields = append(requiredFields, str)
@@ -75,7 +75,7 @@ func TestKillShellTool_KillNonExistentTask(t *testing.T) {
 		t.Fatalf("Failed to create KillShell tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"shell_id": "non_existent_task_id",
 	}
 
@@ -110,7 +110,7 @@ func TestKillShellTool_SignalTypes(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "sleep 30", // 长时间运行的任务
 		"background": true,
 	}
@@ -144,7 +144,7 @@ func TestKillShellTool_SignalTypes(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 
 			// 使用KillShell工具终止任务
-			killInput := map[string]interface{}{
+			killInput := map[string]any{
 				"shell_id": newTaskID,
 				"signal":   signal,
 			}
@@ -191,7 +191,7 @@ func TestKillShellTool_ForceKill(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "while true; do sleep 1; done", // 无限循环
 		"background": true,
 	}
@@ -208,7 +208,7 @@ func TestKillShellTool_ForceKill(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// 使用force=true强制终止
-	killInput := map[string]interface{}{
+	killInput := map[string]any{
 		"shell_id": taskID,
 		"force":    true,
 	}
@@ -247,7 +247,7 @@ func TestKillShellTool_WaitForCompletion(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "sleep 2 && echo 'Task completed'",
 		"background": true,
 	}
@@ -264,7 +264,7 @@ func TestKillShellTool_WaitForCompletion(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// 使用wait=true等待任务完成
-	killInput := map[string]interface{}{
+	killInput := map[string]any{
 		"shell_id": taskID,
 		"signal":   "SIGTERM",
 		"wait":     true,
@@ -312,7 +312,7 @@ func TestKillShellTool_CleanupResources(t *testing.T) {
 		t.Fatalf("Failed to create Bash tool: %v", err)
 	}
 
-	bashInput := map[string]interface{}{
+	bashInput := map[string]any{
 		"command":    "echo 'Cleanup test' > /tmp/test_output.txt",
 		"background": true,
 	}
@@ -329,7 +329,7 @@ func TestKillShellTool_CleanupResources(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 
 	// 终止任务并清理资源
-	killInput := map[string]interface{}{
+	killInput := map[string]any{
 		"shell_id": taskID,
 		"cleanup":  true,
 	}
@@ -350,7 +350,7 @@ func TestKillShellTool_CleanupResources(t *testing.T) {
 
 	if cleanupInfo, exists := killResult["cleanup_info"]; !exists {
 		t.Error("Result should contain 'cleanup_info' field")
-	} else if cleanupInfoMap, ok := cleanupInfo.(map[string]interface{}); !ok {
+	} else if cleanupInfoMap, ok := cleanupInfo.(map[string]any); !ok {
 		t.Error("cleanup_info should be a map")
 	} else {
 		// 验证清理信息包含必要字段
@@ -370,7 +370,7 @@ func TestKillShellTool_InputValidation(t *testing.T) {
 	}
 
 	// 测试缺少必需参数
-	input := map[string]interface{}{}
+	input := map[string]any{}
 	result := ExecuteToolWithInput(t, tool, input)
 
 	errMsg := AssertToolError(t, result)
@@ -380,7 +380,7 @@ func TestKillShellTool_InputValidation(t *testing.T) {
 	}
 
 	// 测试空shell_id
-	input = map[string]interface{}{
+	input = map[string]any{
 		"shell_id": "",
 	}
 	result = ExecuteToolWithInput(t, tool, input)
@@ -398,7 +398,7 @@ func TestKillShellTool_InvalidSignal(t *testing.T) {
 		t.Fatalf("Failed to create KillShell tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"shell_id": "dummy_id",
 		"signal":   "INVALID_SIGNAL",
 	}
@@ -430,7 +430,7 @@ func BenchmarkKillShellTool_KillTask(b *testing.B) {
 		b.Fatalf("Failed to create KillShell tool: %v", err)
 	}
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"shell_id": "benchmark_task_id",
 		"signal":   "SIGTERM",
 	}
@@ -463,7 +463,7 @@ func TestKillShellTool_ConcurrentKill(t *testing.T) {
 	numTasks := 3
 
 	for i := 0; i < numTasks; i++ {
-		bashInput := map[string]interface{}{
+		bashInput := map[string]any{
 			"command":    fmt.Sprintf("sleep 5 && echo 'Task %d completed'", i),
 			"background": true,
 		}
@@ -491,7 +491,7 @@ func TestKillShellTool_ConcurrentKill(t *testing.T) {
 	start := time.Now()
 	for i, taskID := range taskIDs {
 		go func(id string, index int) {
-			input := map[string]interface{}{
+			input := map[string]any{
 				"shell_id": id,
 				"signal":   "SIGTERM",
 			}

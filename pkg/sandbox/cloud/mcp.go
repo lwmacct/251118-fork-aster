@@ -46,7 +46,7 @@ func NewMCPClient(config *MCPClientConfig) *MCPClient {
 }
 
 // CallTool 调用 MCP 工具
-func (mc *MCPClient) CallTool(ctx context.Context, toolName string, params map[string]interface{}) (json.RawMessage, error) {
+func (mc *MCPClient) CallTool(ctx context.Context, toolName string, params map[string]any) (json.RawMessage, error) {
 	// 构建 MCP 请求
 	request := &MCPRequest{
 		JSONRPC: "2.0",
@@ -180,7 +180,7 @@ type MCPRequest struct {
 // MCPCallParams 工具调用参数
 type MCPCallParams struct {
 	Name      string                 `json:"name"`
-	Arguments map[string]interface{} `json:"arguments,omitempty"`
+	Arguments map[string]any `json:"arguments,omitempty"`
 }
 
 // MCPResponse MCP 响应
@@ -195,12 +195,12 @@ type MCPResponse struct {
 type MCPError struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Data    any `json:"data,omitempty"`
 }
 
 // MCPTool MCP 工具定义
 type MCPTool struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
-	InputSchema map[string]interface{} `json:"inputSchema"`
+	InputSchema map[string]any `json:"inputSchema"`
 }

@@ -31,7 +31,7 @@ func createTestDeps(t *testing.T) *agent.Dependencies {
 		ID:           "test-template",
 		SystemPrompt: "You are a test assistant",
 		Model:        "claude-sonnet-4-5",
-		Tools:        []interface{}{},
+		Tools:        []any{},
 	})
 
 	return &agent.Dependencies{

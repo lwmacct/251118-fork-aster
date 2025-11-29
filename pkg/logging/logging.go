@@ -23,7 +23,7 @@ type LogRecord struct {
 	Timestamp time.Time              `json:"ts"`
 	Level     Level                  `json:"level"`
 	Message   string                 `json:"message"`
-	Fields    map[string]interface{} `json:"fields,omitempty"`
+	Fields    map[string]any `json:"fields,omitempty"`
 }
 
 // Transport 日志输出通道接口
@@ -67,7 +67,7 @@ func (l *Logger) AddTransport(t Transport) {
 }
 
 // log 内部通用日志函数
-func (l *Logger) log(ctx context.Context, level Level, msg string, fields map[string]interface{}) {
+func (l *Logger) log(ctx context.Context, level Level, msg string, fields map[string]any) {
 	if !l.enabled(level) {
 		return
 	}
@@ -101,22 +101,22 @@ func (l *Logger) enabled(level Level) bool {
 }
 
 // Debug 记录调试日志
-func (l *Logger) Debug(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *Logger) Debug(ctx context.Context, msg string, fields map[string]any) {
 	l.log(ctx, LevelDebug, msg, fields)
 }
 
 // Info 记录信息日志
-func (l *Logger) Info(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *Logger) Info(ctx context.Context, msg string, fields map[string]any) {
 	l.log(ctx, LevelInfo, msg, fields)
 }
 
 // Warn 记录警告日志
-func (l *Logger) Warn(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *Logger) Warn(ctx context.Context, msg string, fields map[string]any) {
 	l.log(ctx, LevelWarn, msg, fields)
 }
 
 // Error 记录错误日志
-func (l *Logger) Error(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *Logger) Error(ctx context.Context, msg string, fields map[string]any) {
 	l.log(ctx, LevelError, msg, fields)
 }
 
@@ -212,19 +212,19 @@ func (t *FileTransport) Close() error {
 var Default = NewLogger(LevelInfo, NewStdoutTransport())
 
 // Helper 函数, 便于直接调用 logging.Info(ctx, ...)
-func Debug(ctx context.Context, msg string, fields map[string]interface{}) {
+func Debug(ctx context.Context, msg string, fields map[string]any) {
 	Default.Debug(ctx, msg, fields)
 }
 
-func Info(ctx context.Context, msg string, fields map[string]interface{}) {
+func Info(ctx context.Context, msg string, fields map[string]any) {
 	Default.Info(ctx, msg, fields)
 }
 
-func Warn(ctx context.Context, msg string, fields map[string]interface{}) {
+func Warn(ctx context.Context, msg string, fields map[string]any) {
 	Default.Warn(ctx, msg, fields)
 }
 
-func Error(ctx context.Context, msg string, fields map[string]interface{}) {
+func Error(ctx context.Context, msg string, fields map[string]any) {
 	Default.Error(ctx, msg, fields)
 }
 

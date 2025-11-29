@@ -175,7 +175,7 @@ func demonstrateWithSchema(ctx context.Context, backend backends.BackendProtocol
 			"role":      {Type: "string"},
 			"task_status": {
 				Type: "string",
-				Enum: []interface{}{"not_started", "in_progress", "completed"},
+				Enum: []any{"not_started", "in_progress", "completed"},
 			},
 			"preferences": {
 				Type:  "array",
@@ -322,7 +322,7 @@ func demonstrateWithMiddleware(ctx context.Context, backend backends.BackendProt
 
 	// 模拟使用 update_working_memory 工具
 	updateTool := wmTools[0]
-	input := map[string]interface{}{
+	input := map[string]any{
 		"memory": `# User Profile
 Name: Demo User
 Status: Testing Working Memory Middleware`,

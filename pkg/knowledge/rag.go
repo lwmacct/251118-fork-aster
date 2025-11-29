@@ -162,7 +162,7 @@ func (r *RAG) Retrieve(ctx context.Context, query string, options ...RAGOption) 
 }
 
 // RetrieveWithMetadata 带元数据的检索
-func (r *RAG) RetrieveWithMetadata(ctx context.Context, query string, metadata map[string]interface{}) (*RAGResult, error) {
+func (r *RAG) RetrieveWithMetadata(ctx context.Context, query string, metadata map[string]any) (*RAGResult, error) {
 	return r.Retrieve(ctx, query, WithMetadata(metadata))
 }
 
@@ -180,7 +180,7 @@ func (r *RAG) RetrieveSimilar(ctx context.Context, itemID string, maxResults int
 	}
 
 	// 检索时包含原始项目ID作为参考
-	return r.Retrieve(ctx, query, WithMaxResults(maxResults), WithMetadata(map[string]interface{}{
+	return r.Retrieve(ctx, query, WithMaxResults(maxResults), WithMetadata(map[string]any{
 		"reference_id": itemID,
 	}))
 }
@@ -249,7 +249,7 @@ type RAGOptions struct {
 	Category       string                 `json:"category"`
 	Tags           []string               `json:"tags"`
 	Namespace      string                 `json:"namespace"`
-	Metadata       map[string]interface{} `json:"metadata"`
+	Metadata       map[string]any `json:"metadata"`
 	TimeRange      *TimeRange             `json:"time_range"`
 	QualityFilter  *QualityFilter         `json:"quality_filter"`
 	DiversityBoost bool                   `json:"diversity_boost"`
@@ -298,7 +298,7 @@ func WithNamespace(namespace string) RAGOption {
 	}
 }
 
-func WithMetadata(metadata map[string]interface{}) RAGOption {
+func WithMetadata(metadata map[string]any) RAGOption {
 	return func(opts *RAGOptions) {
 		opts.Metadata = metadata
 	}
@@ -406,14 +406,14 @@ func (r *RAG) textSearch(ctx context.Context, query string, opts *RAGOptions) ([
 }
 
 // vectorSearch 向量搜索
-func (r *RAG) vectorSearch(ctx context.Context, query string, opts *RAGOptions) ([]*RetrievalItem, error) {
+func (r *RAG) vectorSearch(_ context.Context, _ string, _ *RAGOptions) ([]*RetrievalItem, error) {
 	// TODO: 需要获取向量化器
 	// 这里先返回空结果
 	return []*RetrievalItem{}, nil
 }
 
 // graphSearch 图搜索
-func (r *RAG) graphSearch(ctx context.Context, query string, opts *RAGOptions) ([]*RetrievalItem, error) {
+func (r *RAG) graphSearch(_ context.Context, _ string, _ *RAGOptions) ([]*RetrievalItem, error) {
 	// TODO: 实现图搜索逻辑
 	return []*RetrievalItem{}, nil
 }
@@ -433,7 +433,7 @@ func (r *RAG) rerank(ctx context.Context, query string, items []*RetrievalItem) 
 }
 
 // rerankWithCrossEncoder 使用交叉编码器重排序
-func (r *RAG) rerankWithCrossEncoder(ctx context.Context, query string, items []*RetrievalItem) []*RetrievalItem {
+func (r *RAG) rerankWithCrossEncoder(_ context.Context, _ string, items []*RetrievalItem) []*RetrievalItem {
 	// TODO: 实现交叉编码器重排序
 	// 现在只是按原始分数排序
 	sort.Slice(items, func(i, j int) bool {
@@ -443,7 +443,7 @@ func (r *RAG) rerankWithCrossEncoder(ctx context.Context, query string, items []
 }
 
 // rerankWithBM25 使用BM25重排序
-func (r *RAG) rerankWithBM25(ctx context.Context, query string, items []*RetrievalItem) []*RetrievalItem {
+func (r *RAG) rerankWithBM25(_ context.Context, _ string, items []*RetrievalItem) []*RetrievalItem {
 	// TODO: 实现BM25重排序
 	return items
 }
@@ -491,7 +491,7 @@ func (r *RAG) applyFilters(items []*RetrievalItem, opts *RAGOptions) []*Retrieva
 }
 
 // generateContext 生成上下文
-func (r *RAG) generateContext(ctx context.Context, items []*RetrievalItem, query string) (string, []*KnowledgeItem, error) {
+func (r *RAG) generateContext(_ context.Context, items []*RetrievalItem, _ string) (string, []*KnowledgeItem, error) {
 	var contextItems []*KnowledgeItem
 	var contextParts []string
 
@@ -504,7 +504,7 @@ func (r *RAG) generateContext(ctx context.Context, items []*RetrievalItem, query
 
 	case ContextStrategyTopK:
 		topK := min(len(items), 5)
-		for i := 0; i < topK; i++ {
+		for i := range topK {
 			contextItems = append(contextItems, items[i].Item)
 			contextParts = append(contextParts, r.formatContextItem(items[i].Item))
 		}

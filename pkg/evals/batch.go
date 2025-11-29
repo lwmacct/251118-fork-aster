@@ -14,7 +14,7 @@ type BatchTestCase struct {
 	// Input 评估输入
 	Input *TextEvalInput `json:"input"`
 	// Metadata 可选的元数据
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 // BatchResult 单个测试用例的评估结果
@@ -28,7 +28,7 @@ type BatchResult struct {
 	// Error 错误信息（如果有）
 	Error string `json:"error,omitempty"`
 	// Metadata 测试用例的元数据
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 // BatchEvalResult 批量评估的汇总结果

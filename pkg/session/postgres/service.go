@@ -342,7 +342,7 @@ func (s *Service) GetEvents(ctx context.Context, sessionID string, opts *session
 }
 
 // GetState 获取会话状态
-func (s *Service) GetState(ctx context.Context, sessionID string, scope string) (map[string]interface{}, error) {
+func (s *Service) GetState(ctx context.Context, sessionID string, scope string) (map[string]any, error) {
 	var models []StateModel
 	query := s.db.WithContext(ctx).Where("session_id = ?", sessionID)
 
@@ -354,9 +354,9 @@ func (s *Service) GetState(ctx context.Context, sessionID string, scope string) 
 		return nil, fmt.Errorf("get state: %w", err)
 	}
 
-	state := make(map[string]interface{})
+	state := make(map[string]any)
 	for _, model := range models {
-		var value interface{}
+		var value any
 		if err := json.Unmarshal(model.Value, &value); err != nil {
 			return nil, fmt.Errorf("unmarshal state value: %w", err)
 		}
@@ -389,7 +389,7 @@ func (s *Service) toSession(ctx context.Context, model *SessionModel) *session.S
 		AgentID:        model.AgentID,
 		CreatedAt:      model.CreatedAt,
 		LastUpdateTime: model.UpdatedAt,
-		Metadata:       make(map[string]interface{}),
+		Metadata:       make(map[string]any),
 	}
 }
 

@@ -159,7 +159,7 @@ func (a *LoopAgent) enrichEvent(event *session.Event, branch string, iteration u
 
 	// 添加循环执行的元数据
 	if event.Metadata == nil {
-		event.Metadata = make(map[string]interface{})
+		event.Metadata = make(map[string]any)
 	}
 	event.Metadata["loop_iteration"] = iteration
 	event.Metadata["loop_agent"] = a.name

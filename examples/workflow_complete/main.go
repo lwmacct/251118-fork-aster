@@ -41,14 +41,14 @@ func testBasicWorkflow(ctx context.Context) {
 	wf.AddStep(workflow.NewFunctionStep("step1", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		return &workflow.StepOutput{
 			Content:  "Step 1 完成",
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	}))
 
 	wf.AddStep(workflow.NewFunctionStep("step2", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		return &workflow.StepOutput{
 			Content:  fmt.Sprintf("Step 2 接收: %v", input.PreviousStepContent),
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	}))
 
@@ -69,7 +69,7 @@ func testBasicWorkflow(ctx context.Context) {
 			continue
 		}
 		if event.Type == workflow.EventWorkflowCompleted {
-			fmt.Printf("  ✅ 成功: %v\n", event.Data.(map[string]interface{})["output"])
+			fmt.Printf("  ✅ 成功: %v\n", event.Data.(map[string]any)["output"])
 		}
 	}
 }
@@ -81,20 +81,20 @@ func testAllStepTypes(ctx context.Context) {
 	// FunctionStep
 	wf.AddStep(workflow.NewFunctionStep("function", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		return &workflow.StepOutput{
-			Content:  map[string]interface{}{"type": "function", "value": 1},
-			Metadata: make(map[string]interface{}),
+			Content:  map[string]any{"type": "function", "value": 1},
+			Metadata: make(map[string]any),
 		}, nil
 	}))
 
 	// ConditionStep
 	trueStep := workflow.NewFunctionStep("true", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "条件为真", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "条件为真", Metadata: make(map[string]any)}, nil
 	})
 	falseStep := workflow.NewFunctionStep("false", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "条件为假", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "条件为假", Metadata: make(map[string]any)}, nil
 	})
 	condStep := workflow.NewConditionStep("condition", func(input *workflow.StepInput) bool {
-		if m, ok := input.PreviousStepContent.(map[string]interface{}); ok {
+		if m, ok := input.PreviousStepContent.(map[string]any); ok {
 			if v, ok := m["value"].(int); ok {
 				return v > 0
 			}
@@ -105,27 +105,27 @@ func testAllStepTypes(ctx context.Context) {
 
 	// LoopStep
 	loopBody := workflow.NewFunctionStep("loop_body", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "循环迭代", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "循环迭代", Metadata: make(map[string]any)}, nil
 	})
 	wf.AddStep(workflow.NewLoopStep("loop", loopBody, 2))
 
 	// ParallelStep
 	task1 := workflow.NewFunctionStep("task1", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		time.Sleep(5 * time.Millisecond)
-		return &workflow.StepOutput{Content: "任务1", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "任务1", Metadata: make(map[string]any)}, nil
 	})
 	task2 := workflow.NewFunctionStep("task2", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		time.Sleep(5 * time.Millisecond)
-		return &workflow.StepOutput{Content: "任务2", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "任务2", Metadata: make(map[string]any)}, nil
 	})
 	wf.AddStep(workflow.NewParallelStep("parallel", task1, task2))
 
 	// StepsGroup
 	groupStep1 := workflow.NewFunctionStep("g1", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "组步骤1", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "组步骤1", Metadata: make(map[string]any)}, nil
 	})
 	groupStep2 := workflow.NewFunctionStep("g2", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "组步骤2", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "组步骤2", Metadata: make(map[string]any)}, nil
 	})
 	wf.AddStep(workflow.NewStepsGroup("group", groupStep1, groupStep2))
 
@@ -145,7 +145,7 @@ func testAllStepTypes(ctx context.Context) {
 			stepCount++
 		}
 		if event.Type == workflow.EventWorkflowCompleted {
-			if data, ok := event.Data.(map[string]interface{}); ok {
+			if data, ok := event.Data.(map[string]any); ok {
 				if metrics, ok := data["metrics"].(*workflow.RunMetrics); ok {
 					fmt.Printf("  ✅ 成功: %d 步骤完成, 耗时 %.3fs\n",
 						metrics.SuccessfulSteps, metrics.TotalExecutionTime)
@@ -159,17 +159,17 @@ func testAllStepTypes(ctx context.Context) {
 func testRouter(ctx context.Context) {
 	// 创建路由目标步骤
 	routeA := workflow.NewFunctionStep("route_a", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "路由A执行", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "路由A执行", Metadata: make(map[string]any)}, nil
 	})
 
 	routeB := workflow.NewFunctionStep("route_b", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
-		return &workflow.StepOutput{Content: "路由B执行", Metadata: make(map[string]interface{})}, nil
+		return &workflow.StepOutput{Content: "路由B执行", Metadata: make(map[string]any)}, nil
 	})
 
 	finalStep := workflow.NewFunctionStep("final", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		return &workflow.StepOutput{
 			Content:  fmt.Sprintf("最终结果: %v", input.PreviousStepContent),
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	})
 
@@ -205,7 +205,7 @@ func testRouter(ctx context.Context) {
 		}
 		if event.Type == workflow.EventWorkflowCompleted {
 			fmt.Printf("    ✅ SimpleRouter 完成: %v\n",
-				event.Data.(map[string]interface{})["output"])
+				event.Data.(map[string]any)["output"])
 		}
 	}
 
@@ -237,7 +237,7 @@ func testRouter(ctx context.Context) {
 		}
 		if event.Type == workflow.EventWorkflowCompleted {
 			fmt.Printf("    ✅ ChainRouter 完成: %v\n",
-				event.Data.(map[string]interface{})["output"])
+				event.Data.(map[string]any)["output"])
 		}
 	}
 }
@@ -250,7 +250,7 @@ func testWorkflowAgent(ctx context.Context) {
 	wf.AddStep(workflow.NewFunctionStep("process", func(ctx context.Context, input *workflow.StepInput) (*workflow.StepOutput, error) {
 		return &workflow.StepOutput{
 			Content:  fmt.Sprintf("处理完成: %v", input.Input),
-			Metadata: make(map[string]interface{}),
+			Metadata: make(map[string]any),
 		}, nil
 	}))
 

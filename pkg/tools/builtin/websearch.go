@@ -20,7 +20,7 @@ type WebSearchTool struct {
 }
 
 // NewWebSearchTool 创建网络搜索工具
-func NewWebSearchTool(config map[string]interface{}) (tools.Tool, error) {
+func NewWebSearchTool(config map[string]any) (tools.Tool, error) {
 	// 从环境变量读取 API key
 	apiKey := os.Getenv("WF_TAVILY_API_KEY")
 	if apiKey == "" {
@@ -43,26 +43,26 @@ func (t *WebSearchTool) Description() string {
 	return "Search the web using Tavily for current information and documentation"
 }
 
-func (t *WebSearchTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *WebSearchTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"query": map[string]interface{}{
+		"properties": map[string]any{
+			"query": map[string]any{
 				"type":        "string",
 				"description": "The search query (be specific and detailed)",
 			},
-			"max_results": map[string]interface{}{
+			"max_results": map[string]any{
 				"type":        "integer",
 				"description": "Number of results to return (default: 5)",
 				"minimum":     1,
 				"maximum":     10,
 			},
-			"topic": map[string]interface{}{
+			"topic": map[string]any{
 				"type":        "string",
 				"enum":        []string{"general", "news", "finance"},
 				"description": "Search topic type - 'general' for most queries, 'news' for current events",
 			},
-			"include_raw_content": map[string]interface{}{
+			"include_raw_content": map[string]any{
 				"type":        "boolean",
 				"description": "Include full page content (warning: uses more tokens)",
 			},
@@ -71,10 +71,10 @@ func (t *WebSearchTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *WebSearchTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *WebSearchTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 1. 检查 API key
 	if t.apiKey == "" {
-		return map[string]interface{}{
+		return map[string]any{
 			"error": "Tavily API key not configured. Please set WF_TAVILY_API_KEY or TAVILY_API_KEY environment variable.",
 			"query": input["query"],
 		}, nil
@@ -88,13 +88,7 @@ func (t *WebSearchTool) Execute(ctx context.Context, input map[string]interface{
 
 	maxResults := 5
 	if mr, ok := input["max_results"].(float64); ok {
-		maxResults = int(mr)
-		if maxResults < 1 {
-			maxResults = 1
-		}
-		if maxResults > 10 {
-			maxResults = 10
-		}
+		maxResults = max(1, min(int(mr), 10))
 	}
 
 	topic := "general"
@@ -108,7 +102,7 @@ func (t *WebSearchTool) Execute(ctx context.Context, input map[string]interface{
 	}
 
 	// 3. 构建 Tavily API 请求
-	requestBody := map[string]interface{}{
+	requestBody := map[string]any{
 		"api_key":             t.apiKey,
 		"query":               query,
 		"max_results":         maxResults,
@@ -123,7 +117,7 @@ func (t *WebSearchTool) Execute(ctx context.Context, input map[string]interface{
 
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"error": fmt.Sprintf("failed to marshal request: %v", err),
 			"query": query,
 		}, nil
@@ -132,7 +126,7 @@ func (t *WebSearchTool) Execute(ctx context.Context, input map[string]interface{
 	// 4. 发送请求到 Tavily API
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.tavily.com/search", bytes.NewReader(jsonData))
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"error": fmt.Sprintf("failed to create request: %v", err),
 			"query": query,
 		}, nil
@@ -142,7 +136,7 @@ func (t *WebSearchTool) Execute(ctx context.Context, input map[string]interface{
 
 	resp, err := t.client.Do(req)
 	if err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"error": fmt.Sprintf("web search error: %v", err),
 			"query": query,
 		}, nil
@@ -151,15 +145,15 @@ func (t *WebSearchTool) Execute(ctx context.Context, input map[string]interface{
 
 	// 5. 解析响应
 	if resp.StatusCode != http.StatusOK {
-		return map[string]interface{}{
+		return map[string]any{
 			"error": fmt.Sprintf("Tavily API returned status %d", resp.StatusCode),
 			"query": query,
 		}, nil
 	}
 
-	var searchResponse map[string]interface{}
+	var searchResponse map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&searchResponse); err != nil {
-		return map[string]interface{}{
+		return map[string]any{
 			"error": fmt.Sprintf("failed to decode response: %v", err),
 			"query": query,
 		}, nil
@@ -219,14 +213,14 @@ func (t *WebSearchTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "搜索技术文档",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"query":       "Go language context package usage",
 				"max_results": 5,
 			},
 		},
 		{
 			Description: "搜索最新新闻",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"query":       "AI industry news 2025",
 				"max_results": 10,
 				"topic":       "news",
@@ -234,7 +228,7 @@ func (t *WebSearchTool) Examples() []tools.ToolExample {
 		},
 		{
 			Description: "搜索金融信息并获取完整内容",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"query":               "Tesla stock price analysis",
 				"topic":               "finance",
 				"include_raw_content": true,

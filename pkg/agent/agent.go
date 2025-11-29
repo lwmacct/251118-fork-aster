@@ -154,8 +154,8 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 		// 使用模板的工具列表
 		if toolsVal, ok := template.Tools.([]string); ok {
 			toolNames = toolsVal
-		} else if toolsVal, ok := template.Tools.([]interface{}); ok {
-			// 支持 []interface{} 类型（从 JSON 解析后可能是这种类型）
+		} else if toolsVal, ok := template.Tools.([]any); ok {
+			// 支持 []any 类型（从 JSON 解析后可能是这种类型）
 			toolNames = make([]string, 0, len(toolsVal))
 			for _, v := range toolsVal {
 				if str, ok := v.(string); ok {
@@ -257,10 +257,10 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 			// 如果模板配置了自定义参数，自动添加到 MiddlewareConfig
 			ccConfig := template.Runtime.ConversationCompression
 			if config.MiddlewareConfig == nil {
-				config.MiddlewareConfig = make(map[string]map[string]interface{})
+				config.MiddlewareConfig = make(map[string]map[string]any)
 			}
 			if config.MiddlewareConfig["summarization"] == nil {
-				config.MiddlewareConfig["summarization"] = make(map[string]interface{})
+				config.MiddlewareConfig["summarization"] = make(map[string]any)
 			}
 			// 将模板配置转换为中间件配置
 			if ccConfig.TokenBudget > 0 {
@@ -283,7 +283,7 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 	if len(middlewareNames) > 0 {
 		middlewareList := make([]middleware.Middleware, 0, len(middlewareNames))
 		for _, name := range middlewareNames {
-			var custom map[string]interface{}
+			var custom map[string]any
 			if cfgMap := config.MiddlewareConfig; cfgMap != nil {
 				if v, ok := cfgMap[name]; ok {
 					custom = v
@@ -555,7 +555,7 @@ func (a *Agent) extractRoomInfo() *RoomCollaborationInfo {
 
 	if members, ok := a.config.Metadata["room_members"].([]string); ok {
 		info.Members = members
-	} else if membersInterface, ok := a.config.Metadata["room_members"].([]interface{}); ok {
+	} else if membersInterface, ok := a.config.Metadata["room_members"].([]any); ok {
 		info.Members = make([]string, 0, len(membersInterface))
 		for _, m := range membersInterface {
 			if str, ok := m.(string); ok {
@@ -766,7 +766,7 @@ func (a *Agent) Send(ctx context.Context, text string) error {
 		skillContext := skills.SkillContext{
 			UserMessage: text,
 			Files:       a.getRecentFiles(),
-			Metadata:    make(map[string]interface{}),
+			Metadata:    make(map[string]any),
 		}
 
 		// 增强 system prompt（对于支持的模型）
@@ -888,7 +888,7 @@ func (a *Agent) GetSystemPrompt() string {
 // ExecuteToolDirect 直接执行工具（程序化工具调用）
 // 这个方法允许 Agent 或外部代码直接调用工具，绕过 LLM 决策
 // 主要用于程序化工具编排场景
-func (a *Agent) ExecuteToolDirect(ctx context.Context, toolName string, input map[string]interface{}) (interface{}, error) {
+func (a *Agent) ExecuteToolDirect(ctx context.Context, toolName string, input map[string]any) (any, error) {
 	a.mu.RLock()
 	tool, exists := a.toolMap[toolName]
 	a.mu.RUnlock()
@@ -936,14 +936,14 @@ func (a *Agent) ExecuteToolsDirect(ctx context.Context, calls []ToolCall) []Tool
 // ToolCall 工具调用参数
 type ToolCall struct {
 	Name  string                 `json:"name"`
-	Input map[string]interface{} `json:"input"`
+	Input map[string]any `json:"input"`
 }
 
 // ToolCallResult 工具调用结果
 type ToolCallResult struct {
 	Name    string      `json:"name"`
 	Success bool        `json:"success"`
-	Result  interface{} `json:"result,omitempty"`
+	Result  any `json:"result,omitempty"`
 	Error   string      `json:"error,omitempty"`
 }
 
@@ -975,7 +975,7 @@ func (a *Agent) buildToolContext(ctx context.Context) *tools.ToolContext {
 		AgentID:  a.id,
 		Sandbox:  a.sandbox,
 		Signal:   ctx,
-		Services: make(map[string]interface{}),
+		Services: make(map[string]any),
 	}
 
 	// 为 ToolHelp 等工具注入当前可用工具的手册信息, 支持按需查询。
@@ -1226,7 +1226,7 @@ func (a *Agent) makeToolReporter(callID, toolName string) tools.Reporter {
 }
 
 // handleToolProgress 处理进度事件并推送到总线
-func (a *Agent) handleToolProgress(callID, toolName string, progress float64, message string, step, total int, metadata map[string]interface{}, etaMs int64) {
+func (a *Agent) handleToolProgress(callID, toolName string, progress float64, message string, step, total int, metadata map[string]any, etaMs int64) {
 	now := time.Now()
 	snapshot := types.ToolCallSnapshot{
 		ID:        callID,
@@ -1259,20 +1259,20 @@ func (a *Agent) handleToolProgress(callID, toolName string, progress float64, me
 }
 
 // handleToolIntermediate 处理中间结果事件
-func (a *Agent) handleToolIntermediate(callID, toolName, label string, data interface{}) {
+func (a *Agent) handleToolIntermediate(callID, toolName, label string, data any) {
 	now := time.Now()
 	snapshot := types.ToolCallSnapshot{
 		ID:           callID,
 		Name:         toolName,
 		State:        types.ToolCallStateExecuting,
-		Intermediate: make(map[string]interface{}),
+		Intermediate: make(map[string]any),
 		UpdatedAt:    now,
 	}
 
 	a.mu.Lock()
 	if rec, ok := a.toolRecords[callID]; ok {
 		if rec.Intermediate == nil {
-			rec.Intermediate = make(map[string]interface{})
+			rec.Intermediate = make(map[string]any)
 		}
 		if label == "" {
 			label = "data"
@@ -1306,11 +1306,11 @@ type toolReporter struct {
 	toolName string
 }
 
-func (tr *toolReporter) Progress(progress float64, message string, step, total int, metadata map[string]interface{}, etaMs int64) {
+func (tr *toolReporter) Progress(progress float64, message string, step, total int, metadata map[string]any, etaMs int64) {
 	tr.agent.handleToolProgress(tr.callID, tr.toolName, progress, message, step, total, metadata, etaMs)
 }
 
-func (tr *toolReporter) Intermediate(label string, data interface{}) {
+func (tr *toolReporter) Intermediate(label string, data any) {
 	tr.agent.handleToolIntermediate(tr.callID, tr.toolName, label, data)
 }
 

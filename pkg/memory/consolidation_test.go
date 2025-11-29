@@ -15,7 +15,7 @@ type MockLLMProvider struct {
 	CallCount int
 }
 
-func (m *MockLLMProvider) Complete(ctx context.Context, prompt string, options map[string]interface{}) (string, error) {
+func (m *MockLLMProvider) Complete(ctx context.Context, prompt string, options map[string]any) (string, error) {
 	m.CallCount++
 	if m.Error != nil {
 		return "", m.Error
@@ -99,7 +99,7 @@ func TestRedundancyStrategy_Consolidate(t *testing.T) {
 		{
 			DocID: "1",
 			Text:  "User likes dark mode",
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"tags": []string{"preference"},
 			},
 			Provenance: NewProvenance(SourceUserInput, "user-123"),
@@ -108,7 +108,7 @@ func TestRedundancyStrategy_Consolidate(t *testing.T) {
 		{
 			DocID: "2",
 			Text:  "User prefers dark theme",
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"tags": []string{"preference", "theme"},
 			},
 			Provenance: NewProvenance(SourceUserInput, "user-123"),
@@ -333,13 +333,13 @@ func TestMergeMetadata(t *testing.T) {
 	memories := []MemoryWithScore{
 		{
 			DocID: "1",
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"tags": []string{"tag1", "tag2"},
 			},
 		},
 		{
 			DocID: "2",
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"tags": []string{"tag2", "tag3"},
 			},
 		},

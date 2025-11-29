@@ -29,7 +29,7 @@ func createTestDependencies(t *testing.T) *agent.Dependencies {
 		ID:           "test-agent",
 		SystemPrompt: "You are a test agent",
 		Model:        "claude-sonnet-4-5",
-		Tools:        []interface{}{},
+		Tools:        []any{},
 	})
 
 	return &agent.Dependencies{

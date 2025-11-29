@@ -27,7 +27,7 @@ func TestSessionMemoryManager_AddMemory(t *testing.T) {
 		context.Background(),
 		"session-1",
 		"Test memory content",
-		map[string]interface{}{"key": "value"},
+		map[string]any{"key": "value"},
 		ScopePrivate,
 	)
 
@@ -197,7 +197,7 @@ func TestSessionMemoryManager_UpdateMemory(t *testing.T) {
 		memID,
 		"session-1",
 		"Updated content",
-		map[string]interface{}{"updated": true},
+		map[string]any{"updated": true},
 	)
 
 	if err != nil {

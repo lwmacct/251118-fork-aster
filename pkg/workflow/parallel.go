@@ -61,9 +61,9 @@ type ParallelBranchResult struct {
 	Branch   ParallelBranch
 	Success  bool
 	Duration time.Duration
-	Output   interface{}
+	Output   any
 	Error    error
-	Metrics  map[string]interface{}
+	Metrics  map[string]any
 }
 
 // NewParallelWorkFlowAgent 创建并行工作流Agent
@@ -102,7 +102,7 @@ func (p *ParallelWorkFlowAgent) Execute(ctx context.Context, message types.Messa
 		AgentID:   p.name,
 		Author:    "system",
 		Content:   types.Message{Content: fmt.Sprintf("Starting parallel workflow: %d branches", len(p.branches))},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"workflow_type":  "parallel",
 			"total_branches": len(p.branches),
 			"join_type":      string(p.joinType),
@@ -132,7 +132,7 @@ func (p *ParallelWorkFlowAgent) Execute(ctx context.Context, message types.Messa
 		AgentID:   p.name,
 		Author:    "system",
 		Content:   types.Message{Content: fmt.Sprintf("Parallel workflow completed. Results: %d", len(completedResults))},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"workflow_type":      "parallel",
 			"completed_branches": len(completedResults),
 			"total_duration":     p.metrics.TotalDuration,
@@ -162,7 +162,7 @@ func (p *ParallelWorkFlowAgent) executeBranches(ctx context.Context, yield func(
 				Duration: 0,
 				Output:   nil,
 				Error:    nil,
-				Metrics:  make(map[string]interface{}),
+				Metrics:  make(map[string]any),
 			}
 
 			start := time.Now()
@@ -229,8 +229,8 @@ func (p *ParallelWorkFlowAgent) waitForCompletion(ctx context.Context, results [
 }
 
 // mergeResults 合并结果
-func (p *ParallelWorkFlowAgent) mergeResults(results []*ParallelBranchResult) map[string]interface{} {
-	merged := make(map[string]interface{})
+func (p *ParallelWorkFlowAgent) mergeResults(results []*ParallelBranchResult) map[string]any {
+	merged := make(map[string]any)
 
 	// 统计指标
 	successCount := 0
@@ -257,7 +257,7 @@ func (p *ParallelWorkFlowAgent) mergeResults(results []*ParallelBranchResult) ma
 		p.metrics.AverageDuration = totalDuration / time.Duration(successCount)
 	}
 
-	merged["summary"] = map[string]interface{}{
+	merged["summary"] = map[string]any{
 		"total_branches":      len(results),
 		"successful_branches": successCount,
 		"failed_branches":     failedCount,
@@ -292,9 +292,9 @@ type AsyncBranch struct {
 	CreatedAt time.Time
 	StartedAt time.Time
 	UpdatedAt time.Time
-	Result    interface{}
+	Result    any
 	Error     error
-	Metadata  map[string]interface{}
+	Metadata  map[string]any
 }
 
 // AsyncBranchStatus 异步分支状态
@@ -362,7 +362,7 @@ func (a *AsyncParallelAgent) Execute(ctx context.Context, message types.Message,
 		AgentID:   a.name,
 		Author:    "system",
 		Content:   types.Message{Content: "Starting async parallel workflow"},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"workflow_type": "async_parallel",
 		},
 	}, nil)
@@ -384,7 +384,7 @@ func (a *AsyncParallelAgent) Execute(ctx context.Context, message types.Message,
 		AgentID:   a.name,
 		Author:    "system",
 		Content:   types.Message{Content: fmt.Sprintf("Async parallel workflow completed with %d branches", len(completedBranches))},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"workflow_type":      "async_parallel",
 			"completed_branches": len(completedBranches),
 		},

@@ -101,7 +101,7 @@ func appendEventsExample(ctx context.Context, service *mysql.Service, sessionID 
 			Content: "测试 MySQL JSON 列",
 		},
 		Actions: session.EventActions{
-			StateDelta: map[string]interface{}{
+			StateDelta: map[string]any{
 				"session:db_type": "mysql",
 				"session:version": "8.0+",
 			},
@@ -137,9 +137,9 @@ func jsonColumnExample(ctx context.Context, service *mysql.Service, sessionID st
 				{
 					ID:   "call-1",
 					Name: "json_demo",
-					Arguments: map[string]interface{}{
-						"nested": map[string]interface{}{
-							"level1": map[string]interface{}{
+					Arguments: map[string]any{
+						"nested": map[string]any{
+							"level1": map[string]any{
 								"level2": "深层嵌套也可以",
 							},
 						},
@@ -148,7 +148,7 @@ func jsonColumnExample(ctx context.Context, service *mysql.Service, sessionID st
 				},
 			},
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"mysql_features": []string{
 				"JSON_EXTRACT",
 				"JSON_CONTAINS",

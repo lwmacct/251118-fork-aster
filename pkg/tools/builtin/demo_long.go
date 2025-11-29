@@ -17,7 +17,7 @@ type DemoLongTaskTool struct {
 }
 
 // NewDemoLongTaskTool 创建 DemoLongTaskTool
-func NewDemoLongTaskTool(_ map[string]interface{}) (tools.Tool, error) {
+func NewDemoLongTaskTool(_ map[string]any) (tools.Tool, error) {
 	return &DemoLongTaskTool{
 		tasks:  make(map[string]*tools.TaskStatus),
 		cancel: make(map[string]context.CancelFunc),
@@ -32,18 +32,18 @@ func (t *DemoLongTaskTool) Prompt() string {
 	return "Use to simulate a long-running task with progress events."
 }
 
-func (t *DemoLongTaskTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *DemoLongTaskTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"duration_ms": map[string]interface{}{
+		"properties": map[string]any{
+			"duration_ms": map[string]any{
 				"type":        "integer",
 				"description": "Total duration of the task in milliseconds",
 				"default":     5000,
 				"minimum":     500,
 				"maximum":     60000,
 			},
-			"steps": map[string]interface{}{
+			"steps": map[string]any{
 				"type":        "integer",
 				"description": "Number of progress steps to simulate",
 				"default":     5,
@@ -55,7 +55,7 @@ func (t *DemoLongTaskTool) InputSchema() map[string]interface{} {
 }
 
 // Execute 不直接使用，满足 Tool 接口
-func (t *DemoLongTaskTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *DemoLongTaskTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	taskID, err := t.StartAsync(ctx, input)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (t *DemoLongTaskTool) Execute(ctx context.Context, input map[string]interfa
 func (t *DemoLongTaskTool) IsLongRunning() bool { return true }
 
 // StartAsync 启动异步任务
-func (t *DemoLongTaskTool) StartAsync(ctx context.Context, args map[string]interface{}) (string, error) {
+func (t *DemoLongTaskTool) StartAsync(ctx context.Context, args map[string]any) (string, error) {
 	taskID := uuid.New().String()
 	durationMs := int64(5000)
 	if v, ok := args["duration_ms"].(int64); ok && v > 0 {
@@ -110,7 +110,7 @@ func (t *DemoLongTaskTool) StartAsync(ctx context.Context, args map[string]inter
 		State:     tools.TaskStatePending,
 		Progress:  0,
 		StartTime: time.Now(),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"duration_ms": durationMs,
 			"steps":       steps,
 		},
@@ -148,7 +148,7 @@ func (t *DemoLongTaskTool) StartAsync(ctx context.Context, args map[string]inter
 				t.updateStatus(taskID, func(s *tools.TaskStatus) {
 					s.Progress = progress
 					if s.Metadata == nil {
-						s.Metadata = make(map[string]interface{})
+						s.Metadata = make(map[string]any)
 					}
 					s.Metadata["step"] = i
 					s.Metadata["total"] = steps
@@ -159,7 +159,7 @@ func (t *DemoLongTaskTool) StartAsync(ctx context.Context, args map[string]inter
 		t.updateStatus(taskID, func(s *tools.TaskStatus) {
 			s.State = tools.TaskStateCompleted
 			s.Progress = 1.0
-			s.Result = map[string]interface{}{
+			s.Result = map[string]any{
 				"ok":      true,
 				"message": "demo long task completed",
 			}

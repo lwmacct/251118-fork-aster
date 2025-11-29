@@ -12,7 +12,7 @@ import (
 // SystemConfigRecord 系统配置记录
 type SystemConfigRecord struct {
 	Key       string      `json:"key"`
-	Value     interface{} `json:"value"`
+	Value     any `json:"value"`
 	UpdatedAt time.Time   `json:"updated_at"`
 }
 
@@ -71,7 +71,7 @@ func (h *SystemHandler) UpdateConfig(c *gin.Context) {
 	key := c.Param("key")
 
 	var req struct {
-		Value interface{} `json:"value" binding:"required"`
+		Value any `json:"value" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -90,7 +90,7 @@ func (h *SystemHandler) UpdateConfig(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "system.config.updated", map[string]interface{}{"key": key})
+	logging.Info(ctx, "system.config.updated", map[string]any{"key": key})
 	c.JSON(200, gin.H{"success": true, "data": cfg})
 }
 
@@ -108,7 +108,7 @@ func (h *SystemHandler) DeleteConfig(c *gin.Context) {
 		return
 	}
 
-	logging.Info(ctx, "system.config.deleted", map[string]interface{}{"key": key})
+	logging.Info(ctx, "system.config.deleted", map[string]any{"key": key})
 	c.Status(204)
 }
 

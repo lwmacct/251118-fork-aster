@@ -402,11 +402,6 @@ func TestPersistentPreferenceManager_LoadAll(t *testing.T) {
 
 func TestPersistentPreferenceManager_AutoSave(t *testing.T) {
 	tmpDir := filepath.Join(os.TempDir(), "test-persistent-autosave")
-	defer func() {
-		if err := os.RemoveAll(tmpDir); err != nil {
-			t.Errorf("Failed to remove temp dir: %v", err)
-		}
-	}()
 
 	storage, _ := NewFilePreferenceStorage(tmpDir)
 	manager := NewPersistentPreferenceManager(DefaultPreferenceManagerConfig(), storage)
@@ -425,8 +420,7 @@ func TestPersistentPreferenceManager_AutoSave(t *testing.T) {
 	}
 
 	// 启动自动保存（1 秒间隔）
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	go manager.AutoSave(ctx, 1)
 
@@ -437,5 +431,14 @@ func TestPersistentPreferenceManager_AutoSave(t *testing.T) {
 	filePath := filepath.Join(tmpDir, "user-1.json")
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		t.Error("auto-save should have created the file")
+	}
+
+	// 先取消 context，等待 AutoSave goroutine 完成最后一次保存
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+
+	// 然后清理临时目录
+	if err := os.RemoveAll(tmpDir); err != nil {
+		t.Errorf("Failed to remove temp dir: %v", err)
 	}
 }

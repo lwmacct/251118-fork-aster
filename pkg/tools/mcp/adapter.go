@@ -14,7 +14,7 @@ type MCPToolAdapter struct {
 	client      *cloud.MCPClient
 	name        string
 	description string
-	inputSchema map[string]interface{}
+	inputSchema map[string]any
 	prompt      string
 }
 
@@ -23,7 +23,7 @@ type MCPToolAdapterConfig struct {
 	Client      *cloud.MCPClient
 	Name        string
 	Description string
-	InputSchema map[string]interface{}
+	InputSchema map[string]any
 	Prompt      string
 }
 
@@ -49,7 +49,7 @@ func (m *MCPToolAdapter) Description() string {
 }
 
 // InputSchema 返回输入 JSON Schema
-func (m *MCPToolAdapter) InputSchema() map[string]interface{} {
+func (m *MCPToolAdapter) InputSchema() map[string]any {
 	return m.inputSchema
 }
 
@@ -59,7 +59,7 @@ func (m *MCPToolAdapter) Prompt() string {
 }
 
 // Execute 执行 MCP 工具调用
-func (m *MCPToolAdapter) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (m *MCPToolAdapter) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	// 调用远程 MCP 工具
 	result, err := m.client.CallTool(ctx, m.name, input)
 	if err != nil {
@@ -67,7 +67,7 @@ func (m *MCPToolAdapter) Execute(ctx context.Context, input map[string]interface
 	}
 
 	// 解析结果
-	var output interface{}
+	var output any
 	if err := json.Unmarshal(result, &output); err != nil {
 		// 如果无法解析为通用接口,返回原始 JSON
 		return string(result), nil
@@ -78,7 +78,7 @@ func (m *MCPToolAdapter) Execute(ctx context.Context, input map[string]interface
 
 // ToolFactory 创建 MCP 工具工厂函数
 func ToolFactory(mcpClient *cloud.MCPClient, mcpTool cloud.MCPTool) tools.ToolFactory {
-	return func(config map[string]interface{}) (tools.Tool, error) {
+	return func(config map[string]any) (tools.Tool, error) {
 		// 从配置中提取自定义 prompt (可选)
 		prompt := ""
 		if p, ok := config["prompt"].(string); ok {

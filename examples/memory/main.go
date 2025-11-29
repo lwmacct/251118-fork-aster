@@ -72,7 +72,7 @@ func main() {
 
 	// 4. 使用 memory_write 追加一条长期记忆
 	fmt.Println("=== 使用 memory_write 追加记忆 ===")
-	writeInput := map[string]interface{}{
+	writeInput := map[string]any{
 		"file":    "user/alice.md",
 		"mode":    "append",
 		"title":   "初次见面",
@@ -87,7 +87,7 @@ func main() {
 
 	// 5. 使用 memory_search 在记忆中搜索关键字
 	fmt.Println("=== 使用 memory_search 搜索记忆 ===")
-	searchInput := map[string]interface{}{
+	searchInput := map[string]any{
 		"query":       "Alice",
 		"glob":        "user/*.md",
 		"max_results": 10,

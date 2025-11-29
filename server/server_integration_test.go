@@ -43,7 +43,7 @@ func TestAgentLifecycle(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
@@ -52,7 +52,7 @@ func TestAgentLifecycle(t *testing.T) {
 		}
 
 		assert.True(t, resp["success"].(bool))
-		data := resp["data"].(map[string]interface{})
+		data := resp["data"].(map[string]any)
 		agentID = data["id"].(string)
 		assert.NotEmpty(t, agentID)
 	})
@@ -144,11 +144,11 @@ func TestPoolOperations(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		data := resp["data"].(map[string]interface{})
+		data := resp["data"].(map[string]any)
 		agentID = data["agent_id"].(string)
 		assert.NotEmpty(t, agentID)
 	})
@@ -206,11 +206,11 @@ func TestRoomOperations(t *testing.T) {
 	srv.Router().ServeHTTP(w, req)
 	require.Equal(t, http.StatusCreated, w.Code)
 
-	var createResp map[string]interface{}
+	var createResp map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &createResp)
 	require.NoError(t, err)
 
-	data := createResp["data"].(map[string]interface{})
+	data := createResp["data"].(map[string]any)
 	roomID := data["id"].(string)
 	require.NotEmpty(t, roomID)
 
@@ -294,11 +294,11 @@ func TestMemoryOperations(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		data := resp["data"].(map[string]interface{})
+		data := resp["data"].(map[string]any)
 		memoryID = data["id"].(string)
 		assert.NotEmpty(t, memoryID)
 	})
@@ -373,11 +373,11 @@ func TestSessionOperations(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		data := resp["data"].(map[string]interface{})
+		data := resp["data"].(map[string]any)
 		sessionID = data["id"].(string)
 		assert.NotEmpty(t, sessionID)
 	})
@@ -453,11 +453,11 @@ func TestWorkflowOperations(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 
-		data := resp["data"].(map[string]interface{})
+		data := resp["data"].(map[string]any)
 		workflowID = data["id"].(string)
 		assert.NotEmpty(t, workflowID)
 	})

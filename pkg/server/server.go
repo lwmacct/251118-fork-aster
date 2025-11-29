@@ -71,7 +71,7 @@ type ChatRequest struct {
 	// Middlewares 可选中间件列表。
 	Middlewares []string `json:"middlewares,omitempty"`
 	// Metadata 可选元数据,会传递给 AgentConfig.Metadata。
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 
 	// Skills 可选: 本次请求允许启用的 Skills 列表。
 	// 对应 types.SkillsPackageConfig.EnabledSkills, 用于按请求粒度控制 Skill 集合,
@@ -169,7 +169,7 @@ func (s *Server) ChatHandler() http.Handler {
 
 		ag, err := agent.Create(ctx, agentConfig, s.deps)
 		if err != nil {
-			logging.Error(ctx, "http.chat.error", map[string]interface{}{
+			logging.Error(ctx, "http.chat.error", map[string]any{
 				"template_id":     req.TemplateID,
 				"routing_profile": req.RoutingProfile,
 				"stage":           "create_agent",
@@ -188,7 +188,7 @@ func (s *Server) ChatHandler() http.Handler {
 		result, err := ag.Chat(ctx, req.Input)
 		latencyMs := time.Since(start).Milliseconds()
 		if err != nil {
-			logging.Error(ctx, "http.chat.error", map[string]interface{}{
+			logging.Error(ctx, "http.chat.error", map[string]any{
 				"template_id":     req.TemplateID,
 				"routing_profile": req.RoutingProfile,
 				"stage":           "chat",
@@ -205,7 +205,7 @@ func (s *Server) ChatHandler() http.Handler {
 			return
 		}
 
-		logging.Info(ctx, "http.chat.completed", map[string]interface{}{
+		logging.Info(ctx, "http.chat.completed", map[string]any{
 			"template_id":     req.TemplateID,
 			"routing_profile": req.RoutingProfile,
 			"agent_id":        ag.ID(),
@@ -459,7 +459,7 @@ func (s *Server) SkillsGetOrDeleteHandler() http.Handler {
 }
 
 // writeJSON 帮助函数: 设置正确的响应头并编码 JSON。
-func writeJSON(w http.ResponseWriter, status int, v interface{}) {
+func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
@@ -528,7 +528,7 @@ func (s *Server) ChatStreamHandler() http.Handler {
 
 		ag, err := agent.Create(ctx, agentConfig, s.deps)
 		if err != nil {
-			logging.Error(ctx, "http.chat_stream.error", map[string]interface{}{
+			logging.Error(ctx, "http.chat_stream.error", map[string]any{
 				"template_id":     req.TemplateID,
 				"routing_profile": req.RoutingProfile,
 				"stage":           "create_agent",
@@ -588,7 +588,7 @@ func (s *Server) ChatStreamHandler() http.Handler {
 				// 在 done 时记录一次完成日志
 				if evt, ok := env.Event.(types.EventType); ok {
 					if evt.EventType() == "done" {
-						logging.Info(ctx, "http.chat_stream.completed", map[string]interface{}{
+						logging.Info(ctx, "http.chat_stream.completed", map[string]any{
 							"template_id":     req.TemplateID,
 							"routing_profile": req.RoutingProfile,
 							"agent_id":        ag.ID(),
@@ -718,7 +718,7 @@ func (s *Server) TextEvalHandler() http.Handler {
 				})
 				res, err := scorer.Score(ctx, input)
 				if err != nil {
-					logging.Error(ctx, "http.evals.text.error", map[string]interface{}{
+					logging.Error(ctx, "http.evals.text.error", map[string]any{
 						"scorer":     "keyword_coverage",
 						"error":      err.Error(),
 						"latency_ms": time.Since(start).Milliseconds(),
@@ -736,7 +736,7 @@ func (s *Server) TextEvalHandler() http.Handler {
 				})
 				res, err := scorer.Score(ctx, input)
 				if err != nil {
-					logging.Error(ctx, "http.evals.text.error", map[string]interface{}{
+					logging.Error(ctx, "http.evals.text.error", map[string]any{
 						"scorer":     "lexical_similarity",
 						"error":      err.Error(),
 						"latency_ms": time.Since(start).Milliseconds(),
@@ -751,7 +751,7 @@ func (s *Server) TextEvalHandler() http.Handler {
 			}
 		}
 
-		logging.Info(ctx, "http.evals.text.completed", map[string]interface{}{
+		logging.Info(ctx, "http.evals.text.completed", map[string]any{
 			"scorers":    scorerNames,
 			"latency_ms": time.Since(start).Milliseconds(),
 		})
@@ -826,7 +826,7 @@ func (s *Server) SessionEvalHandler() http.Handler {
 				})
 				res, err := scorer.Score(ctx, textInput)
 				if err != nil {
-					logging.Error(ctx, "http.evals.session.error", map[string]interface{}{
+					logging.Error(ctx, "http.evals.session.error", map[string]any{
 						"scorer":     "keyword_coverage",
 						"error":      err.Error(),
 						"latency_ms": time.Since(start).Milliseconds(),
@@ -844,7 +844,7 @@ func (s *Server) SessionEvalHandler() http.Handler {
 				})
 				res, err := scorer.Score(ctx, textInput)
 				if err != nil {
-					logging.Error(ctx, "http.evals.session.error", map[string]interface{}{
+					logging.Error(ctx, "http.evals.session.error", map[string]any{
 						"scorer":     "lexical_similarity",
 						"error":      err.Error(),
 						"latency_ms": time.Since(start).Milliseconds(),
@@ -859,7 +859,7 @@ func (s *Server) SessionEvalHandler() http.Handler {
 			}
 		}
 
-		logging.Info(ctx, "http.evals.session.completed", map[string]interface{}{
+		logging.Info(ctx, "http.evals.session.completed", map[string]any{
 			"scorers":     scorerNames,
 			"event_count": len(req.Events),
 			"latency_ms":  time.Since(start).Milliseconds(),
@@ -897,7 +897,7 @@ type BatchTestCaseRequest struct {
 	Answer    string                 `json:"answer"`
 	Context   []string               `json:"context,omitempty"`
 	Reference string                 `json:"reference,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // BatchEvalResponse 批量评估响应
@@ -913,7 +913,7 @@ type BatchResultResponse struct {
 	Scores     []evals.ScoreResult    `json:"scores"`
 	Duration   int64                  `json:"duration_ms"`
 	Error      string                 `json:"error,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   map[string]any `json:"metadata,omitempty"`
 }
 
 // BatchSummaryResponse 批量评估汇总
@@ -1045,7 +1045,7 @@ func (s *Server) BatchEvalHandler() http.Handler {
 		})
 
 		if err != nil {
-			logging.Error(ctx, "http.evals.batch.error", map[string]interface{}{
+			logging.Error(ctx, "http.evals.batch.error", map[string]any{
 				"error":      err.Error(),
 				"latency_ms": time.Since(start).Milliseconds(),
 			})
@@ -1082,7 +1082,7 @@ func (s *Server) BatchEvalHandler() http.Handler {
 			}
 		}
 
-		logging.Info(ctx, "http.evals.batch.completed", map[string]interface{}{
+		logging.Info(ctx, "http.evals.batch.completed", map[string]any{
 			"total_cases":      len(testCases),
 			"successful_cases": result.Summary.SuccessfulCases,
 			"failed_cases":     result.Summary.FailedCases,

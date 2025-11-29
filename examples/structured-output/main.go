@@ -60,7 +60,7 @@ func main() {
 			Model:    "claude-3-5-sonnet-20241022",
 		},
 		Middlewares: []string{"structured_output"},
-		MiddlewareConfig: map[string]map[string]interface{}{
+		MiddlewareConfig: map[string]map[string]any{
 			"structured_output": {
 				"enabled":           true,
 				"required_fields":   []string{"tasks", "total"},
@@ -130,7 +130,7 @@ Return the result in JSON format with the following structure:
 		StructType:     &TaskList{},
 		RequiredFields: []string{"tasks", "total"},
 		Strict:         true,
-		CustomValidation: func(data interface{}) error {
+		CustomValidation: func(data any) error {
 			taskList := data.(*TaskList)
 			if taskList.Total != len(taskList.Tasks) {
 				return fmt.Errorf("total count mismatch: expected %d, got %d", len(taskList.Tasks), taskList.Total)

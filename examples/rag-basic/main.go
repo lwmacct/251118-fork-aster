@@ -32,7 +32,7 @@ func main() {
 		ID:        "intro",
 		Text:      text,
 		Namespace: "demo",
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"source": "docs/intro",
 		},
 	})
@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// 检索
-	hits, err := pipe.Search(ctx, "什么是 Aster？", 3, map[string]interface{}{
+	hits, err := pipe.Search(ctx, "什么是 Aster？", 3, map[string]any{
 		"namespace": "demo",
 	})
 	if err != nil {

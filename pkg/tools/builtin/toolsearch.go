@@ -17,7 +17,7 @@ type ToolSearchTool struct {
 }
 
 // NewToolSearchTool 创建工具搜索工具
-func NewToolSearchTool(config map[string]interface{}) (tools.Tool, error) {
+func NewToolSearchTool(config map[string]any) (tools.Tool, error) {
 	return &ToolSearchTool{
 		toolIndex: search.NewToolIndex(),
 	}, nil
@@ -38,30 +38,30 @@ func (t *ToolSearchTool) Description() string {
 	return "搜索可用的工具，返回匹配的工具列表以供激活使用"
 }
 
-func (t *ToolSearchTool) InputSchema() map[string]interface{} {
-	return map[string]interface{}{
+func (t *ToolSearchTool) InputSchema() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"query": map[string]interface{}{
+		"properties": map[string]any{
+			"query": map[string]any{
 				"type":        "string",
 				"description": "搜索查询，描述你需要的工具功能",
 			},
-			"category": map[string]interface{}{
+			"category": map[string]any{
 				"type":        "string",
 				"description": "可选的工具分类过滤，如 'filesystem', 'network', 'code' 等",
 			},
-			"max_results": map[string]interface{}{
+			"max_results": map[string]any{
 				"type":        "integer",
 				"description": "返回的最大结果数量，默认为 5",
 			},
-			"include_deferred": map[string]interface{}{
+			"include_deferred": map[string]any{
 				"type":        "boolean",
 				"description": "是否包含延迟加载的工具，默认为 true",
 			},
-			"activate": map[string]interface{}{
+			"activate": map[string]any{
 				"type":        "array",
 				"description": "要激活的工具名称列表",
-				"items": map[string]interface{}{
+				"items": map[string]any{
 					"type": "string",
 				},
 			},
@@ -70,7 +70,7 @@ func (t *ToolSearchTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ToolSearchTool) Execute(ctx context.Context, input map[string]interface{}, tc *tools.ToolContext) (interface{}, error) {
+func (t *ToolSearchTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	query := GetStringParam(input, "query", "")
 	category := GetStringParam(input, "category", "")
 	maxResults := GetIntParam(input, "max_results", 5)
@@ -136,9 +136,9 @@ func (t *ToolSearchTool) Execute(ctx context.Context, input map[string]interface
 	duration := time.Since(start)
 
 	// 构建响应
-	toolInfos := make([]map[string]interface{}, len(results))
+	toolInfos := make([]map[string]any, len(results))
 	for i, r := range results {
-		info := map[string]interface{}{
+		info := map[string]any{
 			"name":        r.Entry.Name,
 			"description": r.Entry.Description,
 			"score":       r.Score,
@@ -161,7 +161,7 @@ func (t *ToolSearchTool) Execute(ctx context.Context, input map[string]interface
 
 		// 包含参数信息
 		if r.Entry.InputSchema != nil {
-			if props, ok := r.Entry.InputSchema["properties"].(map[string]interface{}); ok {
+			if props, ok := r.Entry.InputSchema["properties"].(map[string]any); ok {
 				paramNames := make([]string, 0, len(props))
 				for name := range props {
 					paramNames = append(paramNames, name)
@@ -182,7 +182,7 @@ func (t *ToolSearchTool) Execute(ctx context.Context, input map[string]interface
 		toolInfos[i] = info
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":               true,
 		"query":            query,
 		"category":         category,
@@ -196,14 +196,14 @@ func (t *ToolSearchTool) Execute(ctx context.Context, input map[string]interface
 }
 
 // handleActivation 处理工具激活请求
-func (t *ToolSearchTool) handleActivation(ctx context.Context, toolNames []string, tc *tools.ToolContext) (interface{}, error) {
+func (t *ToolSearchTool) handleActivation(ctx context.Context, toolNames []string, tc *tools.ToolContext) (any, error) {
 	activated := make([]string, 0)
-	failed := make([]map[string]interface{}, 0)
+	failed := make([]map[string]any, 0)
 
 	for _, name := range toolNames {
 		entry := t.toolIndex.GetTool(name)
 		if entry == nil {
-			failed = append(failed, map[string]interface{}{
+			failed = append(failed, map[string]any{
 				"name":   name,
 				"reason": "工具不存在",
 			})
@@ -222,7 +222,7 @@ func (t *ToolSearchTool) handleActivation(ctx context.Context, toolNames []strin
 		activated = append(activated, name)
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"ok":        true,
 		"activated": activated,
 		"failed":    failed,
@@ -272,20 +272,20 @@ func (t *ToolSearchTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "搜索文件操作相关的工具",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"query": "读取文件 写入文件",
 			},
 		},
 		{
 			Description: "按分类搜索网络相关工具",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"query":    "HTTP 请求",
 				"category": "network",
 			},
 		},
 		{
 			Description: "搜索并激活工具",
-			Input: map[string]interface{}{
+			Input: map[string]any{
 				"query":    "代码搜索",
 				"activate": []string{"Grep", "Glob"},
 			},
@@ -294,9 +294,9 @@ func (t *ToolSearchTool) Examples() []tools.ToolExample {
 }
 
 // GetStringSlice 获取字符串数组参数（辅助函数）
-func GetStringSlice(input map[string]interface{}, key string) []string {
+func GetStringSlice(input map[string]any, key string) []string {
 	if value, exists := input[key]; exists {
-		if slice, ok := value.([]interface{}); ok {
+		if slice, ok := value.([]any); ok {
 			result := make([]string, 0, len(slice))
 			for _, item := range slice {
 				if str, ok := item.(string); ok {

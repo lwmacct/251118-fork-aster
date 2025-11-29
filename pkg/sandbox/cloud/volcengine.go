@@ -71,7 +71,7 @@ func NewVolcengineSandbox(config *VolcengineConfig) (*VolcengineSandbox, error) 
 		APISecret: config.SecretKey,
 		WorkDir:   config.WorkDir,
 		Timeout:   config.Timeout,
-		Properties: map[string]interface{}{
+		Properties: map[string]any{
 			"region": config.Region,
 			"cpu":    config.CPU,
 			"memory": config.Memory,
@@ -118,7 +118,7 @@ func (vs *VolcengineSandbox) Exec(ctx context.Context, cmd string, opts *sandbox
 	}
 
 	// 火山引擎使用 computer_exec 工具
-	result, err := vs.mcpClient.CallTool(ctx, "computer_exec", map[string]interface{}{
+	result, err := vs.mcpClient.CallTool(ctx, "computer_exec", map[string]any{
 		"session_id": vs.sessionID,
 		"command":    cmd,
 		"timeout":    timeout,
@@ -161,7 +161,7 @@ func (vs *VolcengineSandbox) Dispose() error {
 	}
 
 	// 终止沙箱会话
-	_, err := vs.mcpClient.CallTool(context.Background(), "computer_terminate", map[string]interface{}{
+	_, err := vs.mcpClient.CallTool(context.Background(), "computer_terminate", map[string]any{
 		"session_id": vs.sessionID,
 	})
 
@@ -170,7 +170,7 @@ func (vs *VolcengineSandbox) Dispose() error {
 
 // initSession 初始化沙箱会话
 func (vs *VolcengineSandbox) initSession(ctx context.Context) error {
-	params := map[string]interface{}{
+	params := map[string]any{
 		"work_dir": vs.config.WorkDir,
 		"cpu":      vs.config.CPU,
 		"memory":   vs.config.Memory,
@@ -224,7 +224,7 @@ func (vfs *VolcengineFS) IsInside(path string) bool {
 func (vfs *VolcengineFS) Read(ctx context.Context, path string) (string, error) {
 	absPath := vfs.absPath(path)
 
-	result, err := vfs.mcpClient.CallTool(ctx, "computer_read_file", map[string]interface{}{
+	result, err := vfs.mcpClient.CallTool(ctx, "computer_read_file", map[string]any{
 		"session_id": vfs.sessionID,
 		"path":       absPath,
 	})
@@ -247,7 +247,7 @@ func (vfs *VolcengineFS) Read(ctx context.Context, path string) (string, error) 
 func (vfs *VolcengineFS) Write(ctx context.Context, path string, content string) error {
 	absPath := vfs.absPath(path)
 
-	_, err := vfs.mcpClient.CallTool(ctx, "computer_write_file", map[string]interface{}{
+	_, err := vfs.mcpClient.CallTool(ctx, "computer_write_file", map[string]any{
 		"session_id": vfs.sessionID,
 		"path":       absPath,
 		"content":    content,
@@ -268,7 +268,7 @@ func (vfs *VolcengineFS) Temp(name string) string {
 func (vfs *VolcengineFS) Stat(ctx context.Context, path string) (sandbox.FileInfo, error) {
 	absPath := vfs.absPath(path)
 
-	result, err := vfs.mcpClient.CallTool(ctx, "computer_stat_file", map[string]interface{}{
+	result, err := vfs.mcpClient.CallTool(ctx, "computer_stat_file", map[string]any{
 		"session_id": vfs.sessionID,
 		"path":       absPath,
 	})
@@ -298,7 +298,7 @@ func (vfs *VolcengineFS) Stat(ctx context.Context, path string) (sandbox.FileInf
 func (vfs *VolcengineFS) Glob(ctx context.Context, pattern string, opts *sandbox.GlobOptions) ([]string, error) {
 	absPattern := vfs.absPath(pattern)
 
-	result, err := vfs.mcpClient.CallTool(ctx, "computer_glob", map[string]interface{}{
+	result, err := vfs.mcpClient.CallTool(ctx, "computer_glob", map[string]any{
 		"session_id": vfs.sessionID,
 		"pattern":    absPattern,
 	})
