@@ -108,6 +108,25 @@ func (a *Agent) Stream(ctx context.Context, message string, opts ...Option) *str
 			log.Printf("[Agent Stream] Failed to persist message: %v", err)
 		}
 
+		// 6.5 发送任务规划思考事件
+		taskPlanEvent := &session.Event{
+			ID:        generateEventID(),
+			Timestamp: a.createdAt,
+			AgentID:   a.id,
+			Author:    "assistant",
+			Reasoning: fmt.Sprintf("收到用户请求: %s。正在分析请求并规划执行策略...", truncate(message, 100)),
+			Metadata: map[string]any{
+				"stage":    types.ThinkingStageTaskPlanning,
+				"decision": "准备进入 Agent 执行循环",
+			},
+			Actions: session.EventActions{},
+		}
+		if writer.Send(taskPlanEvent, nil) {
+			log.Printf("[Agent Stream] Client cancelled stream during task planning")
+			return
+		}
+		log.Printf("[Agent Stream] Sent task planning event")
+
 		// 7. 流式执行模型步骤
 		// 检查上下文是否已取消
 		for {

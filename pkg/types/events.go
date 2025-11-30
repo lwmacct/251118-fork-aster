@@ -37,13 +37,39 @@ func (e *ProgressThinkChunkStartEvent) Channel() AgentChannel { return ChannelPr
 func (e *ProgressThinkChunkStartEvent) EventType() string     { return "think_chunk_start" }
 
 // ProgressThinkChunkEvent 思考块内容事件
+// 统一的思考事件格式，支持各种 LLM 模型的推理输出
 type ProgressThinkChunkEvent struct {
-	Step  int    `json:"step"`
-	Delta string `json:"delta"`
+	Step      int    `json:"step"`
+	Delta     string `json:"delta"`               // 增量内容 (流式使用)
+	ID        string `json:"id,omitempty"`        // 事件ID
+	Stage     string `json:"stage,omitempty"`     // 阶段名称: "任务规划", "推理分析", "工具规划", "结果总结"
+	Reasoning string `json:"reasoning,omitempty"` // 完整推理内容 (非流式使用)
+	Decision  string `json:"decision,omitempty"`  // 决策/结论
+	Context   any    `json:"context,omitempty"`   // 上下文信息
+	Timestamp string `json:"timestamp,omitempty"` // ISO8601 时间戳
 }
 
 func (e *ProgressThinkChunkEvent) Channel() AgentChannel { return ChannelProgress }
 func (e *ProgressThinkChunkEvent) EventType() string     { return "think_chunk" }
+
+// NewThinkingEvent 创建思考事件的便捷方法
+func NewThinkingEvent(stage, reasoning, decision string) *ProgressThinkChunkEvent {
+	return &ProgressThinkChunkEvent{
+		Stage:     stage,
+		Reasoning: reasoning,
+		Decision:  decision,
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+}
+
+// ThinkingStage 思考阶段常量
+const (
+	ThinkingStageTaskPlanning  = "任务规划"
+	ThinkingStageReasoning     = "推理分析"
+	ThinkingStageToolPlanning  = "工具规划"
+	ThinkingStageToolExecuting = "工具执行"
+	ThinkingStageSummary       = "结果总结"
+)
 
 // ProgressThinkChunkEndEvent 思考块结束事件
 type ProgressThinkChunkEndEvent struct {
