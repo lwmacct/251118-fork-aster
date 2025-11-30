@@ -34,11 +34,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
 
       - name: golangci-lint
@@ -46,7 +48,7 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.1.6
-          args: --timeout=2m --disable=errcheck --enable=govet,ineffassign,staticcheck,unused ./pkg/...
+          args: --timeout=2m --disable=errcheck --enable=govet,ineffassign,staticcheck,unused --new-from-rev=origin/main ./pkg/...
           skip-cache: false
 
   build:
@@ -55,7 +57,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        go-version: ['1.22', '1.23']
+        go-version: ['1.24']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -92,7 +94,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
 
       - name: Run tests
