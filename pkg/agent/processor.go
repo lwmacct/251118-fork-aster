@@ -637,6 +637,7 @@ func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.S
 					reasoningBuffer += content
 					a.eventBus.EmitProgress(&types.ProgressThinkChunkEvent{
 						Step:  a.stepCount,
+						Stage: types.ThinkingStageReasoning,
 						Delta: content,
 					})
 				}

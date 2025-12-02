@@ -97,7 +97,26 @@ func (pb *PromptBuilder) Build(ctx *PromptContext) (string, error) {
 
 	var sections []string
 
+	// 获取禁用的模块列表
+	var disabledModules []string
+	if ctx.Template != nil && ctx.Template.Runtime != nil {
+		disabledModules = ctx.Template.Runtime.DisabledPromptModules
+	}
+
 	for _, module := range pb.modules {
+		// 检查是否被禁用
+		moduleName := module.Name()
+		isDisabled := false
+		for _, disabled := range disabledModules {
+			if disabled == moduleName {
+				isDisabled = true
+				break
+			}
+		}
+		if isDisabled {
+			continue
+		}
+
 		// 检查条件
 		if !module.Condition(ctx) {
 			continue

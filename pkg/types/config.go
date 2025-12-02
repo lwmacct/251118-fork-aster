@@ -155,6 +155,7 @@ type AgentTemplateRuntime struct {
 	ToolsManual             *ToolsManualConfig             `json:"tools_manual,omitempty"`
 	PromptCompression       *PromptCompressionConfig       `json:"prompt_compression,omitempty"`
 	ConversationCompression *ConversationCompressionConfig `json:"conversation_compression,omitempty"`
+	DisabledPromptModules   []string                       `json:"disabled_prompt_modules,omitempty"` // 要禁用的 prompt 模块列表
 }
 
 // AgentTemplateDefinition Agent模板定义
