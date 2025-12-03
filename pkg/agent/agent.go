@@ -280,6 +280,66 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 		}
 	}
 
+	// 自动启用 Token 优化中间件
+	// 如果配置了 TokenOptimization 或使用默认值（默认启用）
+	tokenOptConfig := config.TokenOptimization
+	if tokenOptConfig == nil {
+		// 默认启用 token 优化
+		tokenOptConfig = types.DefaultTokenOptimizationConfig()
+	}
+
+	if tokenOptConfig.Enabled {
+		// 检查是否已配置 tool_result_optimizer
+		hasOptimizer := false
+		for _, name := range middlewareNames {
+			if name == "tool_result_optimizer" {
+				hasOptimizer = true
+				break
+			}
+		}
+		if !hasOptimizer && tokenOptConfig.ToolResult.Enabled {
+			middlewareNames = append(middlewareNames, "tool_result_optimizer")
+			log.Printf("[Agent Create] Auto-enabled tool_result_optimizer middleware")
+
+			// 应用配置
+			if config.MiddlewareConfig == nil {
+				config.MiddlewareConfig = make(map[string]map[string]any)
+			}
+			if config.MiddlewareConfig["tool_result_optimizer"] == nil {
+				config.MiddlewareConfig["tool_result_optimizer"] = make(map[string]any)
+			}
+			config.MiddlewareConfig["tool_result_optimizer"]["max_tokens"] = tokenOptConfig.ToolResult.MaxTokens
+			config.MiddlewareConfig["tool_result_optimizer"]["compress_type"] = tokenOptConfig.ToolResult.CompressType
+			if tokenOptConfig.ToolResult.EvictPath != "" {
+				config.MiddlewareConfig["tool_result_optimizer"]["evict_path"] = tokenOptConfig.ToolResult.EvictPath
+			}
+		}
+
+		// 自动启用 summarization（如果配置了会话压缩）
+		if tokenOptConfig.Conversation.Enabled {
+			hasSummarization := false
+			for _, name := range middlewareNames {
+				if name == "summarization" {
+					hasSummarization = true
+					break
+				}
+			}
+			if !hasSummarization {
+				middlewareNames = append(middlewareNames, "summarization")
+				log.Printf("[Agent Create] Auto-enabled summarization middleware from TokenOptimization config")
+
+				if config.MiddlewareConfig == nil {
+					config.MiddlewareConfig = make(map[string]map[string]any)
+				}
+				if config.MiddlewareConfig["summarization"] == nil {
+					config.MiddlewareConfig["summarization"] = make(map[string]any)
+				}
+				config.MiddlewareConfig["summarization"]["max_tokens"] = tokenOptConfig.Conversation.MaxTokens
+				config.MiddlewareConfig["summarization"]["messages_to_keep"] = tokenOptConfig.Conversation.MessagesToKeep
+			}
+		}
+	}
+
 	if len(middlewareNames) > 0 {
 		middlewareList := make([]middleware.Middleware, 0, len(middlewareNames))
 		for _, name := range middlewareNames {
