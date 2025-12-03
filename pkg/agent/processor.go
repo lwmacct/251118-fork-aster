@@ -28,12 +28,18 @@ func (a *Agent) processMessages(ctx context.Context) {
 	defer func() {
 		a.mu.Lock()
 		a.state = types.AgentStateReady
-		// 检查是否有新消息需要处理
-		hasNewMessages := len(a.messages) > initialMsgCount
+		// 检查是否有新的用户消息需要处理
+		// 只有当最后一条消息是用户消息时才需要重新处理
+		// （避免 assistant 响应触发无限循环）
+		hasNewUserMessage := false
+		if len(a.messages) > initialMsgCount {
+			lastMsg := a.messages[len(a.messages)-1]
+			hasNewUserMessage = lastMsg.Role == types.MessageRoleUser
+		}
 		a.mu.Unlock()
 
-		// 如果有新消息，重新触发处理
-		if hasNewMessages {
+		// 如果有新的用户消息，重新触发处理
+		if hasNewUserMessage {
 			go a.processMessages(ctx)
 		}
 	}()
