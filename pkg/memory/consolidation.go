@@ -210,6 +210,136 @@ func (ce *ConsolidationEngine) findCandidateGroups(ctx context.Context) ([]Memor
 	return []MemoryGroup{}, nil
 }
 
+// ConsolidateNewMemory 在添加新记忆时进行即时合并检查。
+// 这是 Google Context Engineering 论文推荐的方式：
+// 新记忆提取后，立即与现有记忆进行合并检查。
+// 返回值：
+// - 如果需要合并，返回合并后的记忆
+// - 如果不需要合并，返回原记忆
+// - 如果发生冲突，返回解决后的记忆
+func (ce *ConsolidationEngine) ConsolidateNewMemory(
+	ctx context.Context,
+	newMemory *MemoryWithScore,
+	namespace string,
+) (*ConsolidatedMemory, error) {
+	// 1. 搜索与新记忆相似的现有记忆
+	similarMemories, err := ce.findSimilarMemories(ctx, newMemory.Text, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("find similar memories: %w", err)
+	}
+
+	// 2. 如果没有找到相似记忆，直接返回（创建新记忆）
+	if len(similarMemories) == 0 {
+		return &ConsolidatedMemory{
+			Text:           newMemory.Text,
+			Metadata:       newMemory.Metadata,
+			Provenance:     newMemory.Provenance,
+			SourceMemories: []string{},
+			Reason:         ReasonNone,
+			ConsolidatedAt: time.Now(),
+		}, nil
+	}
+
+	// 3. 将新记忆加入候选列表
+	candidates := append([]MemoryWithScore{*newMemory}, similarMemories...)
+
+	// 4. 检查是否应该合并
+	shouldConsolidate, reason := ce.strategy.ShouldConsolidate(ctx, candidates)
+	if !shouldConsolidate {
+		// 不需要合并，创建新记忆
+		return &ConsolidatedMemory{
+			Text:           newMemory.Text,
+			Metadata:       newMemory.Metadata,
+			Provenance:     newMemory.Provenance,
+			SourceMemories: []string{},
+			Reason:         ReasonNone,
+			ConsolidatedAt: time.Now(),
+		}, nil
+	}
+
+	// 5. 执行合并
+	consolidated, err := ce.strategy.Consolidate(ctx, candidates, ce.llmProvider)
+	if err != nil {
+		// 合并失败，回退到创建新记忆
+		return &ConsolidatedMemory{
+			Text:           newMemory.Text,
+			Metadata:       newMemory.Metadata,
+			Provenance:     newMemory.Provenance,
+			SourceMemories: []string{},
+			Reason:         ReasonNone,
+			ConsolidatedAt: time.Now(),
+		}, nil
+	}
+
+	consolidated.Reason = reason
+	return consolidated, nil
+}
+
+// findSimilarMemories 搜索与给定文本相似的现有记忆。
+func (ce *ConsolidationEngine) findSimilarMemories(ctx context.Context, text string, namespace string) ([]MemoryWithScore, error) {
+	if ce.memory == nil {
+		return nil, nil
+	}
+
+	// 构建搜索元数据
+	meta := map[string]any{}
+	if namespace != "" {
+		meta["namespace"] = namespace
+	}
+
+	// 搜索相似记忆
+	hits, err := ce.memory.Search(ctx, text, meta, ce.config.BatchSize)
+	if err != nil {
+		return nil, fmt.Errorf("search similar: %w", err)
+	}
+
+	// 过滤出超过相似度阈值的记忆
+	var similar []MemoryWithScore
+	for _, hit := range hits {
+		if hit.Score >= ce.config.SimilarityThreshold {
+			memText := ""
+			if t, ok := hit.Metadata["text"].(string); ok {
+				memText = t
+			}
+
+			// 提取 Provenance
+			var provenance *MemoryProvenance
+			if p, ok := hit.Metadata["provenance"].(*MemoryProvenance); ok {
+				provenance = p
+			}
+
+			similar = append(similar, MemoryWithScore{
+				DocID:      hit.ID,
+				Text:       memText,
+				Metadata:   hit.Metadata,
+				Provenance: provenance,
+				Score:      hit.Score,
+			})
+		}
+	}
+
+	return similar, nil
+}
+
+// ConsolidationOperation 表示合并操作类型。
+type ConsolidationOperation string
+
+const (
+	OpCreate ConsolidationOperation = "create" // 创建新记忆
+	OpUpdate ConsolidationOperation = "update" // 更新现有记忆
+	OpMerge  ConsolidationOperation = "merge"  // 合并多个记忆
+	OpDelete ConsolidationOperation = "delete" // 删除记忆
+)
+
+// ConsolidationAction 描述一个合并操作。
+type ConsolidationAction struct {
+	Operation       ConsolidationOperation
+	TargetMemoryID  string              // 目标记忆 ID（用于 update/delete）
+	SourceMemoryIDs []string            // 源记忆 ID 列表（用于 merge）
+	NewMemory       *ConsolidatedMemory // 新记忆内容（用于 create/update/merge）
+	Reason          string              // 操作原因
+}
+
 // saveConsolidatedMemory 保存合并后的记忆。
 func (ce *ConsolidationEngine) saveConsolidatedMemory(ctx context.Context, consolidated *ConsolidatedMemory) (string, error) {
 	// 生成新的 DocID

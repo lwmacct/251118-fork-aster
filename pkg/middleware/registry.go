@@ -176,45 +176,6 @@ func (r *Registry) registerBuiltin() {
 		}), nil
 	})
 
-	// ToolResultOptimizer Middleware (统一的工具结果优化，推荐使用)
-	r.Register("tool_result_optimizer", func(config *MiddlewareFactoryConfig) (Middleware, error) {
-		// 默认配置
-		enabled := true
-		maxTokens := 5000
-		compressType := "summary"
-		evictPath := "/large_tool_results/"
-
-		if config.CustomConfig != nil {
-			if e, ok := config.CustomConfig["enabled"].(bool); ok {
-				enabled = e
-			}
-			if mt, ok := config.CustomConfig["max_tokens"].(int); ok {
-				maxTokens = mt
-			} else if mt, ok := config.CustomConfig["max_tokens"].(float64); ok {
-				maxTokens = int(mt)
-			}
-			if ct, ok := config.CustomConfig["compress_type"].(string); ok {
-				compressType = ct
-			}
-			if ep, ok := config.CustomConfig["evict_path"].(string); ok {
-				evictPath = ep
-			}
-		}
-
-		var backend backends.BackendProtocol
-		if config.Sandbox != nil {
-			backend = backends.NewFilesystemBackend(config.Sandbox.FS())
-		}
-
-		return NewToolResultOptimizerMiddleware(&ToolResultOptimizerConfig{
-			Enabled:      enabled,
-			MaxTokens:    maxTokens,
-			CompressType: compressType,
-			EvictPath:    evictPath,
-			Backend:      backend,
-		}), nil
-	})
-
 	// AgentMemory Middleware (默认使用 Sandbox 文件系统, /memories/ 作为记忆根目录)
 	r.Register("agent_memory", func(config *MiddlewareFactoryConfig) (Middleware, error) {
 		if config.Sandbox == nil {
