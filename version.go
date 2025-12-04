@@ -3,7 +3,7 @@ package aster
 import "runtime"
 
 // Version represents the current version of aster
-const Version = "v0.21.1"
+const Version = "v0.22.0"
 
 // VersionInfo provides detailed version information
 type VersionInfo struct {
