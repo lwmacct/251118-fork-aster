@@ -24,102 +24,109 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
 import type { SystemMessage as SystemMessageType } from "@/types";
 
-export default defineComponent({
-  name: "SystemMessage",
+defineProps<{
+  message: SystemMessageType;
+}>();
 
-  props: {
-    message: {
-      type: Object as () => SystemMessageType,
-      required: true,
-    },
-  },
-
-  setup() {
-    function formatTime(timestamp: number): string {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString("zh-CN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    }
-
-    return {
-      formatTime,
-    };
-  },
-});
+function formatTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 </script>
 
 <style scoped>
 .system-message {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg text-sm my-4 mx-auto max-w-md;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin: 16px auto;
+  max-width: 400px;
 }
 
 .type-info {
-  @apply bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
 }
 
 .type-success {
-  @apply bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
 }
 
 .type-warning {
-  @apply bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
 }
 
 .type-error {
-  @apply bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
 }
 
 .system-icon {
-  @apply flex-shrink-0;
+  flex-shrink: 0;
+}
+
+.system-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .type-info .system-icon {
-  @apply text-blue-600 dark:text-blue-400;
+  color: #3b82f6;
 }
 
 .type-success .system-icon {
-  @apply text-emerald-600 dark:text-emerald-400;
+  color: #10b981;
 }
 
 .type-warning .system-icon {
-  @apply text-amber-600 dark:text-amber-400;
+  color: #f59e0b;
 }
 
 .type-error .system-icon {
-  @apply text-red-600 dark:text-red-400;
+  color: #ef4444;
 }
 
 .system-content {
-  @apply flex-1 flex items-center justify-between gap-2;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .system-text {
-  @apply text-text dark:text-text-dark;
+  margin: 0;
 }
 
 .type-info .system-text {
-  @apply text-blue-900 dark:text-blue-100;
+  color: #1e40af;
 }
 
 .type-success .system-text {
-  @apply text-emerald-900 dark:text-emerald-100;
+  color: #065f46;
 }
 
 .type-warning .system-text {
-  @apply text-amber-900 dark:text-amber-100;
+  color: #92400e;
 }
 
 .type-error .system-text {
-  @apply text-red-900 dark:text-red-100;
+  color: #991b1b;
 }
 
 .system-time {
-  @apply text-xs text-secondary dark:text-secondary-dark;
+  font-size: 12px;
+  color: #6b7280;
 }
 </style>

@@ -124,8 +124,8 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref } from "vue";
+<script setup lang="ts">
+import { ref } from "vue";
 
 interface ThinkingStep {
   id?: string;
@@ -139,64 +139,44 @@ interface ThinkingStep {
   timestamp: number;
 }
 
-export default defineComponent({
-  name: "ThinkingMessage",
-
-  props: {
-    steps: {
-      type: Array as () => ThinkingStep[],
-      required: true,
-    },
-    isActive: {
-      type: Boolean,
-      default: false,
-    },
-    summary: {
-      type: String,
-      default: undefined,
-    },
-  },
-
-  setup() {
-    const isExpanded = ref(false);
-
-    function getStepClass(step: ThinkingStep): string {
-      const classes: Record<string, string> = {
-        reasoning: "step-reasoning",
-        tool_call: "step-tool-call",
-        tool_result: "step-tool-result",
-        decision: "step-decision",
-      };
-      return classes[step.type] || "";
-    }
-
-    function getStepLabel(type: string): string {
-      const labels: Record<string, string> = {
-        reasoning: "推理",
-        tool_call: "工具调用",
-        tool_result: "执行结果",
-        decision: "决策",
-      };
-      return labels[type] || type;
-    }
-
-    function formatTime(timestamp: number): string {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString("zh-CN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-    }
-
-    return {
-      isExpanded,
-      getStepClass,
-      getStepLabel,
-      formatTime,
-    };
-  },
+withDefaults(defineProps<{
+  steps: ThinkingStep[];
+  isActive?: boolean;
+  summary?: string;
+}>(), {
+  isActive: false,
 });
+
+const isExpanded = ref(false);
+
+function getStepClass(step: ThinkingStep): string {
+  const classes: Record<string, string> = {
+    reasoning: "step-reasoning",
+    tool_call: "step-tool-call",
+    tool_result: "step-tool-result",
+    decision: "step-decision",
+  };
+  return classes[step.type] || "";
+}
+
+function getStepLabel(type: string): string {
+  const labels: Record<string, string> = {
+    reasoning: "推理",
+    tool_call: "工具调用",
+    tool_result: "执行结果",
+    decision: "决策",
+  };
+  return labels[type] || type;
+}
+
+function formatTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
 </script>
 
 <style scoped>

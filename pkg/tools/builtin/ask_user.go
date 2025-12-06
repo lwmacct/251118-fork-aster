@@ -181,6 +181,11 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 	}
 
 	// 等待用户响应或超时
+	// 注意：不使用传入的 ctx，因为外层执行器的默认超时只有 60 秒
+	// AskUserQuestion 需要等待用户响应，可能需要更长时间
+	// 使用独立的 30 分钟超时，不受外层 context 影响
+	timeout := time.After(30 * time.Minute)
+
 	select {
 	case answers := <-responseChan:
 		delete(t.pendingRequests, requestID)
@@ -194,7 +199,7 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 			"timestamp":  time.Now().Unix(),
 		}, nil
 
-	case <-ctx.Done():
+	case <-timeout: // 30分钟超时
 		delete(t.pendingRequests, requestID)
 		globalAskUserRequestsMu.Lock()
 		delete(globalAskUserRequests, requestID)
@@ -202,19 +207,7 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 		return map[string]any{
 			"ok":         false,
 			"request_id": requestID,
-			"error":      "request cancelled or timed out",
-			"timestamp":  time.Now().Unix(),
-		}, nil
-
-	case <-time.After(5 * time.Minute): // 5分钟超时
-		delete(t.pendingRequests, requestID)
-		globalAskUserRequestsMu.Lock()
-		delete(globalAskUserRequests, requestID)
-		globalAskUserRequestsMu.Unlock()
-		return map[string]any{
-			"ok":         false,
-			"request_id": requestID,
-			"error":      "user response timeout (5 minutes)",
+			"error":      "user response timeout (30 minutes)",
 			"timestamp":  time.Now().Unix(),
 		}, nil
 	}

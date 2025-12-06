@@ -45,118 +45,149 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
 import type { CardMessage as CardMessageType } from "@/types";
 
-export default defineComponent({
-  name: "CardMessage",
+defineProps<{
+  message: CardMessageType;
+}>();
 
-  props: {
-    message: {
-      type: Object as () => CardMessageType,
-      required: true,
-    },
-  },
+const emit = defineEmits<{
+  action: [action: unknown];
+}>();
 
-  emits: {
-    action: (action: unknown) => true,
-  },
+function handleAction(action: unknown) {
+  emit("action", action);
+}
 
-  setup(props, { emit }) {
-    function handleAction(action: unknown) {
-      emit("action", action);
-    }
-
-    function getIconPath(icon: string): string {
-      const icons: Record<string, string> = {
-        link: "M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14",
-        download: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
-        share: "M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z",
-      };
-      return icons[icon] || "";
-    }
-
-    return {
-      handleAction,
-      getIconPath,
-    };
-  },
-});
+function getIconPath(icon: string): string {
+  const icons: Record<string, string> = {
+    link: "M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14",
+    download: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
+    share: "M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z",
+  };
+  return icons[icon] || "";
+}
 </script>
 
 <style scoped>
 .card-message {
-  @apply bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-lg overflow-hidden shadow-sm;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   max-width: 400px;
 }
 
 .card-header {
-  @apply px-4 pt-4 pb-2;
+  padding: 16px 16px 8px;
 }
 
 .card-title {
-  @apply text-base font-semibold text-text dark:text-text-dark mb-1;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px;
 }
 
 .card-subtitle {
-  @apply text-sm text-secondary dark:text-secondary-dark;
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
 }
 
 .card-image {
-  @apply w-full;
+  width: 100%;
 }
 
 .card-image img {
-  @apply w-full h-auto object-cover;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
   max-height: 200px;
 }
 
 .card-body {
-  @apply px-4 py-3;
+  padding: 12px 16px;
 }
 
 .card-description {
-  @apply text-sm text-text dark:text-text-dark leading-relaxed;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .card-fields {
-  @apply px-4 py-2 space-y-2 border-t border-border dark:border-border-dark;
+  padding: 8px 16px;
+  border-top: 1px solid #f3f4f6;
 }
 
 .card-field {
-  @apply flex justify-between items-center text-sm;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  padding: 4px 0;
 }
 
 .field-label {
-  @apply text-secondary dark:text-secondary-dark font-medium;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .field-value {
-  @apply text-text dark:text-text-dark;
+  color: #111827;
 }
 
 .card-actions {
-  @apply flex gap-2 px-4 py-3 border-t border-border dark:border-border-dark;
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #f3f4f6;
 }
 
 .card-action-btn {
-  @apply flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
 }
 
 .btn-primary {
-  @apply bg-primary hover:bg-primary-hover text-white;
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
 }
 
 .btn-secondary {
-  @apply bg-background dark:bg-background-dark hover:bg-border dark:hover:bg-border-dark text-text dark:text-text-dark border border-border dark:border-border-dark;
+  background: #f9fafb;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.btn-secondary:hover {
+  background: #f3f4f6;
 }
 
 .card-footer {
-  @apply px-4 py-2 bg-background dark:bg-background-dark border-t border-border dark:border-border-dark;
+  padding: 8px 16px;
+  background: #f9fafb;
+  border-top: 1px solid #f3f4f6;
 }
 
 .footer-text {
-  @apply text-xs text-secondary dark:text-secondary-dark;
+  font-size: 12px;
+  color: #6b7280;
 }
 </style>

@@ -26,7 +26,8 @@ import (
 func main() {
 	ctx := context.Background()
 
-	fmt.Println("=== Aster SDK Logic Memory Example ===\n")
+	fmt.Println("=== Aster SDK Logic Memory Example ===")
+	fmt.Println()
 
 	// Example 1: Basic Usage
 	basicUsageExample(ctx)
@@ -229,8 +230,25 @@ func (m *WritingPatternMatcher) MatchEvent(ctx context.Context, event logic.Even
 
 func containsWord(text, word string) bool {
 	return len(text) > 0 && len(word) > 0 &&
-		(text == word || len(text) > len(word) &&
-			(text[:len(word)] == word || text[len(text)-len(word):] == word))
+		(text == word || (len(text) >= len(word) &&
+			(text[:len(word)] == word || text[len(text)-len(word):] == word ||
+				contains(text, word))))
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr ||
+		(len(s) > len(substr) && (s[:len(substr)] == substr ||
+			s[len(s)-len(substr):] == substr ||
+			indexOf(s, substr) >= 0)))
+}
+
+func indexOf(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
 }
 
 // middlewareExample demonstrates LogicMemoryMiddleware integration
@@ -407,10 +425,10 @@ func pruningExample(ctx context.Context) {
 
 	// Define pruning criteria
 	criteria := logic.PruneCriteria{
-		MinConfidence:   0.5,                  // Remove if confidence < 50%
-		SinceLastAccess: 72 * time.Hour,       // Remove if not accessed in 3 days
-		MinAccessCount:  1,                    // Minimum access count to keep
-		MaxAge:          168 * time.Hour,      // Maximum age: 7 days
+		MinConfidence:   0.5,             // Remove if confidence < 50%
+		SinceLastAccess: 72 * time.Hour,  // Remove if not accessed in 3 days
+		MinAccessCount:  1,               // Minimum access count to keep
+		MaxAge:          168 * time.Hour, // Maximum age: 7 days
 	}
 
 	// Execute pruning

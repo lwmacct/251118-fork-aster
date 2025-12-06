@@ -12,8 +12,22 @@ export * from "./message";
 // Chat Types
 export * from "./chat";
 
-// Thinking Types (excluding ThinkingStep which is already exported from message)
-export type { ThinkingStepType, ThinkingState } from "./thinking";
+// Thinking Types
+export type {
+  ThinkingStepType,
+  ThinkingState,
+  ThinkAloudEventType,
+  ThinkingStage,
+  ToolCallState,
+  ToolCallData,
+  ToolResultData,
+  ApprovalRequestData,
+  ThinkAloudEvent as ThinkAloudEventNew,
+  ToolCallRecord,
+  ToolCallApproval,
+  ToolCallAuditEntry,
+  isValidThinkAloudEvent
+} from "./thinking";
 
 // Approval Types (excluding ApprovalRequest which is already exported from message)
 export type { ApprovalDecision, ApprovalRecord } from "./approval";

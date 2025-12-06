@@ -66,257 +66,329 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, computed, watch, nextTick, onMounted } from "vue";
+<script setup lang="ts">
+import { ref, computed, watch, nextTick, onMounted } from "vue";
 import MessageBubble from "./MessageBubble.vue";
 import type { Message, ChatConfig } from "@/types";
 
-export default defineComponent({
-  name: "MessageList",
+const props = withDefaults(defineProps<{
+  messages: Message[];
+  isTyping?: boolean;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  config: ChatConfig;
+}>(), {
+  isTyping: false,
+  hasMore: false,
+  isLoadingMore: false,
+});
 
-  components: {
-    MessageBubble,
-  },
+const emit = defineEmits<{
+  "load-more": [];
+  copy: [message: Message];
+  retry: [message: Message];
+  delete: [message: Message];
+}>();
 
-  props: {
-    messages: {
-      type: Array as () => Message[],
-      required: true,
-    },
-    isTyping: {
-      type: Boolean,
-      default: false,
-    },
-    hasMore: {
-      type: Boolean,
-      default: false,
-    },
-    isLoadingMore: {
-      type: Boolean,
-      default: false,
-    },
-    config: {
-      type: Object as () => ChatConfig,
-      required: true,
-    },
-  },
+const containerRef = ref<HTMLElement>();
+const showScrollButton = ref(false);
+const isNearBottom = ref(true);
 
-  emits: {
-    "load-more": () => true,
-    copy: (message: Message) => true,
-    retry: (message: Message) => true,
-    delete: (message: Message) => true,
-  },
+// Group messages by date
+const groupedMessages = computed(() => {
+  const groups: Array<{ date: string; messages: Message[] }> = [];
+  let currentDate = "";
+  let currentGroup: Message[] = [];
 
-  setup(props, { emit, expose }) {
-    const containerRef = ref<HTMLElement>();
-    const showScrollButton = ref(false);
-    const isNearBottom = ref(true);
+  props.messages.forEach((message) => {
+    const messageDate = formatMessageDate(message.createdAt);
 
-    // Group messages by date
-    const groupedMessages = computed(() => {
-      const groups: Array<{ date: string; messages: Message[] }> = [];
-      let currentDate = "";
-      let currentGroup: Message[] = [];
-
-      props.messages.forEach((message) => {
-        const messageDate = formatMessageDate(message.createdAt);
-
-        if (messageDate !== currentDate) {
-          if (currentGroup.length > 0) {
-            groups.push({ date: currentDate, messages: currentGroup });
-          }
-          currentDate = messageDate;
-          currentGroup = [message];
-        } else {
-          currentGroup.push(message);
-        }
-      });
-
+    if (messageDate !== currentDate) {
       if (currentGroup.length > 0) {
         groups.push({ date: currentDate, messages: currentGroup });
       }
+      currentDate = messageDate;
+      currentGroup = [message];
+    } else {
+      currentGroup.push(message);
+    }
+  });
 
-      return groups;
+  if (currentGroup.length > 0) {
+    groups.push({ date: currentDate, messages: currentGroup });
+  }
+
+  return groups;
+});
+
+// Format date for divider
+function formatMessageDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return "今天";
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return "昨天";
+  } else {
+    return date.toLocaleDateString("zh-CN", {
+      month: "long",
+      day: "numeric",
     });
+  }
+}
 
-    // Format date for divider
-    function formatMessageDate(timestamp: number): string {
-      const date = new Date(timestamp);
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
+// Handle scroll
+function handleScroll() {
+  if (!containerRef.value) return;
 
-      if (date.toDateString() === today.toDateString()) {
-        return "今天";
-      } else if (date.toDateString() === yesterday.toDateString()) {
-        return "昨天";
-      } else {
-        return date.toLocaleDateString("zh-CN", {
-          month: "long",
-          day: "numeric",
-        });
-      }
+  const { scrollTop, scrollHeight, clientHeight } = containerRef.value;
+  const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+  isNearBottom.value = distanceFromBottom < 100;
+  showScrollButton.value = distanceFromBottom > 200;
+}
+
+// Scroll to bottom
+function scrollToBottom(smooth = true) {
+  if (!containerRef.value) return;
+
+  containerRef.value.scrollTo({
+    top: containerRef.value.scrollHeight,
+    behavior: smooth ? "smooth" : "auto",
+  });
+}
+
+// Handle message actions
+function handleCopy(message: Message) {
+  if (message.type === "text") {
+    navigator.clipboard.writeText(message.content.text);
+  }
+  emit("copy", message);
+}
+
+function handleRetry(message: Message) {
+  emit("retry", message);
+}
+
+function handleDelete(message: Message) {
+  emit("delete", message);
+}
+
+// Auto scroll when new messages arrive
+watch(
+  () => props.messages.length,
+  async () => {
+    if (isNearBottom.value || props.config.autoScroll !== false) {
+      await nextTick();
+      scrollToBottom();
     }
-
-    // Handle scroll
-    function handleScroll() {
-      if (!containerRef.value) return;
-
-      const { scrollTop, scrollHeight, clientHeight } = containerRef.value;
-      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-
-      isNearBottom.value = distanceFromBottom < 100;
-      showScrollButton.value = distanceFromBottom > 200;
-    }
-
-    // Scroll to bottom
-    function scrollToBottom(smooth = true) {
-      if (!containerRef.value) return;
-
-      containerRef.value.scrollTo({
-        top: containerRef.value.scrollHeight,
-        behavior: smooth ? "smooth" : "auto",
-      });
-    }
-
-    // Handle message actions
-    function handleCopy(message: Message) {
-      if (message.type === "text") {
-        navigator.clipboard.writeText(message.content.text);
-      }
-      emit("copy", message);
-    }
-
-    function handleRetry(message: Message) {
-      emit("retry", message);
-    }
-
-    function handleDelete(message: Message) {
-      emit("delete", message);
-    }
-
-    // Auto scroll when new messages arrive
-    watch(
-      () => props.messages.length,
-      async () => {
-        if (isNearBottom.value || props.config.autoScroll !== false) {
-          await nextTick();
-          scrollToBottom();
-        }
-      },
-    );
-
-    // Auto scroll when typing starts
-    watch(
-      () => props.isTyping,
-      async (typing) => {
-        if (typing && isNearBottom.value) {
-          await nextTick();
-          scrollToBottom();
-        }
-      },
-    );
-
-    // Expose scroll method
-    expose({
-      scrollToBottom,
-    });
-
-    onMounted(() => {
-      scrollToBottom(false);
-    });
-
-    return {
-      containerRef,
-      showScrollButton,
-      groupedMessages,
-      handleScroll,
-      scrollToBottom,
-      handleCopy,
-      handleRetry,
-      handleDelete,
-    };
   },
+);
+
+// Auto scroll when typing starts
+watch(
+  () => props.isTyping,
+  async (typing) => {
+    if (typing && isNearBottom.value) {
+      await nextTick();
+      scrollToBottom();
+    }
+  },
+);
+
+// Expose scroll method
+defineExpose({ scrollToBottom });
+
+onMounted(() => {
+  scrollToBottom(false);
 });
 </script>
 
 <style scoped>
 .message-list {
-  @apply flex-1 overflow-y-auto px-4 py-6 relative;
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  position: relative;
 }
 
 .message-list-inner {
-  @apply max-w-4xl mx-auto;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .load-more {
-  @apply flex justify-center mb-4;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
 }
 
 .load-more-button {
-  @apply px-4 py-2 text-sm text-secondary hover:text-primary bg-surface hover:bg-background border border-border rounded-lg transition-colors;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.load-more-button:hover {
+  background: #f3f4f6;
+  color: #3b82f6;
 }
 
 .loading-indicator {
-  @apply flex items-center justify-center gap-2 text-sm text-secondary mb-4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 16px;
 }
 
 .empty-state {
-  @apply flex flex-col items-center justify-center h-full text-center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #9ca3af;
 }
 
 .message-group {
-  @apply mb-6;
+  margin-bottom: 24px;
 }
 
 .date-divider {
-  @apply flex justify-center mb-4;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
 }
 
 .date-divider span {
-  @apply px-3 py-1 text-xs text-secondary bg-surface border border-border rounded-full;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
 }
 
 .typing-indicator {
-  @apply flex items-end gap-2 mb-4 animate-slide-in;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  animation: slideIn 0.3s ease;
 }
 
 .typing-avatar {
-  @apply flex-shrink-0;
+  flex-shrink: 0;
+}
+
+.typing-avatar > div {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s ease-in-out infinite;
 }
 
 .typing-dots {
-  @apply flex items-center gap-1 bg-surface border border-border rounded-lg px-4 py-3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 16px;
 }
 
 .typing-dots span {
-  @apply w-2 h-2 bg-secondary rounded-full animate-bounce;
+  width: 8px;
+  height: 8px;
+  background: #d1d5db;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
 }
 
 .typing-dots span:nth-child(1) {
-  animation-delay: 0ms;
+  animation-delay: -0.32s;
 }
 
 .typing-dots span:nth-child(2) {
-  animation-delay: 150ms;
-}
-
-.typing-dots span:nth-child(3) {
-  animation-delay: 300ms;
+  animation-delay: -0.16s;
 }
 
 .scroll-to-bottom {
-  @apply fixed bottom-24 right-8 w-10 h-10 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-all flex items-center justify-center;
+  position: fixed;
+  bottom: 96px;
+  right: 32px;
+  width: 40px;
+  height: 40px;
+  background: #111827;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scroll-to-bottom:hover {
+  background: #000;
+  transform: translateY(-2px);
 }
 
 .fade-enter-active,
 .fade-leave-active {
-  @apply transition-opacity duration-200;
+  transition: opacity 0.2s;
 }
 
 .fade-enter-from,
 .fade-leave-to {
-  @apply opacity-0;
+  opacity: 0;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 </style>

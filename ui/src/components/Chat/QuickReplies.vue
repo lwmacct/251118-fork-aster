@@ -14,79 +14,100 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
 import type { QuickReply } from "@/types";
 
-export default defineComponent({
-  name: "QuickReplies",
+defineProps<{
+  replies: QuickReply[];
+}>();
 
-  props: {
-    replies: {
-      type: Array as () => QuickReply[],
-      required: true,
-    },
-  },
+const emit = defineEmits<{
+  select: [reply: QuickReply];
+}>();
 
-  emits: {
-    select: (reply: QuickReply) => true,
-  },
-
-  setup(props, { emit }) {
-    function handleSelect(reply: QuickReply) {
-      emit("select", reply);
-    }
-
-    return {
-      handleSelect,
-    };
-  },
-});
+function handleSelect(reply: QuickReply) {
+  emit("select", reply);
+}
 </script>
 
 <style scoped>
 .quick-replies {
-  @apply border-t border-border bg-surface;
+  border-top: 1px solid #f3f4f6;
+  background: white;
 }
 
 .quick-replies-inner {
-  @apply max-w-4xl mx-auto px-4 py-3;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 12px 16px;
 }
 
 .quick-replies-scroll {
-  @apply flex gap-2 overflow-x-auto pb-2;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
   scrollbar-width: thin;
 }
 
 .quick-replies-scroll::-webkit-scrollbar {
-  @apply h-1;
+  height: 4px;
 }
 
 .quick-replies-scroll::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  background: transparent;
 }
 
 .quick-replies-scroll::-webkit-scrollbar-thumb {
-  @apply bg-border rounded-full;
+  background: #e5e7eb;
+  border-radius: 9999px;
 }
 
 .quick-reply-button {
-  @apply flex items-center gap-2 px-4 py-2 bg-background hover:bg-stone-100 border border-border rounded-full text-sm font-medium text-primary whitespace-nowrap transition-all flex-shrink-0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
 }
 
 .quick-reply-button:hover {
-  @apply shadow-sm;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #111827;
 }
 
 .quick-reply-button:active {
-  @apply scale-95;
+  transform: scale(0.95);
 }
 
 .quick-reply-button.highlight {
-  @apply bg-primary text-white border-primary hover:bg-primary-hover;
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.quick-reply-button.highlight:hover {
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 .new-badge {
-  @apply ml-1 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded;
+  margin-left: 4px;
+  padding: 2px 6px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
 }
 </style>

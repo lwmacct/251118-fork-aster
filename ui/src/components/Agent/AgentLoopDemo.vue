@@ -9,9 +9,11 @@
  * - 流式响应
  */
 
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useAgentLoop } from "@/composables/useAgentLoop";
-import type { ThinkAloudEvent, ApprovalRequest } from "@/composables/useAgentLoop";
+import type { ThinkAloudEvent } from "@/composables/useAgentLoop";
+import { ThinkingBlock } from "@/components/Thinking";
+import { StreamingText } from "@/components/Common";
 
 // Props
 const props = defineProps<{
@@ -21,17 +23,64 @@ const props = defineProps<{
   };
 }>();
 
-// 思考事件列表
-const thinkEvents = ref<ThinkAloudEvent[]>([]);
+// 思考事件列表（转换为新格式）
+import type { ThinkAloudEvent as NewThinkAloudEvent } from "@/types/thinking";
+const thinkEvents = ref<NewThinkAloudEvent[]>([]);
 
 // Agent Loop
-const { isRunning, isPaused, currentOutput, pendingApproval, isConnected, execute, approveAndResume, rejectTool, cancel } = useAgentLoop({
+const {
+  isRunning,
+  isPaused,
+  currentOutput,
+  pendingApproval,
+  isConnected,
+  execute,
+  approveAndResume,
+  rejectTool,
+  cancel
+} = useAgentLoop({
   modelConfig: props.modelConfig,
   sensitiveTools: ["Edit", "Write", "bash", "fs_write"],
   maxRetries: 3,
   maxLoops: 10,
   onThink: (event) => {
-    thinkEvents.value.push(event);
+    // 转换为新的 ThinkAloudEvent 格式
+    const newEvent: NewThinkAloudEvent = {
+      id: event.id,
+      timestamp: event.timestamp,
+      stage: event.stage as any,
+      reasoning: event.reasoning,
+      decision: event.decision,
+      type: 'reasoning' as const,
+    };
+
+    if (event.toolCall) {
+      newEvent.type = 'tool_call';
+      newEvent.toolCall = {
+        id: event.id,
+        name: event.toolCall.toolName,
+        input: event.toolCall.args,
+        state: 'executing',
+        progress: 0
+      };
+    } else if (event.toolResult) {
+      newEvent.type = 'tool_result';
+      newEvent.toolResult = {
+        id: event.id,
+        name: event.toolResult.toolName,
+        result: event.toolResult.result
+      };
+    } else if (event.approvalRequest) {
+      newEvent.type = 'approval_required';
+      newEvent.approvalRequest = {
+        id: event.approvalRequest.id,
+        toolName: event.approvalRequest.toolName,
+        input: event.approvalRequest.args,
+        reason: '敏感操作需要人工审批'
+      };
+    }
+
+    thinkEvents.value = [...thinkEvents.value, newEvent];
   },
   onApprovalRequired: (request) => {
     console.log("Approval required:", request);
@@ -42,7 +91,7 @@ const { isRunning, isPaused, currentOutput, pendingApproval, isConnected, execut
   onToolEnd: (toolName, result) => {
     console.log("Tool ended:", toolName, result);
   },
-  onTextDelta: (delta) => {
+  onTextDelta: () => {
     // 已通过 currentOutput 响应式更新
   },
   onComplete: (result) => {
@@ -55,7 +104,6 @@ const { isRunning, isPaused, currentOutput, pendingApproval, isConnected, execut
 
 // 用户输入
 const userInput = ref("");
-const rejectReason = ref("");
 
 // 发送消息
 const sendMessage = async () => {
@@ -69,16 +117,15 @@ const sendMessage = async () => {
 };
 
 // 批准工具
-const handleApprove = async () => {
-  if (!pendingApproval.value) return;
-  await approveAndResume(pendingApproval.value.id);
+const handleApprove = async (request: any) => {
+  if (!request) return;
+  await approveAndResume(request.id);
 };
 
 // 拒绝工具
-const handleReject = () => {
-  if (!pendingApproval.value) return;
-  rejectTool(pendingApproval.value.id, rejectReason.value || "用户拒绝");
-  rejectReason.value = "";
+const handleReject = (request: any) => {
+  if (!request) return;
+  rejectTool(request.id, "用户拒绝");
 };
 
 // 取消执行
@@ -86,10 +133,18 @@ const handleCancel = () => {
   cancel();
 };
 
-// 格式化工具参数
-const formatArgs = (args: Record<string, any>): string => {
-  return JSON.stringify(args, null, 2);
-};
+// 计算是否完成
+const isFinished = ref(false);
+
+// 监听运行状态
+import { watch } from 'vue';
+watch(isRunning, (running) => {
+  if (!running && !isPaused.value) {
+    isFinished.value = true;
+  } else {
+    isFinished.value = false;
+  }
+});
 </script>
 
 <template>
@@ -100,75 +155,54 @@ const formatArgs = (args: Record<string, any>): string => {
       {{ isConnected ? "已连接" : "未连接" }}
     </div>
 
-    <!-- 思考过程 -->
-    <div class="thinking-panel" v-if="thinkEvents.length > 0">
-      <h3>🧠 思考过程</h3>
-      <div class="think-events">
-        <div
-          v-for="event in thinkEvents"
-          :key="event.id"
-          class="think-event"
-          :class="{
-            'is-approval': event.approvalRequest,
-            'is-tool': event.toolCall || event.toolResult,
-          }"
-        >
-          <div class="event-header">
-            <span class="event-stage">{{ event.stage }}</span>
-            <span class="event-time">{{ new Date(event.timestamp).toLocaleTimeString() }}</span>
-          </div>
-          <div class="event-reasoning">{{ event.reasoning }}</div>
-          <div class="event-decision">→ {{ event.decision }}</div>
-
-          <!-- 工具调用详情 -->
-          <div v-if="event.toolCall" class="tool-details">
-            <code>{{ event.toolCall.toolName }}({{ formatArgs(event.toolCall.args) }})</code>
-          </div>
-
-          <!-- 工具结果 -->
-          <div v-if="event.toolResult" class="tool-result">
-            <pre>{{ formatArgs(event.toolResult.result) }}</pre>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 审批面板 -->
-    <div class="approval-panel" v-if="pendingApproval">
-      <div class="approval-header">
-        <span class="approval-icon">⚠️</span>
-        <h3>需要人工审批</h3>
-      </div>
-      <div class="approval-content">
-        <p>
-          工具 <strong>{{ pendingApproval.toolName }}</strong> 被标记为敏感操作
-        </p>
-        <div class="approval-args">
-          <h4>参数:</h4>
-          <pre>{{ formatArgs(pendingApproval.args) }}</pre>
-        </div>
-        <div class="approval-actions">
-          <input v-model="rejectReason" placeholder="拒绝原因 (可选)" class="reject-reason-input" />
-          <button class="btn btn-approve" @click="handleApprove" :disabled="isRunning && !isPaused">✓ 批准</button>
-          <button class="btn btn-reject" @click="handleReject" :disabled="isRunning && !isPaused">✗ 拒绝</button>
-        </div>
-      </div>
-    </div>
+    <!-- 思考过程 - 使用新的 ThinkingBlock 组件 -->
+    <ThinkingBlock
+      v-if="thinkEvents.length > 0"
+      :thoughts="thinkEvents"
+      :is-finished="isFinished"
+      :pending-approval="pendingApproval as any"
+      :is-approving="isRunning && isPaused"
+      @approve="handleApprove"
+      @reject="handleReject"
+    />
 
     <!-- 输出面板 -->
     <div class="output-panel">
       <h3>📝 输出</h3>
-      <div class="output-content" v-html="currentOutput || '<em>等待输出...</em>'"></div>
+      <div class="output-content">
+        <StreamingText
+          v-if="currentOutput"
+          :content="currentOutput"
+          :is-streaming="isRunning && !isPaused"
+        />
+        <em v-else class="placeholder">等待输出...</em>
+      </div>
     </div>
 
     <!-- 输入面板 -->
     <div class="input-panel">
-      <textarea v-model="userInput" placeholder="输入你的请求..." :disabled="isRunning" @keydown.enter.ctrl="sendMessage" rows="3"></textarea>
+      <textarea
+        v-model="userInput"
+        placeholder="输入你的请求..."
+        :disabled="isRunning"
+        @keydown.enter.ctrl="sendMessage"
+        rows="3"
+      ></textarea>
       <div class="input-actions">
-        <button class="btn btn-primary" @click="sendMessage" :disabled="!userInput.trim() || isRunning">
+        <button
+          class="btn btn-primary"
+          @click="sendMessage"
+          :disabled="!userInput.trim() || isRunning"
+        >
           {{ isRunning ? (isPaused ? "等待审批..." : "执行中...") : "发送" }}
         </button>
-        <button class="btn btn-secondary" @click="handleCancel" :disabled="!isRunning">取消</button>
+        <button
+          class="btn btn-secondary"
+          @click="handleCancel"
+          :disabled="!isRunning"
+        >
+          取消
+        </button>
       </div>
     </div>
   </div>
@@ -207,142 +241,28 @@ const formatArgs = (args: Record<string, any>): string => {
   background: #22c55e;
 }
 
-.thinking-panel,
-.approval-panel,
 .output-panel {
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: #f8fafc;
+  border-radius: 12px;
   padding: 16px;
+  border: 1px solid #e2e8f0;
 }
 
-.thinking-panel h3,
-.approval-panel h3,
 .output-panel h3 {
   margin: 0 0 12px 0;
-  font-size: 16px;
-}
-
-.think-events {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.think-event {
-  background: white;
-  border-radius: 6px;
-  padding: 12px;
-  border-left: 3px solid #3b82f6;
-}
-
-.think-event.is-approval {
-  border-left-color: #f59e0b;
-  background: #fffbeb;
-}
-
-.think-event.is-tool {
-  border-left-color: #8b5cf6;
-}
-
-.event-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.event-stage {
+  font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
-}
-
-.event-time {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.event-reasoning {
-  color: #4b5563;
-  margin-bottom: 4px;
-}
-
-.event-decision {
-  color: #059669;
-  font-style: italic;
-}
-
-.tool-details,
-.tool-result {
-  margin-top: 8px;
-  background: #f3f4f6;
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  overflow-x: auto;
-}
-
-.tool-details code,
-.tool-result pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.approval-panel {
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-}
-
-.approval-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.approval-icon {
-  font-size: 24px;
-}
-
-.approval-args {
-  background: white;
-  padding: 12px;
-  border-radius: 6px;
-  margin: 12px 0;
-}
-
-.approval-args h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-}
-
-.approval-args pre {
-  margin: 0;
-  font-size: 12px;
-  white-space: pre-wrap;
-}
-
-.approval-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.reject-reason-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.output-panel {
-  min-height: 100px;
+  color: #475569;
 }
 
 .output-content {
-  white-space: pre-wrap;
+  min-height: 100px;
   line-height: 1.6;
+  color: #1e293b;
+}
+
+.output-content .placeholder {
+  color: #94a3b8;
 }
 
 .input-panel {
@@ -354,16 +274,23 @@ const formatArgs = (args: Record<string, any>): string => {
 .input-panel textarea {
   width: 100%;
   padding: 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
   resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .input-panel textarea:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input-panel textarea:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
 }
 
 .input-actions {
@@ -373,10 +300,10 @@ const formatArgs = (args: Record<string, any>): string => {
 }
 
 .btn {
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   border: none;
   transition: all 0.2s;
@@ -396,30 +323,17 @@ const formatArgs = (args: Record<string, any>): string => {
   background: #2563eb;
 }
 
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
 .btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #d1d5db;
-}
-
-.btn-approve {
-  background: #22c55e;
-  color: white;
-}
-
-.btn-approve:hover:not(:disabled) {
-  background: #16a34a;
-}
-
-.btn-reject {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-reject:hover:not(:disabled) {
-  background: #dc2626;
+  background: #e2e8f0;
 }
 </style>
