@@ -58,7 +58,15 @@ func (f *MultiProviderFactory) Create(config *types.ModelConfig) (Provider, erro
 	case "gemini", "google":
 		return NewGeminiProvider(config)
 
+	// 通用 OpenAI 兼容 Provider（用户自定义 API）
+	case "openai_compatible", "custom":
+		return NewCustomProvider(config)
+
 	default:
+		// 如果提供了 BaseURL，尝试作为 OpenAI 兼容 Provider
+		if config.BaseURL != "" {
+			return NewCustomProvider(config)
+		}
 		return nil, fmt.Errorf("unsupported provider: %s", providerType)
 	}
 }

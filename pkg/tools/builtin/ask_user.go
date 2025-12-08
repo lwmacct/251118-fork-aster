@@ -3,6 +3,7 @@ package builtin
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -11,27 +12,43 @@ import (
 	"github.com/google/uuid"
 )
 
+// askUserRequest 表示一个待处理的 AskUser 请求
+type askUserRequest struct {
+	responseChan chan map[string]any
+	answered     bool       // 是否已回答
+	mu           sync.Mutex // 保护 answered 字段
+}
+
 // 全局 pending requests 注册表（用于外部响应）
 var (
-	globalAskUserRequests   = make(map[string]chan map[string]any)
+	globalAskUserRequests   = make(map[string]*askUserRequest)
 	globalAskUserRequestsMu sync.RWMutex
 )
 
 // RespondToAskUser 响应 AskUser 请求（供外部调用）
 func RespondToAskUser(requestID string, answers map[string]any) error {
 	globalAskUserRequestsMu.RLock()
-	ch, ok := globalAskUserRequests[requestID]
+	req, ok := globalAskUserRequests[requestID]
 	globalAskUserRequestsMu.RUnlock()
 
 	if !ok {
 		return fmt.Errorf("no pending AskUser request with ID: %s", requestID)
 	}
 
+	// 使用互斥锁确保只能回答一次
+	req.mu.Lock()
+	if req.answered {
+		req.mu.Unlock()
+		return fmt.Errorf("request %s has already been answered", requestID)
+	}
+	req.answered = true
+	req.mu.Unlock()
+
+	// 发送答案到 channel
 	select {
-	case ch <- answers:
-		globalAskUserRequestsMu.Lock()
-		delete(globalAskUserRequests, requestID)
-		globalAskUserRequestsMu.Unlock()
+	case req.responseChan <- answers:
+		log.Printf("[AskUser] Successfully sent answer for request %s", requestID)
+		// 注意：不在这里删除 globalAskUserRequests，让 Execute 函数的 goroutine 来清理
 		return nil
 	default:
 		return fmt.Errorf("response channel full or closed for request: %s", requestID)
@@ -142,23 +159,24 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 	// 生成请求ID
 	requestID := uuid.New().String()
 
-	// 创建响应通道
+	// 创建响应通道（带缓冲，确保发送不会阻塞）
 	responseChan := make(chan map[string]any, 1)
 	t.pendingRequests[requestID] = responseChan
 
-	// 注册到全局表（供外部调用 RespondToAskUser）
+	// 创建请求对象并注册到全局表
+	req := &askUserRequest{
+		responseChan: responseChan,
+		answered:     false,
+	}
 	globalAskUserRequestsMu.Lock()
-	globalAskUserRequests[requestID] = responseChan
+	globalAskUserRequests[requestID] = req
 	globalAskUserRequestsMu.Unlock()
 
-	// 创建响应回调函数
+	log.Printf("[AskUser] Registered request %s, waiting for user response...", requestID)
+
+	// 创建响应回调函数（用于 Emit 事件）
 	respond := func(answers map[string]any) error {
-		select {
-		case responseChan <- answers:
-			return nil
-		default:
-			return fmt.Errorf("response channel closed or full")
-		}
+		return RespondToAskUser(requestID, answers)
 	}
 
 	// 发送事件到 Control 通道
@@ -181,33 +199,61 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 	}
 
 	// 等待用户响应或超时
-	// 注意：不使用传入的 ctx，因为外层执行器的默认超时只有 60 秒
-	// AskUserQuestion 需要等待用户响应，可能需要更长时间
 	// 使用独立的 30 分钟超时，不受外层 context 影响
+	// 这是因为 AskUserQuestion 需要等待用户响应，可能需要很长时间
 	timeout := time.After(30 * time.Minute)
 
-	select {
-	case answers := <-responseChan:
+	// 清理函数
+	cleanup := func() {
 		delete(t.pendingRequests, requestID)
 		globalAskUserRequestsMu.Lock()
 		delete(globalAskUserRequests, requestID)
 		globalAskUserRequestsMu.Unlock()
+		log.Printf("[AskUser] Cleaned up request %s", requestID)
+	}
+
+	// 直接在当前 goroutine 中等待，不使用外层 ctx
+	// 这样即使 Agent 执行循环的 context 被取消，我们仍然可以等待用户响应
+	select {
+	case answers := <-responseChan:
+		cleanup()
+		log.Printf("[AskUser] Received answer for request %s: %v", requestID, answers)
 		return map[string]any{
 			"ok":         true,
 			"request_id": requestID,
 			"answers":    answers,
 			"timestamp":  time.Now().Unix(),
 		}, nil
-
-	case <-timeout: // 30分钟超时
-		delete(t.pendingRequests, requestID)
-		globalAskUserRequestsMu.Lock()
-		delete(globalAskUserRequests, requestID)
-		globalAskUserRequestsMu.Unlock()
+	case <-timeout:
+		cleanup()
+		log.Printf("[AskUser] Request %s timed out after 30 minutes", requestID)
 		return map[string]any{
 			"ok":         false,
 			"request_id": requestID,
 			"error":      "user response timeout (30 minutes)",
+			"timestamp":  time.Now().Unix(),
+		}, nil
+	case <-ctx.Done():
+		// 外层 context 被取消（比如 Agent 执行循环超时）
+		// 但我们不清理 pending request，让用户仍然可以响应
+		// 启动一个后台 goroutine 来等待用户响应并清理
+		log.Printf("[AskUser] Context cancelled for request %s, but keeping request alive for user response", requestID)
+		go func() {
+			select {
+			case <-responseChan:
+				// 用户响应了，但我们已经返回了，所以只需要清理
+				log.Printf("[AskUser] User responded to request %s after context cancellation", requestID)
+			case <-timeout:
+				log.Printf("[AskUser] Request %s timed out in background", requestID)
+			}
+			cleanup()
+		}()
+		// 返回一个特殊的结果，告诉 Agent 用户正在响应
+		return map[string]any{
+			"ok":         false,
+			"request_id": requestID,
+			"waiting":    true,
+			"message":    "等待用户响应中，请稍候...",
 			"timestamp":  time.Now().Unix(),
 		}, nil
 	}

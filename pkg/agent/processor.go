@@ -875,13 +875,21 @@ func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.S
 
 	// 流式响应结束后，解析所有累积的工具输入
 	if len(inputJSONBuffers) > 0 {
+		log.Printf("[handleStreamResponse] Processing %d inputJSONBuffers for %d content blocks", len(inputJSONBuffers), len(assistantContent))
 		for i, block := range assistantContent {
 			if tu, ok := block.(*types.ToolUseBlock); ok {
 				if jsonStr, exists := inputJSONBuffers[i]; exists && jsonStr != "" {
+					log.Printf("[handleStreamResponse] Parsing tool input for block %d (%s), jsonStr length: %d", i, tu.Name, len(jsonStr))
 					var input map[string]any
 					if err := json.Unmarshal([]byte(jsonStr), &input); err == nil {
 						tu.Input = input
+						log.Printf("[handleStreamResponse] Successfully parsed tool input for %s: %d fields", tu.Name, len(input))
+					} else {
+						log.Printf("[handleStreamResponse] Failed to parse tool input JSON for %s: %v, raw: %s", tu.Name, err, jsonStr)
 					}
+				} else {
+					// 关键修复: 记录空输入缓冲区警告
+					log.Printf("[handleStreamResponse] WARNING: Empty input buffer for tool block %d (%s), exists=%v, jsonStr='%s'", i, tu.Name, exists, jsonStr)
 				}
 			}
 		}

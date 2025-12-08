@@ -95,6 +95,18 @@ type TokenUsage struct {
 	CachedTokens        int64 `json:"cached_tokens,omitempty"`
 	CacheCreationTokens int64 `json:"cache_creation_tokens,omitempty"`
 	CacheReadTokens     int64 `json:"cache_read_tokens,omitempty"`
+
+	// 成本估算（新增）
+	EstimatedCost float64 `json:"estimated_cost,omitempty"` // 估算成本 (USD)
+
+	// 请求元数据（新增）
+	RequestID string `json:"request_id,omitempty"` // API 请求 ID
+	Model     string `json:"model,omitempty"`      // 使用的模型
+	Provider  string `json:"provider,omitempty"`   // Provider 类型
+
+	// 时间统计（新增）
+	LatencyMs        int64 `json:"latency_ms,omitempty"`          // 请求总耗时 (ms)
+	TimeToFirstToken int64 `json:"time_to_first_token,omitempty"` // 首 token 时间 (ms)
 }
 
 // StreamOptions 流式请求选项

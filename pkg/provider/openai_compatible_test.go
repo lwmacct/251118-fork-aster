@@ -255,6 +255,65 @@ func TestGeminiProvider(t *testing.T) {
 	}
 }
 
+// TestCustomProvider 测试自定义 Provider（用户自带 Key 场景）
+func TestCustomProvider(t *testing.T) {
+	config := &types.ModelConfig{
+		Provider: "custom",
+		Model:    "gpt-4o",
+		APIKey:   "test-key",
+		BaseURL:  "https://api.example.com/v1",
+	}
+
+	provider, err := NewCustomProvider(config)
+	if err != nil {
+		t.Fatalf("Failed to create custom provider: %v", err)
+	}
+
+	// 测试配置
+	if provider.Config().Model != "gpt-4o" {
+		t.Errorf("Expected model=gpt-4o, got %s", provider.Config().Model)
+	}
+
+	// 测试能力
+	caps := provider.Capabilities()
+	if !caps.SupportStreaming {
+		t.Error("Custom provider should support streaming")
+	}
+	if !caps.SupportToolCalling {
+		t.Error("Custom provider should support tool calling")
+	}
+	if caps.ToolCallingFormat != "openai" {
+		t.Errorf("Expected ToolCallingFormat=openai, got %s", caps.ToolCallingFormat)
+	}
+}
+
+// TestCustomProviderValidation 测试自定义 Provider 参数验证
+func TestCustomProviderValidation(t *testing.T) {
+	// 缺少 BaseURL
+	config := &types.ModelConfig{
+		Provider: "custom",
+		Model:    "gpt-4o",
+		APIKey:   "test-key",
+	}
+
+	_, err := NewCustomProvider(config)
+	if err == nil {
+		t.Error("Expected error when BaseURL is missing")
+	}
+
+	// 缺少 APIKey
+	config = &types.ModelConfig{
+		Provider: "custom",
+		Model:    "gpt-4o",
+		BaseURL:  "https://api.example.com/v1",
+	}
+
+	_, err = NewCustomProvider(config)
+	if err == nil {
+		t.Error("Expected error when APIKey is missing")
+	}
+}
+
 // TestProviderFactory 测试工厂模式
 func TestProviderFactory(t *testing.T) {
 	factory := NewMultiProviderFactory()
@@ -263,15 +322,17 @@ func TestProviderFactory(t *testing.T) {
 		provider string
 		model    string
 		apiKey   string
+		baseURL  string
 	}{
-		{"openai", "gpt-4o", "test-key"},
-		{"groq", "llama-3.3-70b-versatile", "test-key"},
-		{"ollama", "llama3.2", ""},
-		{"openrouter", "openai/gpt-4o", "test-key"},
-		{"mistral", "mistral-large-latest", "test-key"},
-		{"doubao", "ep-xxxxx", "test-key"},
-		{"moonshot", "moonshot-v1-128k", "test-key"},
-		{"gemini", "gemini-2.0-flash-exp", "test-key"},
+		{"openai", "gpt-4o", "test-key", ""},
+		{"groq", "llama-3.3-70b-versatile", "test-key", ""},
+		{"ollama", "llama3.2", "", ""},
+		{"openrouter", "openai/gpt-4o", "test-key", ""},
+		{"mistral", "mistral-large-latest", "test-key", ""},
+		{"doubao", "ep-xxxxx", "test-key", ""},
+		{"moonshot", "moonshot-v1-128k", "test-key", ""},
+		{"gemini", "gemini-2.0-flash-exp", "test-key", ""},
+		{"custom", "gpt-4o", "test-key", "https://api.example.com/v1"},
 	}
 
 	for _, tc := range testCases {
@@ -280,6 +341,7 @@ func TestProviderFactory(t *testing.T) {
 				Provider: tc.provider,
 				Model:    tc.model,
 				APIKey:   tc.apiKey,
+				BaseURL:  tc.baseURL,
 			}
 
 			provider, err := factory.Create(config)

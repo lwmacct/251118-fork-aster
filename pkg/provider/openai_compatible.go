@@ -63,6 +63,36 @@ type OpenAICompatibleOptions struct {
 	CustomHeaders map[string]string
 }
 
+// NewCustomProvider 创建自定义 OpenAI 兼容 Provider（简化版）
+// 用于用户自带 API Key 场景，如 new-api、API2D 等
+func NewCustomProvider(config *types.ModelConfig) (*OpenAICompatibleProvider, error) {
+	if config.BaseURL == "" {
+		return nil, fmt.Errorf("custom provider: base_url is required")
+	}
+	if config.APIKey == "" {
+		return nil, fmt.Errorf("custom provider: api_key is required")
+	}
+
+	providerName := "custom"
+	if config.Provider != "" {
+		providerName = config.Provider
+	}
+
+	return NewOpenAICompatibleProvider(
+		config,
+		strings.TrimSuffix(config.BaseURL, "/"),
+		providerName,
+		&OpenAICompatibleOptions{
+			RequireAPIKey: true,
+			Timeout:       5 * time.Minute,
+			MaxRetries:    3,
+			RetryDelay:    1 * time.Second,
+			RetryOn429:    true,
+			RetryOn500:    true,
+		},
+	)
+}
+
 // NewOpenAICompatibleProvider 创建 OpenAI 兼容 Provider
 func NewOpenAICompatibleProvider(
 	config *types.ModelConfig,
@@ -785,7 +815,11 @@ func (p *OpenAICompatibleProvider) parseUsage(apiResp map[string]any) *TokenUsag
 
 // parseUsageFromMap 从 map 解析 usage
 func (p *OpenAICompatibleProvider) parseUsageFromMap(usageData map[string]any) *TokenUsage {
-	usage := &TokenUsage{}
+	usage := &TokenUsage{
+		// 填充元数据
+		Provider: p.providerName,
+		Model:    p.config.Model,
+	}
 
 	if promptTokens, ok := usageData["prompt_tokens"].(float64); ok {
 		usage.InputTokens = int64(promptTokens)

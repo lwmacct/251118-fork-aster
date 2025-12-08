@@ -1,12 +1,12 @@
 package agent
 
 import (
-	"github.com/astercloud/aster/pkg/provider"
-	"github.com/astercloud/aster/pkg/router"
-	"github.com/astercloud/aster/pkg/sandbox"
-	"github.com/astercloud/aster/pkg/store"
-	"github.com/astercloud/aster/pkg/tools"
-	"github.com/astercloud/aster/pkg/types"
+"github.com/astercloud/aster/pkg/provider"
+"github.com/astercloud/aster/pkg/router"
+"github.com/astercloud/aster/pkg/sandbox"
+"github.com/astercloud/aster/pkg/store"
+"github.com/astercloud/aster/pkg/tools"
+"github.com/astercloud/aster/pkg/types"
 )
 
 // Dependencies Agent依赖
@@ -22,6 +22,10 @@ type Dependencies struct {
 	// PromptCompressor 可选的 Prompt 压缩器
 	// 如果配置了且模板启用了压缩，将用于压缩 System Prompt
 	PromptCompressor *EnhancedPromptCompressor
+
+	// RecoveryHook 可选的会话恢复钩子
+	// 应用层可以注册此钩子来实现自定义的会话恢复逻辑
+	RecoveryHook types.RecoveryHook
 }
 
 // TemplateRegistry 模板注册表

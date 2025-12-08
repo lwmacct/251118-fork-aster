@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Role 定义消息角色
 type Role string
@@ -281,4 +284,109 @@ var BreakpointToolExecuting = BreakpointState{
 var BreakpointPostTool = BreakpointState{
 	Enabled:   true,
 	Condition: "post_tool",
+}
+
+// ===== Message JSON 序列化 =====
+
+
+// contentBlockJSON 用于 JSON 序列化的内容块结构
+type contentBlockJSON struct {
+	Type      string         `json:"type"`
+	Text      string         `json:"text,omitempty"`
+	ID        string         `json:"id,omitempty"`
+	Name      string         `json:"name,omitempty"`
+	Input     map[string]any `json:"input,omitempty"`
+	ToolUseID string         `json:"tool_use_id,omitempty"`
+	Content   string         `json:"content,omitempty"`
+	IsError   bool           `json:"is_error,omitempty"`
+}
+
+// messageJSON 用于 JSON 序列化的消息结构
+type messageJSON struct {
+	Role          Role               `json:"role"`
+	Content       string             `json:"content,omitempty"`
+	ContentBlocks []contentBlockJSON `json:"content_blocks,omitempty"`
+	Name          string             `json:"name,omitempty"`
+	ToolCalls     []ToolCall         `json:"tool_calls,omitempty"`
+	ToolCallID    string             `json:"tool_call_id,omitempty"`
+}
+
+// MarshalJSON 自定义 JSON 序列化
+func (m Message) MarshalJSON() ([]byte, error) {
+	msg := messageJSON{
+		Role:       m.Role,
+		Content:    m.Content,
+		Name:       m.Name,
+		ToolCalls:  m.ToolCalls,
+		ToolCallID: m.ToolCallID,
+	}
+
+	// 序列化 ContentBlocks
+	if len(m.ContentBlocks) > 0 {
+		msg.ContentBlocks = make([]contentBlockJSON, 0, len(m.ContentBlocks))
+		for _, block := range m.ContentBlocks {
+			switch b := block.(type) {
+			case *TextBlock:
+				msg.ContentBlocks = append(msg.ContentBlocks, contentBlockJSON{
+Type: "text",
+Text: b.Text,
+})
+			case *ToolUseBlock:
+				msg.ContentBlocks = append(msg.ContentBlocks, contentBlockJSON{
+Type:  "tool_use",
+ID:    b.ID,
+Name:  b.Name,
+Input: b.Input,
+})
+			case *ToolResultBlock:
+				msg.ContentBlocks = append(msg.ContentBlocks, contentBlockJSON{
+Type:      "tool_result",
+ToolUseID: b.ToolUseID,
+Content:   b.Content,
+IsError:   b.IsError,
+})
+			}
+		}
+	}
+
+	return json.Marshal(msg)
+}
+
+// UnmarshalJSON 自定义 JSON 反序列化
+func (m *Message) UnmarshalJSON(data []byte) error {
+	var msg messageJSON
+	if err := json.Unmarshal(data, &msg); err != nil {
+		return err
+	}
+
+	m.Role = msg.Role
+	m.Content = msg.Content
+	m.Name = msg.Name
+	m.ToolCalls = msg.ToolCalls
+	m.ToolCallID = msg.ToolCallID
+
+	// 反序列化 ContentBlocks
+	if len(msg.ContentBlocks) > 0 {
+		m.ContentBlocks = make([]ContentBlock, 0, len(msg.ContentBlocks))
+		for _, b := range msg.ContentBlocks {
+			switch b.Type {
+			case "text":
+				m.ContentBlocks = append(m.ContentBlocks, &TextBlock{Text: b.Text})
+			case "tool_use":
+				m.ContentBlocks = append(m.ContentBlocks, &ToolUseBlock{
+					ID:    b.ID,
+					Name:  b.Name,
+					Input: b.Input,
+				})
+			case "tool_result":
+				m.ContentBlocks = append(m.ContentBlocks, &ToolResultBlock{
+					ToolUseID: b.ToolUseID,
+					Content:   b.Content,
+					IsError:   b.IsError,
+				})
+			}
+		}
+	}
+
+	return nil
 }
