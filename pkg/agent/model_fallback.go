@@ -3,12 +3,14 @@ package agent
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/provider"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var fallbackLog = logging.ForComponent("ModelFallback")
 
 // ModelFallback 模型降级配置
 type ModelFallback struct {
@@ -80,8 +82,7 @@ func NewModelFallbackManager(fallbacks []*ModelFallback, deps *Dependencies) (*M
 
 		prov, err := deps.ProviderFactory.Create(fb.Config)
 		if err != nil {
-			log.Printf("[ModelFallback] Failed to create provider for %s/%s: %v",
-				fb.Config.Provider, fb.Config.Model, err)
+			fallbackLog.Warn(nil, "failed to create provider", map[string]any{"provider": fb.Config.Provider, "model": fb.Config.Model, "error": err})
 			fb.Enabled = false
 			continue
 		}
@@ -119,8 +120,7 @@ func (m *ModelFallbackManager) Complete(
 		// 尝试执行，支持重试
 		for retry := 0; retry <= fb.MaxRetries; retry++ {
 			if retry > 0 {
-				log.Printf("[ModelFallback] Retry %d/%d for model %s",
-					retry, fb.MaxRetries, modelKey)
+				fallbackLog.Debug(ctx, "retrying model", map[string]any{"retry": retry, "max_retries": fb.MaxRetries, "model": modelKey})
 
 				// 重试前等待一小段时间（指数退避）
 				backoff := time.Duration(retry) * 500 * time.Millisecond
@@ -139,20 +139,19 @@ func (m *ModelFallbackManager) Complete(
 				m.stats.ModelUsageCount[modelKey]++
 				m.currentIndex = i
 
-				log.Printf("[ModelFallback] Success with model %s (retry: %d)", modelKey, retry)
+				fallbackLog.Debug(ctx, "success with model", map[string]any{"model": modelKey, "retry": retry})
 				return resp, nil
 			}
 
 			lastErr = err
-			log.Printf("[ModelFallback] Error with model %s (retry: %d/%d): %v",
-				modelKey, retry, fb.MaxRetries, err)
+			fallbackLog.Warn(ctx, "error with model", map[string]any{"model": modelKey, "retry": retry, "max_retries": fb.MaxRetries, "error": err})
 		}
 
 		// 所有重试都失败，尝试下一个模型
 		if i < len(m.fallbacks)-1 {
 			m.stats.FallbackCount++
 			m.stats.LastFallbackTime = time.Now()
-			log.Printf("[ModelFallback] Falling back from %s to next model", modelKey)
+			fallbackLog.Info(ctx, "falling back to next model", map[string]any{"from_model": modelKey})
 		}
 	}
 
@@ -182,8 +181,7 @@ func (m *ModelFallbackManager) Stream(
 		// 尝试执行，支持重试
 		for retry := 0; retry <= fb.MaxRetries; retry++ {
 			if retry > 0 {
-				log.Printf("[ModelFallback] Retry %d/%d for model %s (stream)",
-					retry, fb.MaxRetries, modelKey)
+				fallbackLog.Debug(ctx, "retrying model (stream)", map[string]any{"retry": retry, "max_retries": fb.MaxRetries, "model": modelKey})
 
 				// 重试前等待一小段时间
 				backoff := time.Duration(retry) * 500 * time.Millisecond
@@ -202,20 +200,19 @@ func (m *ModelFallbackManager) Stream(
 				m.stats.ModelUsageCount[modelKey]++
 				m.currentIndex = i
 
-				log.Printf("[ModelFallback] Success with model %s (stream, retry: %d)", modelKey, retry)
+				fallbackLog.Debug(ctx, "success with model (stream)", map[string]any{"model": modelKey, "retry": retry})
 				return stream, nil
 			}
 
 			lastErr = err
-			log.Printf("[ModelFallback] Error with model %s (stream, retry: %d/%d): %v",
-				modelKey, retry, fb.MaxRetries, err)
+			fallbackLog.Warn(ctx, "error with model (stream)", map[string]any{"model": modelKey, "retry": retry, "max_retries": fb.MaxRetries, "error": err})
 		}
 
 		// 所有重试都失败，尝试下一个模型
 		if i < len(m.fallbacks)-1 {
 			m.stats.FallbackCount++
 			m.stats.LastFallbackTime = time.Now()
-			log.Printf("[ModelFallback] Falling back from %s to next model (stream)", modelKey)
+			fallbackLog.Info(ctx, "falling back to next model (stream)", map[string]any{"from_model": modelKey})
 		}
 	}
 
@@ -253,7 +250,7 @@ func (m *ModelFallbackManager) EnableModel(provider, model string) error {
 				fb.provider = prov
 			}
 			fb.Enabled = true
-			log.Printf("[ModelFallback] Enabled model %s", modelKey)
+			fallbackLog.Info(nil, "enabled model", map[string]any{"model": modelKey})
 			return nil
 		}
 	}
@@ -269,7 +266,7 @@ func (m *ModelFallbackManager) DisableModel(provider, model string) error {
 		fbKey := fmt.Sprintf("%s/%s", fb.Config.Provider, fb.Config.Model)
 		if fbKey == modelKey {
 			fb.Enabled = false
-			log.Printf("[ModelFallback] Disabled model %s", modelKey)
+			fallbackLog.Info(nil, "disabled model", map[string]any{"model": modelKey})
 			return nil
 		}
 	}

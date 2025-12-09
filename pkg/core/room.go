@@ -3,13 +3,15 @@ package core
 import (
 	"context"
 	"fmt"
-	"log"
 	"regexp"
 	"sync"
 	"time"
 
 	"github.com/astercloud/aster/pkg/agent"
+	"github.com/astercloud/aster/pkg/logging"
 )
+
+var roomLog = logging.ForComponent("Room")
 
 // RoomMember Room 成员信息
 type RoomMember struct {
@@ -148,7 +150,7 @@ func (r *Room) Say(ctx context.Context, from string, text string) error {
 		// 异步发送,避免阻塞
 		go func(agent *agent.Agent, txt string, memberName string) {
 			if err := agent.Send(ctx, txt); err != nil {
-				log.Printf("[Room] Failed to send message to agent %s: %v", memberName, err)
+				roomLog.Warn(ctx, "failed to send message to agent", map[string]any{"member": memberName, "error": err})
 			}
 		}(ag, formattedText, name)
 	}

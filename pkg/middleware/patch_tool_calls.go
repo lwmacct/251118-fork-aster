@@ -3,9 +3,12 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
+
+	"github.com/astercloud/aster/pkg/logging"
 )
+
+var ptcLog = logging.ForComponent("PatchToolCallsMiddleware")
 
 // PatchToolCallsMiddleware 工具调用错误恢复中间件
 // 功能:
@@ -54,7 +57,7 @@ func NewPatchToolCallsMiddleware(config *PatchToolCallsMiddlewareConfig) *PatchT
 		provideHints:   config.ProvideHints,
 	}
 
-	log.Printf("[PatchToolCallsMiddleware] Initialized (logging: %v, hints: %v)", config.EnableLogging, config.ProvideHints)
+	ptcLog.Info(context.Background(), "initialized", map[string]any{"logging": config.EnableLogging, "hints": config.ProvideHints})
 	return m
 }
 
@@ -69,7 +72,7 @@ func (m *PatchToolCallsMiddleware) WrapToolCall(ctx context.Context, req *ToolCa
 			if r := recover(); r != nil {
 				// 捕获 panic
 				panicMsg := fmt.Sprintf("%v", r)
-				log.Printf("[PatchToolCallsMiddleware] Tool '%s' panicked: %v", req.ToolName, r)
+				ptcLog.Error(ctx, "tool panicked", map[string]any{"tool": req.ToolName, "panic": r})
 
 				// 记录失败
 				if m.enableLogging {
@@ -89,7 +92,7 @@ func (m *PatchToolCallsMiddleware) WrapToolCall(ctx context.Context, req *ToolCa
 
 	// 如果处理器返回了 error
 	if err != nil {
-		log.Printf("[PatchToolCallsMiddleware] Tool '%s' returned error: %v", req.ToolName, err)
+		ptcLog.Warn(ctx, "tool returned error", map[string]any{"tool": req.ToolName, "error": err.Error()})
 
 		// 记录失败
 		if m.enableLogging {
@@ -104,7 +107,7 @@ func (m *PatchToolCallsMiddleware) WrapToolCall(ctx context.Context, req *ToolCa
 
 	// 检查响应是否为 nil
 	if resp == nil {
-		log.Printf("[PatchToolCallsMiddleware] Tool '%s' returned nil response", req.ToolName)
+		ptcLog.Warn(ctx, "tool returned nil response", map[string]any{"tool": req.ToolName})
 
 		// 记录失败
 		if m.enableLogging {
@@ -203,7 +206,7 @@ func (m *PatchToolCallsMiddleware) GetFailedCalls() []FailedToolCall {
 // ClearFailedCalls 清空失败记录
 func (m *PatchToolCallsMiddleware) ClearFailedCalls() {
 	m.failedCalls = make([]FailedToolCall, 0, m.maxFailedCalls)
-	log.Printf("[PatchToolCallsMiddleware] Cleared failed calls history")
+	ptcLog.Info(context.Background(), "cleared failed calls history", nil)
 }
 
 // GetFailedCallCount 获取失败次数

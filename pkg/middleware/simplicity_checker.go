@@ -2,11 +2,14 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/astercloud/aster/pkg/logging"
 )
+
+var scLog = logging.ForComponent("SimplicityChecker")
 
 // SimplicityCheckerMiddleware 简洁性检查中间件
 // 检测过度工程和未请求的功能添加，发出警告但不阻断执行
@@ -280,8 +283,7 @@ func (m *SimplicityCheckerMiddleware) emitWarning(warning SimplicityWarning) {
 	m.warningsEmitted = append(m.warningsEmitted, warning)
 
 	// 记录日志
-	log.Printf("[SimplicityChecker] WARNING [%s] %s (file: %s)",
-		warning.Type, warning.Message, warning.File)
+	scLog.Warn(context.Background(), warning.Message, map[string]any{"type": warning.Type, "file": warning.File})
 
 	// 调用回调
 	if m.config.OnWarning != nil {

@@ -3,12 +3,15 @@ package actor
 import (
 	"context"
 	"fmt"
-	"log"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/astercloud/aster/pkg/logging"
 )
+
+var actorLog = logging.ForComponent("ActorSystem")
 
 // System Actor 系统
 // 管理所有 Actor 的生命周期、消息路由和监督
@@ -65,8 +68,12 @@ func DefaultSystemConfig() *SystemConfig {
 }
 
 func defaultPanicHandler(actor *PID, msg Message, err any) {
-	log.Printf("[Actor] PANIC in %s processing %s: %v\n%s",
-		actor.ID, msg.Kind(), err, debug.Stack())
+	actorLog.Error(context.Background(), "PANIC in actor", map[string]any{
+		"actor_id": actor.ID,
+		"msg_kind": msg.Kind(),
+		"error":    err,
+		"stack":    string(debug.Stack()),
+	})
 }
 
 // SystemStats 系统统计
@@ -160,7 +167,7 @@ func NewSystemWithConfig(name string, config *SystemConfig) *System {
 		go s.deadLetterHandler()
 	}
 
-	log.Printf("[ActorSystem] %s started", name)
+	actorLog.Info(context.Background(), "system started", map[string]any{"name": name})
 	return s
 }
 
@@ -192,7 +199,7 @@ func (s *System) spawnWithProps(actor Actor, props *Props, parent *PID) *PID {
 
 	// 检查名称是否已存在
 	if _, exists := s.actors[props.Name]; exists {
-		log.Printf("[ActorSystem] Actor %s already exists, returning existing PID", props.Name)
+		actorLog.Debug(context.Background(), "actor already exists, returning existing PID", map[string]any{"name": props.Name})
 		return s.actors[props.Name].pid
 	}
 
@@ -244,7 +251,7 @@ func (s *System) spawnWithProps(actor Actor, props *Props, parent *PID) *PID {
 	// 发送 Started 消息
 	s.SendWithSender(pid, &Started{}, nil)
 
-	log.Printf("[ActorSystem] Spawned actor: %s (parent: %v)", props.Name, parent)
+	actorLog.Debug(context.Background(), "spawned actor", map[string]any{"name": props.Name, "parent": parent})
 	return pid
 }
 
@@ -275,8 +282,10 @@ func (s *System) SendWithSender(target *PID, msg Message, sender *PID) {
 		case s.deadLetters <- env:
 			atomic.AddInt64(&s.stats.DeadLetters, 1)
 		default:
-			log.Printf("[ActorSystem] Both mailbox and dead letter queue full, message dropped: %s -> %s",
-				msg.Kind(), target.ID)
+			actorLog.Warn(context.Background(), "both mailbox and dead letter queue full, message dropped", map[string]any{
+				"msg_kind":  msg.Kind(),
+				"target_id": target.ID,
+			})
 		}
 	}
 }
@@ -371,7 +380,7 @@ func (s *System) Shutdown() {
 
 // ShutdownWithTimeout 带超时的关闭
 func (s *System) ShutdownWithTimeout(timeout time.Duration) {
-	log.Printf("[ActorSystem] %s shutting down...", s.name)
+	actorLog.Info(context.Background(), "system shutting down", map[string]any{"name": s.name})
 
 	s.isRunning.Store(false)
 
@@ -399,9 +408,9 @@ func (s *System) ShutdownWithTimeout(timeout time.Duration) {
 
 	select {
 	case <-done:
-		log.Printf("[ActorSystem] %s shutdown complete", s.name)
+		actorLog.Info(context.Background(), "system shutdown complete", map[string]any{"name": s.name})
 	case <-time.After(timeout):
-		log.Printf("[ActorSystem] %s shutdown timeout, forcing exit", s.name)
+		actorLog.Warn(context.Background(), "system shutdown timeout, forcing exit", map[string]any{"name": s.name})
 	}
 }
 
@@ -440,7 +449,7 @@ func (s *System) dispatchMessage(env envelope) {
 	case cell.mailbox <- env:
 	default:
 		// Actor 邮箱满，背压处理
-		log.Printf("[ActorSystem] Actor %s mailbox full, message queued to dead letter", env.target.ID)
+		actorLog.Warn(context.Background(), "actor mailbox full, message queued to dead letter", map[string]any{"actor_id": env.target.ID})
 		select {
 		case s.deadLetters <- env:
 			atomic.AddInt64(&s.stats.DeadLetters, 1)
@@ -560,7 +569,7 @@ func (s *System) applyDirective(cell *actorCell, directive Directive) {
 	switch directive {
 	case DirectiveResume:
 		// 继续运行，不做处理
-		log.Printf("[ActorSystem] Actor %s resumed after failure", cell.pid.ID)
+		actorLog.Info(context.Background(), "actor resumed after failure", map[string]any{"actor_id": cell.pid.ID})
 
 	case DirectiveRestart:
 		cell.restarts++
@@ -579,7 +588,7 @@ func (s *System) applyDirective(cell *actorCell, directive Directive) {
 		cell.state = actorStateRunning
 		cell.stateMu.Unlock()
 
-		log.Printf("[ActorSystem] Actor %s restarted (total restarts: %d)", cell.pid.ID, cell.restarts)
+		actorLog.Info(context.Background(), "actor restarted", map[string]any{"actor_id": cell.pid.ID, "total_restarts": cell.restarts})
 
 	case DirectiveStop:
 		s.Stop(cell.pid)
@@ -635,7 +644,7 @@ func (s *System) restartAllSiblings(child *PID) {
 		sibling.state = actorStateRunning
 		sibling.stateMu.Unlock()
 
-		log.Printf("[ActorSystem] Actor %s restarted by AllForOne strategy (total restarts: %d)", sibling.pid.ID, sibling.restarts)
+		actorLog.Info(context.Background(), "actor restarted by AllForOne strategy", map[string]any{"actor_id": sibling.pid.ID, "total_restarts": sibling.restarts})
 	}
 }
 
@@ -677,7 +686,7 @@ func (s *System) cleanupActor(cell *actorCell) {
 	cell.cancel()
 
 	atomic.AddInt64(&s.stats.TotalActors, -1)
-	log.Printf("[ActorSystem] Actor %s stopped", cell.pid.ID)
+	actorLog.Debug(context.Background(), "actor stopped", map[string]any{"actor_id": cell.pid.ID})
 }
 
 // getChildrenPIDs 获取子 Actor PID 列表
@@ -698,8 +707,11 @@ func (s *System) deadLetterHandler() {
 		case <-s.ctx.Done():
 			return
 		case env := <-s.deadLetters:
-			log.Printf("[DeadLetter] Message %s to %s from %v could not be delivered",
-				env.message.Kind(), env.target.ID, env.sender)
+			actorLog.Warn(context.Background(), "dead letter: message could not be delivered", map[string]any{
+				"msg_kind":  env.message.Kind(),
+				"target_id": env.target.ID,
+				"sender":    env.sender,
+			})
 		}
 	}
 }

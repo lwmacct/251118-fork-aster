@@ -2,11 +2,13 @@ package middleware
 
 import (
 	"context"
-	"log"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/memory"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var ocLog = logging.ForComponent("ObservationCompression")
 
 // ObservationCompressionMiddleware 观察结果压缩中间件
 // 用于压缩工具执行结果，同时保留可恢复的引用信息
@@ -186,8 +188,7 @@ func (m *ObservationCompressionMiddleware) compressToolResultBlock(
 	saved := len(block.Content) - len(compressed.Summary)
 	m.totalSaved += saved
 
-	log.Printf("[ObservationCompression] Compressed tool result: %d -> %d chars (saved %d, %.1f%% reduction)",
-		len(block.Content), len(compressed.Summary), saved, (1-compressed.CompressionRatio)*100)
+	ocLog.Debug(ctx, "compressed tool result", map[string]any{"original": len(block.Content), "compressed": len(compressed.Summary), "saved": saved, "reduction_pct": (1 - compressed.CompressionRatio) * 100})
 
 	return &types.ToolResultBlock{
 		ToolUseID:      block.ToolUseID,

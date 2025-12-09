@@ -17,12 +17,12 @@ navigation: false
   </div>
 </div>
 
-<div class="text-center py-2 px-4 mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg">
-  <p class="text-sm text-gray-600 dark:text-gray-400">
-    当前版本: <strong>v0.12.1</strong> |
-    <a href="/about/release-notes" class="text-primary-600 hover:underline">更新日志</a> |
-    <a href="https://github.com/astercloud/aster/releases" target="_blank" class="text-primary-600 hover:underline">下载地址</a>
-  </p>
+<div class="text-center py-2 px-4 mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center gap-4 flex-wrap">
+  <a href="https://github.com/astercloud/aster/releases" target="_blank">
+    <img src="https://img.shields.io/github/v/release/astercloud/aster?style=flat-square&label=版本" alt="GitHub Release" />
+  </a>
+  <a href="/about/release-notes" class="text-sm text-primary-600 hover:underline">更新日志</a>
+  <a href="https://github.com/astercloud/aster/releases" target="_blank" class="text-sm text-primary-600 hover:underline">下载地址</a>
 </div>
 
 ## ✨ 核心特性

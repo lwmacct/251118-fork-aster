@@ -3,14 +3,16 @@ package workflow
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/astercloud/aster/pkg/actor"
 	pkgagent "github.com/astercloud/aster/pkg/agent"
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var wfLog = logging.ForComponent("WorkflowEngine")
 
 // ActorEngine Actor 化的工作流引擎
 // 使用 Actor 模型管理多 Agent 协作
@@ -89,7 +91,7 @@ func NewActorEngine(config *EngineConfig, actorConfig *ActorEngineConfig) (*Acto
 	coordinator := NewCoordinatorActor(ae)
 	ae.coordinatorPID = actorSystem.Spawn(coordinator, "coordinator")
 
-	log.Printf("[ActorEngine] Created with actor system: %s", actorConfig.SystemName)
+	wfLog.Info(context.Background(), "actor engine created", map[string]any{"system_name": actorConfig.SystemName})
 	return ae, nil
 }
 
@@ -160,7 +162,7 @@ func (e *ActorEngine) SpawnAgent(ctx context.Context, nodeID string, agentConfig
 	e.agentPIDs[nodeID] = pid
 	e.agentPIDsMu.Unlock()
 
-	log.Printf("[ActorEngine] Spawned agent for node %s: %s", nodeID, pid.ID)
+	wfLog.Debug(context.Background(), "spawned agent for node", map[string]any{"node_id": nodeID, "pid": pid.ID})
 	return pid, nil
 }
 
@@ -204,7 +206,7 @@ func (e *ActorEngine) Shutdown() {
 	// 关闭 Actor 系统
 	e.actorSystem.Shutdown()
 
-	log.Printf("[ActorEngine] Shutdown complete")
+	wfLog.Info(context.Background(), "actor engine shutdown complete", nil)
 }
 
 // Stats 获取统计信息
@@ -266,7 +268,7 @@ func NewCoordinatorActor(engine *ActorEngine) *CoordinatorActor {
 func (c *CoordinatorActor) Receive(ctx *actor.Context, msg actor.Message) {
 	switch m := msg.(type) {
 	case *actor.Started:
-		log.Printf("[Coordinator] Started")
+		wfLog.Info(context.Background(), "coordinator started", nil)
 
 	case *ExecuteWorkflowMsg:
 		c.handleExecuteWorkflow(ctx, m)
@@ -525,12 +527,12 @@ type parallelBranchResult struct {
 
 // handleNodeCompleted 处理节点完成
 func (c *CoordinatorActor) handleNodeCompleted(ctx *actor.Context, msg *NodeCompletedMsg) {
-	log.Printf("[Coordinator] Node completed: %s in execution %s", msg.NodeID, msg.ExecutionID)
+	wfLog.Debug(context.Background(), "node completed", map[string]any{"node_id": msg.NodeID, "execution_id": msg.ExecutionID})
 }
 
 // handleNodeFailed 处理节点失败
 func (c *CoordinatorActor) handleNodeFailed(ctx *actor.Context, msg *NodeFailedMsg) {
-	log.Printf("[Coordinator] Node failed: %s in execution %s: %v", msg.NodeID, msg.ExecutionID, msg.Error)
+	wfLog.Error(context.Background(), "node failed", map[string]any{"node_id": msg.NodeID, "execution_id": msg.ExecutionID, "error": msg.Error})
 
 	c.mu.RLock()
 	state, ok := c.runningWorkflows[msg.ExecutionID]
@@ -565,7 +567,7 @@ func (c *CoordinatorActor) handleCancelWorkflow(ctx *actor.Context, msg *CancelW
 
 // handleTerminated 处理 Actor 终止通知
 func (c *CoordinatorActor) handleTerminated(ctx *actor.Context, msg *actor.Terminated) {
-	log.Printf("[Coordinator] Actor terminated: %s", msg.Who.ID)
+	wfLog.Debug(context.Background(), "actor terminated", map[string]any{"actor_id": msg.Who.ID})
 }
 
 // handleStopping 处理停止

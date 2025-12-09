@@ -3,14 +3,16 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 
 	"github.com/astercloud/aster/pkg/backends"
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/tools/builtin"
 )
+
+var fsLog = logging.ForComponent("FilesystemMiddleware")
 
 // FilesystemMiddlewareConfig 文件系统中间件配置
 type FilesystemMiddlewareConfig struct {
@@ -68,8 +70,7 @@ func NewFilesystemMiddleware(config *FilesystemMiddlewareConfig) *FilesystemMidd
 	// 创建文件系统工具
 	m.fsTools = m.createFilesystemTools()
 
-	log.Printf("[FilesystemMiddleware] Path validation: %v, Allowed prefixes: %v",
-		m.enablePathValidation, m.allowedPathPrefixes)
+	fsLog.Info(context.Background(), "path validation configured", map[string]any{"enabled": m.enablePathValidation, "prefixes": m.allowedPathPrefixes})
 	return m
 }
 
@@ -92,7 +93,7 @@ func (m *FilesystemMiddleware) createFilesystemTools() []tools.Tool {
 		fsTools = append(fsTools, &GrepTool{backend: m.backend, middleware: m})
 	}
 
-	log.Printf("[FilesystemMiddleware] Created %d filesystem tools", len(fsTools))
+	fsLog.Info(context.Background(), "created filesystem tools", map[string]any{"count": len(fsTools)})
 	return fsTools
 }
 
@@ -165,7 +166,7 @@ func (m *FilesystemMiddleware) evictLargeResults(ctx context.Context, req *ToolC
 				"preview": preview,
 			}
 
-			log.Printf("[FilesystemMiddleware] Evicted large result (%d tokens) to %s", estimatedTokens, path)
+			fsLog.Info(ctx, "evicted large result", map[string]any{"tokens": estimatedTokens, "path": path})
 		}
 	}
 

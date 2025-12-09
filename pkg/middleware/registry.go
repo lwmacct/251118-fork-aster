@@ -3,16 +3,18 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/astercloud/aster/pkg/backends"
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/memory"
 	"github.com/astercloud/aster/pkg/provider"
 	"github.com/astercloud/aster/pkg/sandbox"
 	"github.com/astercloud/aster/pkg/structured"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var regLog = logging.ForComponent("MiddlewareRegistry")
 
 // MiddlewareFactory 中间件工厂函数
 // config参数可用于传递Provider等依赖
@@ -48,7 +50,7 @@ func (r *Registry) Register(name string, factory MiddlewareFactory) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.factories[name] = factory
-	log.Printf("[MiddlewareRegistry] Registered: %s", name)
+	regLog.Debug(context.Background(), "registered", map[string]any{"name": name})
 }
 
 // Create 创建中间件实例
@@ -104,8 +106,7 @@ func (r *Registry) registerBuiltin() {
 				messagesToKeep = int(mk)
 			}
 		}
-		log.Printf("[SummarizationMiddleware] Creating with max_tokens=%d, messages_to_keep=%d",
-			maxTokens, messagesToKeep)
+		regLog.Debug(context.Background(), "creating SummarizationMiddleware", map[string]any{"max_tokens": maxTokens, "messages_to_keep": messagesToKeep})
 
 		// 创建 summarizer 函数(使用Provider)
 		summarizer := func(ctx context.Context, messages []types.Message) (string, error) {
@@ -367,7 +368,7 @@ func (r *Registry) registerBuiltin() {
 		}), nil
 	})
 
-	log.Printf("[MiddlewareRegistry] Built-in middlewares registered: %v", r.List())
+	regLog.Info(context.Background(), "built-in middlewares registered", map[string]any{"middlewares": r.List()})
 }
 
 // DefaultRegistry 全局默认注册表

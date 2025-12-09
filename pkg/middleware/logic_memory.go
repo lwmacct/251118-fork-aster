@@ -3,15 +3,17 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/memory/logic"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var lmLog = logging.ForComponent("LogicMemoryMiddleware")
 
 // LogicMemoryMiddleware Logic Memory 中间件
 // 功能：
@@ -139,8 +141,7 @@ func NewLogicMemoryMiddleware(config *LogicMemoryMiddlewareConfig) (*LogicMemory
 	// 创建 Logic Memory 工具
 	m.logicMemoryTools = m.createLogicMemoryTools()
 
-	log.Printf("[LogicMemoryMiddleware] Initialized (capture=%v, injection=%v, max_memories=%d, min_confidence=%.2f)",
-		config.EnableCapture, config.EnableInjection, config.MaxMemories, config.MinConfidence)
+	lmLog.Info(context.Background(), "initialized", map[string]any{"capture": config.EnableCapture, "injection": config.EnableInjection, "max_memories": config.MaxMemories, "min_confidence": config.MinConfidence})
 
 	return m, nil
 }
@@ -156,7 +157,7 @@ func (m *LogicMemoryMiddleware) OnAgentStart(ctx context.Context, agentID string
 	if m.config.AsyncCapture && m.config.EnableCapture && m.eventBuffer != nil {
 		m.wg.Add(1)
 		go m.processEventsAsync()
-		log.Printf("[LogicMemoryMiddleware] Started async event processor for agent %s", agentID)
+		lmLog.Info(context.Background(), "started async event processor", map[string]any{"agent_id": agentID})
 	}
 	return nil
 }
@@ -167,7 +168,7 @@ func (m *LogicMemoryMiddleware) OnAgentStop(ctx context.Context, agentID string)
 	if m.config.AsyncCapture && m.config.EnableCapture {
 		close(m.stopCh)
 		m.wg.Wait()
-		log.Printf("[LogicMemoryMiddleware] Stopped async event processor for agent %s", agentID)
+		lmLog.Info(context.Background(), "stopped async event processor", map[string]any{"agent_id": agentID})
 	}
 	return nil
 }
@@ -193,7 +194,7 @@ func (m *LogicMemoryMiddleware) WrapModelCall(ctx context.Context, req *ModelReq
 		logic.WithOrderBy(logic.OrderByConfidence),
 	)
 	if err != nil {
-		log.Printf("[LogicMemoryMiddleware] Failed to retrieve memories: %v", err)
+		lmLog.Error(ctx, "failed to retrieve memories", map[string]any{"error": err.Error()})
 		// 继续执行，不因为 Memory 检索失败而中断
 		return handler(ctx, req)
 	}
@@ -238,8 +239,7 @@ func (m *LogicMemoryMiddleware) WrapModelCall(ctx context.Context, req *ModelReq
 		}
 	}
 
-	log.Printf("[LogicMemoryMiddleware] Injected %d memories for namespace %s (%d chars total)",
-		len(memories), namespace, len(req.SystemPrompt))
+	lmLog.Debug(ctx, "injected memories", map[string]any{"count": len(memories), "namespace": namespace, "chars": len(req.SystemPrompt)})
 
 	// 调用处理器
 	resp, err := handler(ctx, req)
@@ -355,12 +355,12 @@ func (m *LogicMemoryMiddleware) captureEvent(event *logic.Event) {
 			// 成功放入缓冲区
 		default:
 			// 缓冲区满，丢弃事件（记录警告）
-			log.Printf("[LogicMemoryMiddleware] Event buffer full, dropping event: %s", event.Type)
+			lmLog.Warn(context.Background(), "event buffer full, dropping event", map[string]any{"type": event.Type})
 		}
 	} else {
 		// 同步捕获：直接处理
 		if err := m.manager.ProcessEvent(context.Background(), *event); err != nil {
-			log.Printf("[LogicMemoryMiddleware] Failed to process event: %v", err)
+			lmLog.Error(context.Background(), "failed to process event", map[string]any{"error": err.Error()})
 		}
 	}
 }
@@ -377,7 +377,7 @@ func (m *LogicMemoryMiddleware) processEventsAsync() {
 				select {
 				case event := <-m.eventBuffer:
 					if err := m.manager.ProcessEvent(context.Background(), *event); err != nil {
-						log.Printf("[LogicMemoryMiddleware] Failed to process event: %v", err)
+						lmLog.Error(context.Background(), "failed to process event", map[string]any{"error": err.Error()})
 					}
 				default:
 					return
@@ -385,7 +385,7 @@ func (m *LogicMemoryMiddleware) processEventsAsync() {
 			}
 		case event := <-m.eventBuffer:
 			if err := m.manager.ProcessEvent(context.Background(), *event); err != nil {
-				log.Printf("[LogicMemoryMiddleware] Failed to process event: %v", err)
+				lmLog.Error(context.Background(), "failed to process event", map[string]any{"error": err.Error()})
 			}
 		}
 	}

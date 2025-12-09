@@ -3,13 +3,15 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/provider"
 	"github.com/astercloud/aster/pkg/reasoning"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var reasonLog = logging.ForComponent("ReasoningMiddleware")
 
 // ReasoningMiddleware 推理中间件
 type ReasoningMiddleware struct {
@@ -69,7 +71,7 @@ func (rm *ReasoningMiddleware) WrapModelCall(ctx context.Context, req *ModelRequ
 	needsReasoning := rm.shouldEnableReasoning(req.Messages)
 
 	if needsReasoning {
-		log.Printf("[ReasoningMiddleware] Reasoning mode enabled for this call")
+		reasonLog.Debug(ctx, "reasoning mode enabled", nil)
 		// 注入推理提示到系统提示词
 		if req.SystemPrompt != "" {
 			req.SystemPrompt += "\n\n## Reasoning Mode\n"
@@ -85,7 +87,7 @@ func (rm *ReasoningMiddleware) WrapModelCall(ctx context.Context, req *ModelRequ
 	if err == nil && needsReasoning && response != nil {
 		// 检查响应中是否包含推理内容
 		if rm.containsReasoningMarkersInResponse(response) {
-			log.Printf("[ReasoningMiddleware] Detected reasoning content in response")
+			reasonLog.Debug(ctx, "detected reasoning content in response", nil)
 			if response.Metadata == nil {
 				response.Metadata = make(map[string]any)
 			}

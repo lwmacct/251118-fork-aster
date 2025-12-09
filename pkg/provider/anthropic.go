@@ -7,13 +7,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/types"
 	"github.com/astercloud/aster/pkg/util"
 )
+
+var anthropicLog = logging.ForComponent("AnthropicProvider")
 
 const (
 	defaultAnthropicBaseURL = "https://api.anthropic.com"
@@ -80,7 +82,7 @@ func (ap *AnthropicProvider) Complete(ctx context.Context, messages []types.Mess
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log.Printf("[AnthropicProvider] API error response: %s", string(body))
+		anthropicLog.Error(ctx, "API error response", map[string]any{"status": resp.StatusCode, "body": string(body)})
 		return nil, fmt.Errorf("anthropic api error: %d - %s", resp.StatusCode, string(body))
 	}
 
@@ -90,7 +92,7 @@ func (ap *AnthropicProvider) Complete(ctx context.Context, messages []types.Mess
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	log.Printf("[AnthropicProvider] Complete API response keys: %v", getKeys(apiResp))
+	anthropicLog.Debug(ctx, "complete API response", map[string]any{"keys": getKeys(apiResp)})
 
 	// 解析消息内容
 	message, err := ap.parseCompleteResponse(apiResp)
@@ -126,17 +128,17 @@ func (ap *AnthropicProvider) Stream(ctx context.Context, messages []types.Messag
 
 	// 记录请求内容（用于调试）
 	if tools, ok := reqBody["tools"].([]map[string]any); ok && len(tools) > 0 {
-		log.Printf("[AnthropicProvider] Request body includes %d tools", len(tools))
+		anthropicLog.Debug(ctx, "request body includes tools", map[string]any{"count": len(tools)})
 		for _, tool := range tools {
 			if name, ok := tool["name"].(string); ok {
 				if schema, ok := tool["input_schema"].(map[string]any); ok {
-					log.Printf("[AnthropicProvider] Tool %s schema: %+v", name, schema)
+					anthropicLog.Debug(ctx, "tool schema", map[string]any{"name": name, "schema": schema})
 				}
 			}
 		}
 		// 记录完整的工具定义（用于调试）
 		toolsJSON, _ := util.MarshalDeterministicIndent(reqBody["tools"], "", "  ")
-		log.Printf("[AnthropicProvider] Full tools definition:\n%s", string(toolsJSON))
+		anthropicLog.Debug(ctx, "full tools definition", map[string]any{"tools": string(toolsJSON)})
 	}
 
 	// 创建HTTP请求
@@ -199,7 +201,7 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 			req["system"] = opts.System
 			// 记录系统提示词长度和关键内容（用于调试）
 			if len(opts.System) > 500 {
-				log.Printf("[AnthropicProvider] System prompt length: %d, preview: %s...", len(opts.System), opts.System[:200])
+				anthropicLog.Debug(nil, "system prompt", map[string]any{"length": len(opts.System), "preview": opts.System[:200]})
 				// 检查是否包含工具手册
 				if strings.Contains(opts.System, "### Tools Manual") {
 					// 提取工具手册部分
@@ -209,13 +211,13 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 						if len(manualPreview) > 300 {
 							manualPreview = manualPreview[:300] + "..."
 						}
-						log.Printf("[AnthropicProvider] Tools Manual found, preview: %s", manualPreview)
+						anthropicLog.Debug(nil, "tools manual found", map[string]any{"preview": manualPreview})
 					}
 				} else {
-					log.Printf("[AnthropicProvider] WARNING: Tools Manual NOT found in system prompt!")
+					anthropicLog.Warn(nil, "tools manual NOT found in system prompt", nil)
 				}
 			} else {
-				log.Printf("[AnthropicProvider] System prompt: %s", opts.System)
+				anthropicLog.Debug(nil, "system prompt", map[string]any{"content": opts.System})
 			}
 		} else if ap.systemPrompt != "" {
 			// 如果 opts 没有 system，使用存储的 systemPrompt
@@ -258,7 +260,7 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 			for i, t := range tools {
 				toolNames[i] = t["name"].(string)
 			}
-			log.Printf("[AnthropicProvider] Sending %d tools to API: %v", len(tools), toolNames)
+			anthropicLog.Debug(nil, "sending tools to API", map[string]any{"count": len(tools), "names": toolNames})
 
 			// 添加 tool_choice 支持（如果指定）
 			if opts.ToolChoice != nil {
@@ -272,17 +274,17 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 					toolChoice["disable_parallel_tool_use"] = true
 				}
 				req["tool_choice"] = toolChoice
-				log.Printf("[AnthropicProvider] Using tool_choice: %v", toolChoice)
+				anthropicLog.Debug(nil, "using tool_choice", map[string]any{"tool_choice": toolChoice})
 			}
 			// 记录每个工具的详细信息
 			for _, tool := range tools {
 				if name, ok := tool["name"].(string); ok {
 					if schema, ok := tool["input_schema"].(map[string]any); ok {
-						log.Printf("[AnthropicProvider] Tool %s schema: %v", name, schema)
+						anthropicLog.Debug(nil, "tool schema", map[string]any{"name": name, "schema": schema})
 					}
 					// 记录工具示例数量
 					if examples, ok := tool["input_examples"].([]map[string]any); ok {
-						log.Printf("[AnthropicProvider] Tool %s has %d examples", name, len(examples))
+						anthropicLog.Debug(nil, "tool examples", map[string]any{"name": name, "example_count": len(examples)})
 					}
 				}
 			}
@@ -416,17 +418,17 @@ func (ap *AnthropicProvider) parseStreamEvent(event map[string]any) *StreamChunk
 			chunk.Delta = contentBlock
 			// 添加详细的调试日志
 			if blockType, ok := contentBlock["type"].(string); ok {
-				log.Printf("[AnthropicProvider] content_block_start: type=%s, index=%d", blockType, chunk.Index)
+				anthropicLog.Debug(nil, "content_block_start", map[string]any{"type": blockType, "index": chunk.Index})
 				switch blockType {
 				case "tool_use":
-					log.Printf("[AnthropicProvider] Received tool_use block: id=%v, name=%v", contentBlock["id"], contentBlock["name"])
+					anthropicLog.Debug(nil, "received tool_use block", map[string]any{"id": contentBlock["id"], "name": contentBlock["name"]})
 				case "text":
-					log.Printf("[AnthropicProvider] Received text block instead of tool_use")
+					anthropicLog.Debug(nil, "received text block instead of tool_use", nil)
 				default:
-					log.Printf("[AnthropicProvider] Unknown block type: %s", blockType)
+					anthropicLog.Debug(nil, "unknown block type", map[string]any{"type": blockType})
 				}
 			} else {
-				log.Printf("[AnthropicProvider] content_block_start without type field: %v", contentBlock)
+				anthropicLog.Debug(nil, "content_block_start without type field", map[string]any{"block": contentBlock})
 			}
 		}
 

@@ -6,13 +6,15 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/sandbox"
 )
+
+var skillMgrLog = logging.ForComponent("SkillManager")
 
 // Info Skill 元信息（用于列表展示）
 type Info struct {
@@ -106,7 +108,7 @@ func (m *Manager) InstallFromZip(ctx context.Context, skillID string, r io.Reade
 
 	// 先删除旧目录（如果存在）
 	if err := os.RemoveAll(targetRoot); err != nil {
-		log.Printf("[SkillManager] Warning: failed to remove old skill directory %s: %v", targetRoot, err)
+		skillMgrLog.Warn(ctx, "failed to remove old skill directory", map[string]any{"path": targetRoot, "error": err})
 	}
 
 	// 解压所有文件

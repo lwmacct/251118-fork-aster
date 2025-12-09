@@ -3,11 +3,13 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var sumLog = logging.ForComponent("SummarizationMiddleware")
 
 // SummarizationMiddleware 自动总结对话历史以管理上下文窗口
 // 功能:
@@ -77,8 +79,7 @@ func NewSummarizationMiddleware(config *SummarizationMiddlewareConfig) (*Summari
 		summarizationCount:     0,
 	}
 
-	log.Printf("[SummarizationMiddleware] Initialized (max_tokens: %d, keep_messages: %d)",
-		config.MaxTokensBeforeSummary, config.MessagesToKeep)
+	sumLog.Info(context.Background(), "initialized", map[string]any{"max_tokens": config.MaxTokensBeforeSummary, "keep_messages": config.MessagesToKeep})
 	return m, nil
 }
 
@@ -92,15 +93,14 @@ func (m *SummarizationMiddleware) WrapModelCall(ctx context.Context, req *ModelR
 	// 计算当前消息的 token 数
 	totalTokens := m.tokenCounter(messages)
 
-	log.Printf("[SummarizationMiddleware] Current tokens: %d (threshold: %d)",
-		totalTokens, m.maxTokensBeforeSummary)
+	sumLog.Debug(ctx, "current tokens", map[string]any{"tokens": totalTokens, "threshold": m.maxTokensBeforeSummary})
 
 	// 如果未超过阈值,直接返回
 	if totalTokens <= m.maxTokensBeforeSummary {
 		return handler(ctx, req)
 	}
 
-	log.Printf("[SummarizationMiddleware] Token threshold exceeded, triggering summarization...")
+	sumLog.Info(ctx, "token threshold exceeded, triggering summarization", nil)
 
 	// 分离 system messages 和其他消息
 	var systemMessages []types.Message
@@ -116,8 +116,7 @@ func (m *SummarizationMiddleware) WrapModelCall(ctx context.Context, req *ModelR
 
 	// 如果常规消息少于或等于要保留的数量,不进行总结
 	if len(regularMessages) <= m.messagesToKeep {
-		log.Printf("[SummarizationMiddleware] Not enough messages to summarize (have %d, keep %d)",
-			len(regularMessages), m.messagesToKeep)
+		sumLog.Debug(ctx, "not enough messages to summarize", map[string]any{"have": len(regularMessages), "keep": m.messagesToKeep})
 		return handler(ctx, req)
 	}
 
@@ -126,17 +125,16 @@ func (m *SummarizationMiddleware) WrapModelCall(ctx context.Context, req *ModelR
 	messagesToSummarize := regularMessages[:numToSummarize]
 	messagesToKeep := regularMessages[numToSummarize:]
 
-	log.Printf("[SummarizationMiddleware] Summarizing %d messages, keeping %d recent messages",
-		numToSummarize, m.messagesToKeep)
+	sumLog.Info(ctx, "summarizing messages", map[string]any{"to_summarize": numToSummarize, "keeping": m.messagesToKeep})
 
 	// 生成总结
 	summary, err := m.summarizer(ctx, messagesToSummarize)
 	if err != nil {
-		log.Printf("[SummarizationMiddleware] Failed to generate summary: %v, keeping original messages", err)
+		sumLog.Error(ctx, "failed to generate summary, keeping original", map[string]any{"error": err.Error()})
 		return handler(ctx, req) // 失败时保留原始消息
 	}
 
-	log.Printf("[SummarizationMiddleware] Summary generated (%d chars)", len(summary))
+	sumLog.Info(ctx, "summary generated", map[string]any{"chars": len(summary)})
 
 	// 构建新的消息列表: system messages + 总结消息 + 保留的最近消息
 	newMessages := make([]types.Message, 0, len(systemMessages)+1+len(messagesToKeep))
@@ -155,8 +153,7 @@ func (m *SummarizationMiddleware) WrapModelCall(ctx context.Context, req *ModelR
 	req.Messages = newMessages
 	m.summarizationCount++
 
-	log.Printf("[SummarizationMiddleware] Summarization complete. Messages: %d -> %d (total summarizations: %d)",
-		len(messages), len(newMessages), m.summarizationCount)
+	sumLog.Info(ctx, "summarization complete", map[string]any{"before": len(messages), "after": len(newMessages), "total_summarizations": m.summarizationCount})
 
 	return handler(ctx, req)
 }
@@ -601,7 +598,7 @@ func (m *SummarizationMiddleware) GetSummarizationCount() int {
 // ResetSummarizationCount 重置计数器
 func (m *SummarizationMiddleware) ResetSummarizationCount() {
 	m.summarizationCount = 0
-	log.Printf("[SummarizationMiddleware] Summarization count reset")
+	sumLog.Debug(context.Background(), "summarization count reset", nil)
 }
 
 // GetConfig 获取当前配置
@@ -622,6 +619,5 @@ func (m *SummarizationMiddleware) UpdateConfig(maxTokens, messagesToKeep int) {
 	if messagesToKeep > 0 {
 		m.messagesToKeep = messagesToKeep
 	}
-	log.Printf("[SummarizationMiddleware] Config updated (max_tokens: %d, keep_messages: %d)",
-		m.maxTokensBeforeSummary, m.messagesToKeep)
+	sumLog.Info(context.Background(), "config updated", map[string]any{"max_tokens": m.maxTokensBeforeSummary, "keep_messages": m.messagesToKeep})
 }

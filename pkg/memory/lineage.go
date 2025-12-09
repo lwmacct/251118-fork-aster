@@ -3,9 +3,12 @@ package memory
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
+
+	"github.com/astercloud/aster/pkg/logging"
 )
+
+var lineageLog = logging.ForComponent("LineageGraph")
 
 // LineageGraph 记忆谱系图。
 // 追踪记忆之间的派生关系，支持级联删除和影响分析。
@@ -266,7 +269,7 @@ func (lm *LineageManager) RegenerateFromSource(ctx context.Context, revokedSourc
 			// 有其他来源，需要重新生成记忆
 			// TODO: 调用记忆生成服务从剩余来源重建
 			// 这部分逻辑需要与 Memory Consolidation 集成
-			log.Printf("[LineageManager] Memory %s has other sources, regeneration needed", memID)
+			lineageLog.Info(ctx, "memory has other sources, regeneration needed", map[string]any{"memory_id": memID})
 		}
 	}
 

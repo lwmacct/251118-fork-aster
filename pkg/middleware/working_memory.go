@@ -3,13 +3,15 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/astercloud/aster/pkg/backends"
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/memory"
 	"github.com/astercloud/aster/pkg/tools"
 )
+
+var wmLog = logging.ForComponent("WorkingMemoryMiddleware")
 
 // WorkingMemoryMiddleware Working Memory 中间件
 // 功能：
@@ -74,7 +76,7 @@ func NewWorkingMemoryMiddleware(config *WorkingMemoryMiddlewareConfig) (*Working
 	// 创建 Working Memory 工具
 	m.workingMemoryTools = m.createWorkingMemoryTools()
 
-	log.Printf("[WorkingMemoryMiddleware] Initialized (scope: %s, base_path: %s)", config.Scope, config.BasePath)
+	wmLog.Info(context.Background(), "initialized", map[string]any{"scope": config.Scope, "base_path": config.BasePath})
 	return m, nil
 }
 
@@ -113,7 +115,7 @@ func (m *WorkingMemoryMiddleware) WrapModelCall(ctx context.Context, req *ModelR
 	// 加载 Working Memory
 	workingMemoryContent, err := m.manager.Get(ctx, threadID, resourceID)
 	if err != nil {
-		log.Printf("[WorkingMemoryMiddleware] Failed to load working memory: %v", err)
+		wmLog.Error(ctx, "failed to load working memory", map[string]any{"error": err.Error()})
 		workingMemoryContent = ""
 	}
 
@@ -131,11 +133,9 @@ func (m *WorkingMemoryMiddleware) WrapModelCall(ctx context.Context, req *ModelR
 			req.SystemPrompt = memorySection
 		}
 
-		log.Printf("[WorkingMemoryMiddleware] Injected working memory into system prompt (%d chars, thread=%s, resource=%s)",
-			len(workingMemoryContent), threadID, resourceID)
+		wmLog.Debug(ctx, "injected working memory", map[string]any{"chars": len(workingMemoryContent), "thread": threadID, "resource": resourceID})
 	} else {
-		log.Printf("[WorkingMemoryMiddleware] No working memory found (thread=%s, resource=%s)",
-			threadID, resourceID)
+		wmLog.Debug(ctx, "no working memory found", map[string]any{"thread": threadID, "resource": resourceID})
 	}
 
 	// 追加 Working Memory 使用文档

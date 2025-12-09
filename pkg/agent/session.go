@@ -1,12 +1,14 @@
 package agent
 
 import (
-"context"
-"log"
-"time"
+	"context"
+	"time"
 
-"github.com/astercloud/aster/pkg/types"
+	"github.com/astercloud/aster/pkg/logging"
+	"github.com/astercloud/aster/pkg/types"
 )
+
+var sessionLog = logging.ForComponent("AgentSession")
 
 // GetSessionState 获取会话状态信息
 // 返回当前会话的状态，用于判断是否需要恢复
@@ -58,7 +60,7 @@ func (a *Agent) ProcessRecovery(ctx context.Context, message string, workDir str
 		return message, false
 	}
 
-	log.Printf("[Agent] Session recovery triggered for agent %s", a.id)
+	sessionLog.Info(ctx, "session recovery triggered", map[string]any{"agent_id": a.id})
 
 	// 返回增强后的消息
 	if result.EnhancedMessage != "" {

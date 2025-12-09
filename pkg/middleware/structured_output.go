@@ -3,10 +3,12 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/structured"
 )
+
+var soLog = logging.ForComponent("StructuredOutputMiddleware")
 
 // StructuredOutputMiddleware 在模型响应后尝试解析结构化输出，并将结果写入 Metadata。
 // - 若解析成功: Metadata["structured_data"] = 解析后的对象，Metadata["structured_raw_json"] = 原始 JSON 文本
@@ -65,7 +67,7 @@ func (m *StructuredOutputMiddleware) WrapModelCall(ctx context.Context, req *Mod
 	result, parseErr := m.parser.Parse(ctx, content, m.spec)
 	if parseErr != nil {
 		if m.allowError {
-			log.Printf("[StructuredOutputMiddleware] parse failed: %v", parseErr)
+			soLog.Warn(ctx, "parse failed", map[string]any{"error": parseErr.Error()})
 			if resp.Metadata == nil {
 				resp.Metadata = make(map[string]any)
 			}

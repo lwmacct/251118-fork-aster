@@ -1,6 +1,8 @@
 package events
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"sync"
 	"time"
 
@@ -10,9 +12,30 @@ import (
 // EventHandler 事件处理器函数
 type EventHandler func(event any)
 
+// EventBusConfig 事件总线配置
+type EventBusConfig struct {
+	MaxTimelineSize int           // 最大事件数 (默认 10000)
+	MaxTimelineAge  time.Duration // 最大事件年龄 (默认 1小时)
+	CleanupInterval time.Duration // 清理间隔 (默认 5分钟)
+	EnableArchive   bool          // 是否启用归档 (预留)
+}
+
+// DefaultEventBusConfig 默认配置
+func DefaultEventBusConfig() *EventBusConfig {
+	return &EventBusConfig{
+		MaxTimelineSize: 10000,
+		MaxTimelineAge:  1 * time.Hour,
+		CleanupInterval: 5 * time.Minute,
+		EnableArchive:   false,
+	}
+}
+
 // EventBus 三通道事件总线
 type EventBus struct {
 	mu sync.RWMutex
+
+	// 配置
+	config *EventBusConfig
 
 	// 事件序列
 	cursor    int64
@@ -27,11 +50,25 @@ type EventBus struct {
 	// 回调处理器
 	controlHandlers map[string][]EventHandler
 	monitorHandlers map[string][]EventHandler
+
+	// 清理 Worker
+	cleanupTicker *time.Ticker
+	cleanupDone   chan struct{}
 }
 
-// NewEventBus 创建新的事件总线
+// NewEventBus 创建新的事件总线（使用默认配置）
 func NewEventBus() *EventBus {
-	return &EventBus{
+	return NewEventBusWithConfig(DefaultEventBusConfig())
+}
+
+// NewEventBusWithConfig 创建带配置的事件总线
+func NewEventBusWithConfig(config *EventBusConfig) *EventBus {
+	if config == nil {
+		config = DefaultEventBusConfig()
+	}
+
+	eb := &EventBus{
+		config:          config,
 		timeline:        make([]types.AgentEventEnvelope, 0, 1000),
 		bookmarks:       make(map[int64]types.Bookmark),
 		progressSubs:    make(map[string]chan types.AgentEventEnvelope),
@@ -39,7 +76,107 @@ func NewEventBus() *EventBus {
 		monitorSubs:     make(map[string]chan types.AgentEventEnvelope),
 		controlHandlers: make(map[string][]EventHandler),
 		monitorHandlers: make(map[string][]EventHandler),
+		cleanupDone:     make(chan struct{}),
 	}
+
+	// 启动清理 worker
+	eb.startCleanupWorker()
+
+	return eb
+}
+
+// startCleanupWorker 启动后台清理协程
+func (eb *EventBus) startCleanupWorker() {
+	if eb.config == nil || eb.config.CleanupInterval <= 0 {
+		return
+	}
+
+	eb.cleanupTicker = time.NewTicker(eb.config.CleanupInterval)
+
+	go func() {
+		for {
+			select {
+			case <-eb.cleanupTicker.C:
+				eb.cleanup()
+			case <-eb.cleanupDone:
+				eb.cleanupTicker.Stop()
+				return
+			}
+		}
+	}()
+}
+
+// cleanup 清理过期和超量的事件
+func (eb *EventBus) cleanup() {
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
+
+	if len(eb.timeline) == 0 {
+		return
+	}
+
+	now := time.Now().Unix()
+	cutoffIdx := 0
+
+	// 按时间清理：移除超过 MaxTimelineAge 的事件
+	if eb.config.MaxTimelineAge > 0 {
+		maxAge := int64(eb.config.MaxTimelineAge.Seconds())
+		for i, env := range eb.timeline {
+			if now-env.Bookmark.Timestamp <= maxAge {
+				cutoffIdx = i
+				break
+			}
+			// 删除对应的 bookmark
+			delete(eb.bookmarks, env.Cursor)
+		}
+	}
+
+	// 按数量清理：保留最新的 MaxTimelineSize 个事件
+	if eb.config.MaxTimelineSize > 0 && len(eb.timeline)-cutoffIdx > eb.config.MaxTimelineSize {
+		newCutoff := len(eb.timeline) - eb.config.MaxTimelineSize
+		if newCutoff > cutoffIdx {
+			// 删除多余事件的 bookmarks
+			for i := cutoffIdx; i < newCutoff; i++ {
+				delete(eb.bookmarks, eb.timeline[i].Cursor)
+			}
+			cutoffIdx = newCutoff
+		}
+	}
+
+	// 执行切片截断
+	if cutoffIdx > 0 {
+		eb.timeline = eb.timeline[cutoffIdx:]
+	}
+}
+
+// Close 关闭事件总线，释放资源
+func (eb *EventBus) Close() {
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
+
+	// 停止清理 worker
+	if eb.cleanupDone != nil {
+		close(eb.cleanupDone)
+		eb.cleanupDone = nil
+	}
+
+	// 关闭所有订阅 channel
+	for id, ch := range eb.progressSubs {
+		close(ch)
+		delete(eb.progressSubs, id)
+	}
+	for id, ch := range eb.controlSubs {
+		close(ch)
+		delete(eb.controlSubs, id)
+	}
+	for id, ch := range eb.monitorSubs {
+		close(ch)
+		delete(eb.monitorSubs, id)
+	}
+
+	// 清空数据
+	eb.timeline = nil
+	eb.bookmarks = nil
 }
 
 // emit 发送事件到总线(内部方法)
@@ -359,13 +496,12 @@ func generateSubID() string {
 	return time.Now().Format("20060102150405") + "-" + randomString(8)
 }
 
-// randomString 生成随机字符串
+// randomString 生成随机字符串（使用 crypto/rand）
 func randomString(n int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letters[time.Now().UnixNano()%int64(len(letters))]
-		time.Sleep(time.Nanosecond)
+	b := make([]byte, (n+1)/2)
+	if _, err := rand.Read(b); err != nil {
+		// fallback: 使用时间戳
+		return time.Now().Format("150405.000000000")[:n]
 	}
-	return string(b)
+	return hex.EncodeToString(b)[:n]
 }

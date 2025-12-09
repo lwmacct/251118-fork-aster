@@ -6,12 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/astercloud/aster/pkg/actor"
 	"github.com/astercloud/aster/pkg/agent"
+	"github.com/astercloud/aster/pkg/logging"
 )
+
+var a2aLog = logging.ForComponent("A2AServer")
 
 // Server A2A 服务器
 // 将 Actor 系统暴露为 A2A 协议端点
@@ -124,7 +126,7 @@ func (s *Server) handleMessageSend(ctx context.Context, agentID string, req *JSO
 			Kind:      "message",
 		})
 		if err := s.taskStore.Save(agentID, task); err != nil {
-			log.Printf("[A2A] save task error: %v", err)
+			a2aLog.Warn(nil, "save task error", map[string]any{"error": err})
 		}
 		return NewErrorResponse(req.ID, ErrorCodeInternalError, fmt.Sprintf("agent not found: %s", agentID), nil)
 	}
@@ -148,7 +150,7 @@ func (s *Server) handleMessageSend(ctx context.Context, agentID string, req *JSO
 			Kind:      "message",
 		})
 		if err := s.taskStore.Save(agentID, task); err != nil {
-			log.Printf("[A2A] save task error: %v", err)
+			a2aLog.Warn(nil, "save task error", map[string]any{"error": err})
 		}
 		return NewErrorResponse(req.ID, ErrorCodeInternalError, err.Error(), nil)
 	}
@@ -163,7 +165,7 @@ func (s *Server) handleMessageSend(ctx context.Context, agentID string, req *JSO
 			Kind:      "message",
 		})
 		if err := s.taskStore.Save(agentID, task); err != nil {
-			log.Printf("[A2A] save task error: %v", err)
+			a2aLog.Warn(nil, "save task error", map[string]any{"error": err})
 		}
 		return NewErrorResponse(req.ID, ErrorCodeInternalError, "invalid response type", nil)
 	}
@@ -180,7 +182,7 @@ func (s *Server) handleMessageSend(ctx context.Context, agentID string, req *JSO
 	task.AddMessage(responseMsg)
 	task.UpdateStatus(TaskStateCompleted, &responseMsg)
 	if err := s.taskStore.Save(agentID, task); err != nil {
-		log.Printf("[A2A] save task error: %v", err)
+		a2aLog.Warn(nil, "save task error", map[string]any{"error": err})
 	}
 
 	return NewSuccessResponse(req.ID, &MessageSendResult{TaskID: taskID})
@@ -240,7 +242,7 @@ func (s *Server) handleTasksCancel(_ context.Context, agentID string, req *JSONR
 	})
 
 	if err := s.taskStore.Save(agentID, task); err != nil {
-		log.Printf("[A2A] save task error: %v", err)
+		a2aLog.Warn(nil, "save task error", map[string]any{"error": err})
 	}
 
 	return NewSuccessResponse(req.ID, &TasksCancelResult{
@@ -312,7 +314,7 @@ func extractText(parts []Part) string {
 func generateID() string {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		log.Printf("[A2A] generate ID error: %v", err)
+		a2aLog.Warn(nil, "generate ID error", map[string]any{"error": err})
 		return fmt.Sprintf("%d", time.Now().UnixNano())
 	}
 	return hex.EncodeToString(b)

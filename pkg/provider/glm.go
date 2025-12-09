@@ -7,13 +7,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/types"
 	"github.com/astercloud/aster/pkg/util"
 )
+
+var glmLog = logging.ForComponent("GLMProvider")
 
 const (
 	defaultGLMBaseURL = "https://open.bigmodel.cn/api/paas/v4"
@@ -86,7 +88,7 @@ func (gp *GLMProvider) Complete(ctx context.Context, messages []types.Message, o
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log.Printf("[GLMProvider] API error response: %s", string(body))
+		glmLog.Error(ctx, "API error response", map[string]any{"body": string(body)})
 		return nil, fmt.Errorf("glm api error: %d - %s", resp.StatusCode, string(body))
 	}
 
@@ -96,7 +98,7 @@ func (gp *GLMProvider) Complete(ctx context.Context, messages []types.Message, o
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	log.Printf("[GLMProvider] Complete API response: %v", apiResp)
+	glmLog.Debug(ctx, "complete API response", map[string]any{"response": apiResp})
 
 	// 解析消息内容(使用与Deepseek相同的OpenAI兼容格式)
 	message, err := gp.parseCompleteResponse(apiResp)
@@ -132,9 +134,9 @@ func (gp *GLMProvider) Stream(ctx context.Context, messages []types.Message, opt
 
 	// 记录请求内容（用于调试）
 	if tools, ok := reqBody["tools"].([]map[string]any); ok && len(tools) > 0 {
-		log.Printf("[GLMProvider] Request body includes %d tools", len(tools))
+		glmLog.Debug(ctx, "request body includes tools", map[string]any{"count": len(tools)})
 		toolsJSON, _ := util.MarshalDeterministicIndent(reqBody["tools"], "", "  ")
-		log.Printf("[GLMProvider] Full tools definition:\n%s", string(toolsJSON))
+		glmLog.Debug(ctx, "full tools definition", map[string]any{"tools": string(toolsJSON)})
 	}
 
 	// 创建HTTP请求
@@ -166,11 +168,11 @@ func (gp *GLMProvider) Stream(ctx context.Context, messages []types.Message, opt
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
-		log.Printf("[GLMProvider] API error response: %s", string(body))
+		glmLog.Error(ctx, "API error response", map[string]any{"body": string(body)})
 		return nil, fmt.Errorf("glm api error: %d - %s", resp.StatusCode, string(body))
 	}
 
-	log.Printf("[GLMProvider] API request successful, status: %d", resp.StatusCode)
+	glmLog.Debug(ctx, "API request successful", map[string]any{"status": resp.StatusCode})
 
 	// 创建流式响应channel
 	chunkCh := make(chan StreamChunk, 10)
@@ -202,7 +204,7 @@ func (gp *GLMProvider) buildRequest(messages []types.Message, opts *StreamOption
 		if opts.System != "" {
 			// GLM API 使用 system 字段
 			req["system"] = opts.System
-			log.Printf("[GLMProvider] System prompt length: %d", len(opts.System))
+			glmLog.Debug(nil, "system prompt", map[string]any{"length": len(opts.System)})
 		} else if gp.systemPrompt != "" {
 			req["system"] = gp.systemPrompt
 		}
@@ -233,7 +235,7 @@ func (gp *GLMProvider) buildRequest(messages []types.Message, opts *StreamOption
 					}
 				}
 			}
-			log.Printf("[GLMProvider] Sending %d tools to API: %v", len(tools), toolNames)
+			glmLog.Debug(nil, "sending tools to API", map[string]any{"count": len(tools), "names": toolNames})
 		}
 	} else {
 		req["max_tokens"] = 4096
@@ -345,7 +347,7 @@ func (gp *GLMProvider) convertMessages(messages []types.Message) []map[string]an
 				"tool_call_id": tr.ToolUseID,
 			}
 			result = append(result, toolMsg)
-			log.Printf("[GLMProvider] Added tool result message: tool_call_id=%s, content_length=%d", tr.ToolUseID, len(tr.Content))
+			glmLog.Debug(nil, "added tool result message", map[string]any{"tool_call_id": tr.ToolUseID, "content_length": len(tr.Content)})
 		}
 	}
 
@@ -366,7 +368,7 @@ func (gp *GLMProvider) processStream(body io.ReadCloser, chunkCh chan<- StreamCh
 		if !strings.HasPrefix(line, "data: ") {
 			// 记录非数据行（用于调试）
 			if strings.TrimSpace(line) != "" && !strings.HasPrefix(line, ":") {
-				log.Printf("[GLMProvider] Non-data line: %s", line)
+				glmLog.Debug(nil, "non-data line", map[string]any{"line": line})
 			}
 			continue
 		}
@@ -375,34 +377,34 @@ func (gp *GLMProvider) processStream(body io.ReadCloser, chunkCh chan<- StreamCh
 
 		// 忽略特殊标记
 		if data == "[DONE]" {
-			log.Printf("[GLMProvider] Received [DONE] marker")
+			glmLog.Debug(nil, "received [DONE] marker", nil)
 			break
 		}
 
 		// 解析JSON
 		var event map[string]any
 		if err := json.Unmarshal([]byte(data), &event); err != nil {
-			log.Printf("[GLMProvider] Failed to parse JSON: %v, data: %s", err, data)
+			glmLog.Debug(nil, "failed to parse JSON", map[string]any{"error": err, "data": data})
 			continue
 		}
 
 		eventCount++
-		log.Printf("[GLMProvider] Event #%d: %v", eventCount, event)
+		glmLog.Debug(nil, "stream event", map[string]any{"event_num": eventCount, "event": event})
 
 		chunk := gp.parseStreamEvent(event)
 		if chunk != nil {
-			log.Printf("[GLMProvider] Parsed chunk: type=%s, index=%d", chunk.Type, chunk.Index)
+			glmLog.Debug(nil, "parsed chunk", map[string]any{"type": chunk.Type, "index": chunk.Index})
 			chunkCh <- *chunk
 		} else {
-			log.Printf("[GLMProvider] No chunk parsed from event")
+			glmLog.Debug(nil, "no chunk parsed from event", nil)
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("[GLMProvider] Scanner error: %v", err)
+		glmLog.Error(nil, "scanner error", map[string]any{"error": err})
 	}
 
-	log.Printf("[GLMProvider] Processed %d events total", eventCount)
+	glmLog.Debug(nil, "processed events", map[string]any{"total": eventCount})
 }
 
 // parseStreamEvent 解析流式事件
@@ -443,7 +445,7 @@ func (gp *GLMProvider) parseStreamEvent(event map[string]any) *StreamChunk {
 						}
 
 						chunk.Delta = toolInfo
-						log.Printf("[GLMProvider] ✅ Received tool_use block: index=%d, id=%v, name=%v", index, toolInfo["id"], toolInfo["name"])
+						glmLog.Debug(nil, "received tool_use block", map[string]any{"index": index, "id": toolInfo["id"], "name": toolInfo["name"]})
 						return chunk
 					}
 				}
@@ -569,7 +571,7 @@ func (gp *GLMProvider) parseCompleteResponse(apiResp map[string]any) (types.Mess
 			// 解析参数
 			var input map[string]any
 			if err := json.Unmarshal([]byte(argsJSON), &input); err != nil {
-				log.Printf("[GLMProvider] Failed to parse tool arguments: %v", err)
+				glmLog.Warn(nil, "failed to parse tool arguments", map[string]any{"error": err})
 				input = make(map[string]any)
 			}
 

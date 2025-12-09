@@ -4,13 +4,15 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/tools"
 )
+
+var mcpLog = logging.ForComponent("MCPServer")
 
 // DocsToolConfig 配置 docs_get/docs_search 工具
 type DocsToolConfig struct {
@@ -234,7 +236,7 @@ func (t *DocsSearchTool) Execute(ctx context.Context, input map[string]any, tc *
 
 	// max_results_reached 是预期的终止条件，其他错误需要记录
 	if walkErr != nil && walkErr.Error() != "max_results_reached" {
-		log.Printf("[SearchFilesTool] Walk error: %v", walkErr)
+		mcpLog.Warn(ctx, "walk error in docs search", map[string]any{"error": walkErr})
 	}
 
 	return map[string]any{

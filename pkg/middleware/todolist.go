@@ -3,10 +3,12 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/tools"
 )
+
+var todoLog = logging.ForComponent("TodoListMiddleware")
 
 // TodoStatus 任务状态
 type TodoStatus string
@@ -65,7 +67,7 @@ func NewTodoListMiddleware(config *TodoListMiddlewareConfig) *TodoListMiddleware
 		storeSetter:    config.StoreSetter,
 	}
 
-	log.Printf("[TodoListMiddleware] Initialized")
+	todoLog.Info(context.Background(), "initialized", nil)
 	return m
 }
 
@@ -209,8 +211,7 @@ func (t *WriteTodosTool) Execute(ctx context.Context, input map[string]any, tc *
 		}
 	}
 
-	log.Printf("[WriteTodosTool] Updated task list: %d total (%d pending, %d in progress, %d completed)",
-		len(todos), pending, inProgress, completed)
+	todoLog.Info(ctx, "updated task list", map[string]any{"total": len(todos), "pending": pending, "in_progress": inProgress, "completed": completed})
 
 	return map[string]any{
 		"ok":          true,

@@ -4,15 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/middleware"
 	"github.com/astercloud/aster/pkg/provider"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var procLog = logging.ForComponent("AgentProcessor")
 
 // processMessages 处理消息队列
 func (a *Agent) processMessages(ctx context.Context) {
@@ -78,11 +80,11 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 	// 检查执行模式
 	executionMode := a.getExecutionMode()
 	if executionMode == types.ExecutionModeNonStreaming {
-		log.Printf("[runModelStep] Using NON-STREAMING mode (fast execution)")
+		procLog.Debug(ctx, "using NON-STREAMING mode (fast execution)", nil)
 		return a.runNonStreamingStep(ctx)
 	}
 
-	log.Printf("[runModelStep] Using STREAMING mode (real-time feedback)")
+	procLog.Debug(ctx, "using STREAMING mode (real-time feedback)", nil)
 	a.setBreakpoint(types.BreakpointStreamingModel)
 
 	// 准备工具Schema（包含使用示例）
@@ -114,7 +116,7 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 	for i, ts := range toolSchemas {
 		toolNames[i] = ts.Name
 	}
-	log.Printf("[runModelStep] Agent %s: Prepared %d tool schemas: %v", a.id, len(toolSchemas), toolNames)
+	procLog.Debug(ctx, "prepared tool schemas", map[string]any{"agent_id": a.id, "count": len(toolSchemas), "names": toolNames})
 
 	// 调用模型
 	// 确保系统提示词包含工具手册（如果还没有注入）
@@ -126,18 +128,18 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 	a.mu.RUnlock()
 
 	if !hasManual && toolMapSize > 0 {
-		log.Printf("[runModelStep] Agent %s: Manual not found, injecting... (toolMap size: %d)", a.id, toolMapSize)
+		procLog.Debug(ctx, "manual not found, injecting", map[string]any{"agent_id": a.id, "tool_map_size": toolMapSize})
 		a.injectToolManual()
 		a.mu.RLock()
 		currentSystemPrompt = a.template.SystemPrompt
 		hasManual = strings.Contains(currentSystemPrompt, "### Tools Manual")
 		a.mu.RUnlock()
-		log.Printf("[runModelStep] Agent %s: After injection, system prompt length: %d, contains manual: %v", a.id, len(currentSystemPrompt), hasManual)
+		procLog.Debug(ctx, "after injection", map[string]any{"agent_id": a.id, "system_prompt_length": len(currentSystemPrompt), "contains_manual": hasManual})
 	} else if toolMapSize == 0 {
-		log.Printf("[runModelStep] Agent %s: No tools in toolMap, cannot inject manual", a.id)
+		procLog.Debug(ctx, "no tools in toolMap, cannot inject manual", map[string]any{"agent_id": a.id})
 	}
 
-	log.Printf("[runModelStep] Agent %s: Final system prompt length: %d, contains manual: %v", a.id, len(currentSystemPrompt), strings.Contains(currentSystemPrompt, "### Tools Manual"))
+	procLog.Debug(ctx, "final system prompt", map[string]any{"agent_id": a.id, "length": len(currentSystemPrompt), "contains_manual": strings.Contains(currentSystemPrompt, "### Tools Manual")})
 
 	// 通过 Middleware Stack 调用模型 (Phase 6C)
 	var assistantMessage types.Message
@@ -226,15 +228,15 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 		}
 	}
 
-	log.Printf("[runModelStep] Agent %s: Found %d tool uses in response", a.id, len(toolUses))
+	procLog.Debug(ctx, "found tool uses in response", map[string]any{"agent_id": a.id, "count": len(toolUses)})
 	if len(toolUses) > 0 {
 		for _, tu := range toolUses {
-			log.Printf("[runModelStep] Agent %s: Tool use - Name: %s, ID: %s, Input: %v", a.id, tu.Name, tu.ID, tu.Input)
+			procLog.Debug(ctx, "tool use", map[string]any{"agent_id": a.id, "name": tu.Name, "id": tu.ID, "input": tu.Input})
 		}
 		a.setBreakpoint(types.BreakpointToolPending)
 		return a.executeTools(ctx, toolUses)
 	} else {
-		log.Printf("[runModelStep] Agent %s: No tool uses found, only text response", a.id)
+		procLog.Debug(ctx, "no tool uses found, only text response", map[string]any{"agent_id": a.id})
 	}
 
 	return nil
@@ -617,7 +619,7 @@ func (a *Agent) updateToolRecord(id string, state types.ToolCallState, errorMsg 
 }
 
 // handleStreamResponse 处理流式响应(Phase 6C - 提取为独立方法以支持Middleware)
-func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.StreamChunk) (types.Message, error) {
+func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider.StreamChunk) (types.Message, error) {
 	assistantContent := make([]types.ContentBlock, 0)
 	currentBlockIndex := -1
 	textBuffers := make(map[int]string)
@@ -637,7 +639,7 @@ func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.S
 						a.eventBus.EmitProgress(&types.ProgressThinkChunkStartEvent{
 							Step: a.stepCount,
 						})
-						log.Printf("[handleStreamResponse] Reasoning started for step %d", a.stepCount)
+						procLog.Debug(ctx, "reasoning started", map[string]any{"step": a.stepCount})
 					}
 					// 累积并发送思考内容增量
 					reasoningBuffer += content
@@ -666,7 +668,7 @@ func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.S
 					assistantContent[currentBlockIndex] = &types.TextBlock{Text: ""}
 					textBuffers[currentBlockIndex] = ""
 				case "tool_use":
-					log.Printf("[handleStreamResponse] Received tool_use block! ID: %v, Name: %v", delta["id"], delta["name"])
+					procLog.Debug(ctx, "received tool_use block", map[string]any{"id": delta["id"], "name": delta["name"]})
 					// 初始化工具调用块
 					for len(assistantContent) <= currentBlockIndex {
 						assistantContent = append(assistantContent, nil)
@@ -691,7 +693,7 @@ func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.S
 						Input: make(map[string]any),
 					}
 				default:
-					log.Printf("[handleStreamResponse] Unknown block type: %s", blockType)
+					procLog.Debug(ctx, "unknown block type", map[string]any{"type": blockType})
 				}
 			}
 
@@ -767,7 +769,7 @@ func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.S
 						if err := json.Unmarshal([]byte(jsonStr), &input); err == nil {
 							block.Input = input
 						} else {
-							log.Printf("[handleStreamResponse] Failed to parse tool input JSON: %v", err)
+							procLog.Warn(ctx, "failed to parse tool input JSON", map[string]any{"error": err})
 						}
 					}
 				}
@@ -875,21 +877,21 @@ func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.S
 
 	// 流式响应结束后，解析所有累积的工具输入
 	if len(inputJSONBuffers) > 0 {
-		log.Printf("[handleStreamResponse] Processing %d inputJSONBuffers for %d content blocks", len(inputJSONBuffers), len(assistantContent))
+		procLog.Debug(ctx, "processing inputJSONBuffers", map[string]any{"buffer_count": len(inputJSONBuffers), "content_blocks": len(assistantContent)})
 		for i, block := range assistantContent {
 			if tu, ok := block.(*types.ToolUseBlock); ok {
 				if jsonStr, exists := inputJSONBuffers[i]; exists && jsonStr != "" {
-					log.Printf("[handleStreamResponse] Parsing tool input for block %d (%s), jsonStr length: %d", i, tu.Name, len(jsonStr))
+					procLog.Debug(ctx, "parsing tool input", map[string]any{"block": i, "tool": tu.Name, "json_length": len(jsonStr)})
 					var input map[string]any
 					if err := json.Unmarshal([]byte(jsonStr), &input); err == nil {
 						tu.Input = input
-						log.Printf("[handleStreamResponse] Successfully parsed tool input for %s: %d fields", tu.Name, len(input))
+						procLog.Debug(ctx, "successfully parsed tool input", map[string]any{"tool": tu.Name, "fields": len(input)})
 					} else {
-						log.Printf("[handleStreamResponse] Failed to parse tool input JSON for %s: %v, raw: %s", tu.Name, err, jsonStr)
+						procLog.Warn(ctx, "failed to parse tool input JSON", map[string]any{"tool": tu.Name, "error": err, "raw": jsonStr})
 					}
 				} else {
 					// 关键修复: 记录空输入缓冲区警告
-					log.Printf("[handleStreamResponse] WARNING: Empty input buffer for tool block %d (%s), exists=%v, jsonStr='%s'", i, tu.Name, exists, jsonStr)
+					procLog.Warn(ctx, "empty input buffer for tool block", map[string]any{"block": i, "tool": tu.Name, "exists": exists, "json_str": jsonStr})
 				}
 			}
 		}
@@ -900,7 +902,7 @@ func (a *Agent) handleStreamResponse(_ context.Context, stream <-chan provider.S
 		a.eventBus.EmitProgress(&types.ProgressThinkChunkEndEvent{
 			Step: a.stepCount,
 		})
-		log.Printf("[handleStreamResponse] Reasoning ended for step %d, total length: %d", a.stepCount, len(reasoningBuffer))
+		procLog.Debug(ctx, "reasoning ended", map[string]any{"step": a.stepCount, "total_length": len(reasoningBuffer)})
 	}
 
 	return types.Message{
@@ -952,8 +954,7 @@ func (a *Agent) runNonStreamingStep(ctx context.Context) error {
 		MaxTokens:   4096,
 	}
 
-	log.Printf("[runNonStreamingStep] Calling Complete API with %d messages, %d tools",
-		len(messages), len(toolSchemas))
+	procLog.Debug(ctx, "calling Complete API", map[string]any{"messages": len(messages), "tools": len(toolSchemas)})
 
 	// 调用Complete API（非流式）
 	response, err := a.provider.Complete(ctx, messages, streamOpts)
@@ -974,7 +975,7 @@ func (a *Agent) runNonStreamingStep(ctx context.Context) error {
 		}
 	}
 
-	log.Printf("[runNonStreamingStep] Received response with %d tool calls", len(toolUses))
+	procLog.Debug(ctx, "received response", map[string]any{"tool_calls": len(toolUses)})
 
 	// 处理工具调用
 	if len(toolUses) > 0 {
@@ -992,7 +993,7 @@ func (a *Agent) runNonStreamingStep(ctx context.Context) error {
 	a.state = types.AgentStateReady
 	a.mu.Unlock()
 
-	log.Printf("[runNonStreamingStep] Execution completed")
+	procLog.Debug(ctx, "execution completed", nil)
 
 	return nil
 }

@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"log"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/astercloud/aster/pkg/commands"
 	"github.com/astercloud/aster/pkg/events"
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/middleware"
 	"github.com/astercloud/aster/pkg/provider"
 	"github.com/astercloud/aster/pkg/router"
@@ -21,6 +21,8 @@ import (
 	"github.com/astercloud/aster/pkg/types"
 	"github.com/google/uuid"
 )
+
+var agentLog = logging.ForComponent("Agent")
 
 // Agent AI代理
 type Agent struct {
@@ -90,7 +92,7 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 			Provider: inferredProvider,
 			Model:    template.Model,
 		}
-		log.Printf("[Agent] Inferred provider '%s' from model '%s'", inferredProvider, template.Model)
+		agentLog.Debug(ctx, "inferred provider from model", map[string]any{"provider": inferredProvider, "model": template.Model})
 	}
 
 	// 如果定义了 Router，则优先通过 Router 决定最终模型
@@ -172,13 +174,13 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 	for _, name := range toolNames {
 		tool, err := deps.ToolRegistry.Create(name, nil)
 		if err != nil {
-			log.Printf("[Agent Create] Failed to create tool %s: %v", name, err)
+			agentLog.Warn(ctx, "failed to create tool", map[string]any{"name": name, "error": err})
 			continue // 忽略未注册的工具
 		}
 		toolMap[name] = tool
-		log.Printf("[Agent Create] Tool loaded: %s, has prompt: %v", name, tool.Prompt() != "")
+		agentLog.Debug(ctx, "tool loaded", map[string]any{"name": name, "has_prompt": tool.Prompt() != ""})
 	}
-	log.Printf("[Agent Create] Total tools loaded: %d (names: %v)", len(toolMap), toolNames)
+	agentLog.Debug(ctx, "total tools loaded", map[string]any{"count": len(toolMap), "names": toolNames})
 
 	// 初始化 Slash Commands & Skills（如果配置了）
 	var cmdExecutor *commands.Executor
@@ -225,8 +227,7 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 		}
 		// 记录成功加载的 Skills
 		if skillInjector != nil {
-			log.Printf("[Skills] Successfully created skill injector with %d enabled skills from path: %s",
-				len(config.SkillsPackage.EnabledSkills), basePath)
+			agentLog.Info(ctx, "skill injector created", map[string]any{"enabled_skills": len(config.SkillsPackage.EnabledSkills), "path": basePath})
 		}
 	}
 
@@ -252,7 +253,7 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 		}
 		if !hasSummarization {
 			middlewareNames = append(middlewareNames, "summarization")
-			log.Printf("[Agent Create] Auto-enabled summarization middleware from template ConversationCompression config")
+			agentLog.Debug(ctx, "auto-enabled summarization middleware from template ConversationCompression config", nil)
 
 			// 如果模板配置了自定义参数，自动添加到 MiddlewareConfig
 			ccConfig := template.Runtime.ConversationCompression
@@ -271,8 +272,7 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 				}
 				maxTokens := int(float64(ccConfig.TokenBudget) * threshold)
 				config.MiddlewareConfig["summarization"]["max_tokens"] = maxTokens
-				log.Printf("[Agent Create] Set summarization max_tokens=%d (budget=%d, threshold=%.2f)",
-					maxTokens, ccConfig.TokenBudget, threshold)
+				agentLog.Debug(ctx, "set summarization max_tokens", map[string]any{"max_tokens": maxTokens, "budget": ccConfig.TokenBudget, "threshold": threshold})
 			}
 			if ccConfig.MinMessagesToKeep > 0 {
 				config.MiddlewareConfig["summarization"]["messages_to_keep"] = ccConfig.MinMessagesToKeep
@@ -298,15 +298,15 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 				CustomConfig: custom,
 			})
 			if err != nil {
-				log.Printf("[Agent Create] Failed to create middleware %s: %v", name, err)
+				agentLog.Warn(ctx, "failed to create middleware", map[string]any{"name": name, "error": err})
 				continue
 			}
 			middlewareList = append(middlewareList, mw)
-			log.Printf("[Agent Create] Middleware loaded: %s (priority: %d)", name, mw.Priority())
+			agentLog.Debug(ctx, "middleware loaded", map[string]any{"name": name, "priority": mw.Priority()})
 		}
 		if len(middlewareList) > 0 {
 			middlewareStack = middleware.NewStack(middlewareList)
-			log.Printf("[Agent Create] Middleware stack created with %d middlewares", len(middlewareList))
+			agentLog.Debug(ctx, "middleware stack created", map[string]any{"count": len(middlewareList)})
 
 			// 将中间件提供的工具合并到 Agent 的工具集中
 			if middlewareStack != nil {
@@ -316,14 +316,14 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 					}
 					name := mwTool.Name()
 					if _, exists := toolMap[name]; exists {
-						log.Printf("[Agent Create] Middleware tool %s overrides existing tool with same name", name)
+						agentLog.Debug(ctx, "middleware tool overrides existing tool", map[string]any{"name": name})
 					}
 					toolMap[name] = mwTool
-					log.Printf("[Agent Create] Middleware tool loaded: %s, has prompt: %v", name, mwTool.Prompt() != "")
+					agentLog.Debug(ctx, "middleware tool loaded", map[string]any{"name": name, "has_prompt": mwTool.Prompt() != ""})
 				}
 			}
 
-			log.Printf("[Agent Create] Total tools after middleware injection: %d", len(toolMap))
+			agentLog.Debug(ctx, "total tools after middleware injection", map[string]any{"count": len(toolMap)})
 		}
 	}
 
@@ -529,7 +529,7 @@ func (a *Agent) buildSystemPrompt(ctx context.Context) error {
 	a.template.SystemPrompt = systemPrompt
 	a.mu.Unlock()
 
-	log.Printf("[buildSystemPrompt] Agent %s: Built system prompt, length: %d", a.id, len(systemPrompt))
+	agentLog.Debug(ctx, "built system prompt", map[string]any{"agent_id": a.id, "length": len(systemPrompt)})
 
 	return nil
 }
@@ -643,7 +643,7 @@ func (a *Agent) injectToolManual() {
 	defer a.mu.Unlock()
 
 	if len(a.toolMap) == 0 {
-		log.Printf("[injectToolManual] Agent %s: No tools in toolMap, skipping", a.id)
+		agentLog.Debug(nil, "no tools in toolMap, skipping", map[string]any{"agent_id": a.id})
 		return
 	}
 
@@ -709,7 +709,7 @@ func (a *Agent) injectToolManual() {
 	}
 
 	if len(summaries) == 0 {
-		log.Printf("[injectToolManual] Agent %s: No tools found, skipping", a.id)
+		agentLog.Debug(nil, "no tools found, skipping", map[string]any{"agent_id": a.id})
 		return
 	}
 
@@ -720,7 +720,7 @@ func (a *Agent) injectToolManual() {
 	var lines []string
 	for _, s := range summaries {
 		lines = append(lines, fmt.Sprintf("- `%s`: %s", s.name, s.summary))
-		log.Printf("[injectToolManual] Agent %s: Added summary for tool %s", a.id, s.name)
+		agentLog.Debug(nil, "added summary for tool", map[string]any{"agent_id": a.id, "tool": s.name})
 	}
 
 	manualSection := "\n\n### Tools Manual\n\n" +
@@ -740,7 +740,7 @@ func (a *Agent) injectToolManual() {
 	// 追加新的工具手册
 	oldLength := len(a.template.SystemPrompt)
 	a.template.SystemPrompt += manualSection
-	log.Printf("[injectToolManual] Agent %s: Injected manual, system prompt length: %d -> %d", a.id, oldLength, len(a.template.SystemPrompt))
+	agentLog.Debug(nil, "injected manual", map[string]any{"agent_id": a.id, "old_length": oldLength, "new_length": len(a.template.SystemPrompt)})
 }
 
 // ID 返回AgentID
@@ -955,7 +955,7 @@ func (a *Agent) Close() error {
 	if a.middlewareStack != nil {
 		ctx := context.Background()
 		if err := a.middlewareStack.OnAgentStop(ctx, a.id); err != nil {
-			log.Printf("[Agent Close] Middleware OnAgentStop error: %v", err)
+			agentLog.Warn(ctx, "middleware OnAgentStop error", map[string]any{"error": err})
 		}
 	}
 
@@ -1013,7 +1013,7 @@ func (a *Agent) buildToolContext(ctx context.Context) *tools.ToolContext {
 // handleSlashCommand 处理 slash command
 func (a *Agent) handleSlashCommand(ctx context.Context, text string) error {
 	if a.commandExecutor == nil {
-		log.Printf("[Command] ERROR: Slash commands not enabled for agent %s", a.id)
+		agentLog.Error(ctx, "slash commands not enabled", map[string]any{"agent_id": a.id})
 		return fmt.Errorf("slash commands not enabled")
 	}
 
@@ -1026,16 +1026,16 @@ func (a *Agent) handleSlashCommand(ctx context.Context, text string) error {
 		args["argument"] = strings.Join(parts[1:], " ")
 	}
 
-	log.Printf("[Command] Agent %s: Executing command /%s with args: %v", a.id, commandName, args)
+	agentLog.Debug(ctx, "executing command", map[string]any{"agent_id": a.id, "command": commandName, "args": args})
 
 	// 执行命令并获取消息
 	message, err := a.commandExecutor.Execute(ctx, commandName, args)
 	if err != nil {
-		log.Printf("[Command] ERROR: Agent %s failed to execute /%s: %v", a.id, commandName, err)
+		agentLog.Error(ctx, "failed to execute command", map[string]any{"agent_id": a.id, "command": commandName, "error": err})
 		return fmt.Errorf("execute command: %w", err)
 	}
 
-	log.Printf("[Command] Agent %s: Command /%s executed successfully, generated message length: %d", a.id, commandName, len(message))
+	agentLog.Debug(ctx, "command executed successfully", map[string]any{"agent_id": a.id, "command": commandName, "message_length": len(message)})
 
 	// 将命令消息作为用户消息发送
 	userMessage := types.Message{
@@ -1053,7 +1053,7 @@ func (a *Agent) handleSlashCommand(ctx context.Context, text string) error {
 		return fmt.Errorf("save messages: %w", err)
 	}
 
-	log.Printf("[Command] Agent %s: Command /%s processing started", a.id, commandName)
+	agentLog.Debug(ctx, "command processing started", map[string]any{"agent_id": a.id, "command": commandName})
 
 	// 触发处理
 	go a.processMessages(ctx)

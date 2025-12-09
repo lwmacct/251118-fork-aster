@@ -3,11 +3,13 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/astercloud/aster/pkg/backends"
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/tools"
 )
+
+var amLog = logging.ForComponent("AgentMemoryMiddleware")
 
 const (
 	// AGENT_MEMORY_FILE_PATH Agent 记忆文件的默认路径
@@ -71,7 +73,7 @@ func NewAgentMemoryMiddleware(config *AgentMemoryMiddlewareConfig) (*AgentMemory
 	// 创建基于 backend 的高级记忆工具 (搜索 / 写入等)
 	m.memoryTools = m.createMemoryTools()
 
-	log.Printf("[AgentMemoryMiddleware] Initialized (memory_path: %s)", config.MemoryPath)
+	amLog.Info(context.Background(), "initialized", map[string]any{"memory_path": config.MemoryPath})
 	return m, nil
 }
 
@@ -88,17 +90,17 @@ func (m *AgentMemoryMiddleware) OnAgentStart(ctx context.Context, agentID string
 		return nil
 	}
 
-	log.Printf("[AgentMemoryMiddleware] Loading agent memory from %s", AGENT_MEMORY_FILE_PATH)
+	amLog.Debug(ctx, "loading agent memory", map[string]any{"path": AGENT_MEMORY_FILE_PATH})
 
 	// 从 backend 读取 agent.md
 	content, err := m.backend.Read(ctx, AGENT_MEMORY_FILE_PATH, 0, 0)
 	if err != nil {
 		// 文件不存在时,记录警告但不返回错误
-		log.Printf("[AgentMemoryMiddleware] Failed to load agent memory: %v (will use empty memory)", err)
+		amLog.Warn(ctx, "failed to load agent memory, using empty", map[string]any{"error": err.Error()})
 		m.memoryContent = ""
 	} else {
 		m.memoryContent = content
-		log.Printf("[AgentMemoryMiddleware] Agent memory loaded (%d chars)", len(content))
+		amLog.Info(ctx, "agent memory loaded", map[string]any{"chars": len(content)})
 	}
 
 	m.memoryLoaded = true
@@ -111,7 +113,7 @@ func (m *AgentMemoryMiddleware) WrapModelCall(ctx context.Context, req *ModelReq
 	if !m.memoryLoaded {
 		err := m.OnAgentStart(ctx, "default")
 		if err != nil {
-			log.Printf("[AgentMemoryMiddleware] Failed to load memory: %v", err)
+			amLog.Error(ctx, "failed to load memory", map[string]any{"error": err.Error()})
 		}
 	}
 
@@ -132,8 +134,7 @@ func (m *AgentMemoryMiddleware) WrapModelCall(ctx context.Context, req *ModelReq
 	longTermMemoryPrompt := m.buildLongTermMemoryPrompt()
 	req.SystemPrompt = req.SystemPrompt + "\n\n" + longTermMemoryPrompt
 
-	log.Printf("[AgentMemoryMiddleware] Injected agent memory into system prompt (%d chars total)",
-		len(req.SystemPrompt))
+	amLog.Debug(ctx, "injected agent memory", map[string]any{"total_chars": len(req.SystemPrompt)})
 
 	// 调用处理器
 	resp, err := handler(ctx, req)

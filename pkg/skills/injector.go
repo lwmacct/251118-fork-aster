@@ -3,11 +3,13 @@ package skills
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/provider"
 )
+
+var skillsLog = logging.ForComponent("SkillsInjector")
 
 // InjectorConfig 注入器配置
 type InjectorConfig struct {
@@ -58,26 +60,26 @@ func (i *Injector) EnhanceSystemPrompt(ctx context.Context, basePrompt string, s
 	// 而是将所有启用的技能以元数据形式暴露给模型，由模型根据描述自行判断何时使用。
 	activeSkills := i.getActiveSkills(skillContext)
 
-	log.Printf("[Skills] Checking skills for message: %q", skillContext.UserMessage)
-	log.Printf("[Skills] Enabled skills available to inject: %d", len(activeSkills))
+	skillsLog.Debug(ctx, "checking skills for message", map[string]any{"message": skillContext.UserMessage})
+	skillsLog.Debug(ctx, "enabled skills available to inject", map[string]any{"count": len(activeSkills)})
 	for _, skill := range activeSkills {
-		log.Printf("[Skills] - Enabled: %s (%s)", skill.Name, skill.Description)
+		skillsLog.Debug(ctx, "enabled skill", map[string]any{"name": skill.Name, "description": skill.Description})
 	}
 
 	if len(activeSkills) == 0 {
-		log.Printf("[Skills] No skills activated, returning base prompt")
+		skillsLog.Debug(ctx, "no skills activated, returning base prompt", nil)
 		return basePrompt
 	}
 
 	// 根据模型能力选择注入方式
 	if i.capabilities.SupportSystemPrompt {
 		enhanced := i.injectToSystemPrompt(basePrompt, activeSkills)
-		log.Printf("[Skills] Enhanced system prompt length: %d -> %d", len(basePrompt), len(enhanced))
+		skillsLog.Debug(ctx, "enhanced system prompt", map[string]any{"before_len": len(basePrompt), "after_len": len(enhanced)})
 		return enhanced
 	}
 
 	// 不支持 system prompt，返回原始提示词
-	log.Printf("[Skills] Provider doesn't support system prompt, returning base")
+	skillsLog.Debug(ctx, "provider doesn't support system prompt, returning base", nil)
 	return basePrompt
 }
 
@@ -203,12 +205,12 @@ func (i *Injector) injectToSystemPrompt(basePrompt string, skills []*SkillDefini
 func (i *Injector) getActiveSkills(context SkillContext) []*SkillDefinition {
 	var activeSkills []*SkillDefinition
 
-	log.Printf("[Skills] Total skills loaded: %d", len(i.skills))
-	log.Printf("[Skills] Enabled skills map: %v", i.enabledSkills)
+	skillsLog.Debug(nil, "total skills loaded", map[string]any{"count": len(i.skills)})
+	skillsLog.Debug(nil, "enabled skills map", map[string]any{"enabled": i.enabledSkills})
 
 	for name, skill := range i.skills {
 		enabled := i.enabledSkills[name]
-		log.Printf("[Skills] Checking skill: %s (enabled: %v)", name, enabled)
+		skillsLog.Debug(nil, "checking skill", map[string]any{"name": name, "enabled": enabled})
 		if !enabled {
 			continue
 		}

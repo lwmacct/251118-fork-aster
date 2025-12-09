@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -192,20 +191,20 @@ func (a *AgentActor) Receive(ctx *actor.Context, msg actor.Message) {
 	// 处理系统消息
 	switch m := msg.(type) {
 	case *actor.Started:
-		log.Printf("[AgentActor] %s started", a.agent.ID())
+		agentLog.Debug(context.Background(), "agent actor started", map[string]any{"agent_id": a.agent.ID()})
 		return
 
 	case *actor.Stopping:
-		log.Printf("[AgentActor] %s stopping", a.agent.ID())
+		agentLog.Debug(context.Background(), "agent actor stopping", map[string]any{"agent_id": a.agent.ID()})
 		a.handleStop()
 		return
 
 	case *actor.Stopped:
-		log.Printf("[AgentActor] %s stopped", a.agent.ID())
+		agentLog.Debug(context.Background(), "agent actor stopped", map[string]any{"agent_id": a.agent.ID()})
 		return
 
 	case *actor.Restarting:
-		log.Printf("[AgentActor] %s restarting", a.agent.ID())
+		agentLog.Debug(context.Background(), "agent actor restarting", map[string]any{"agent_id": a.agent.ID()})
 		return
 
 	// 处理 Agent 业务消息
@@ -235,7 +234,7 @@ func (a *AgentActor) Receive(ctx *actor.Context, msg actor.Message) {
 		ctx.StopSelf()
 
 	default:
-		log.Printf("[AgentActor] %s received unknown message: %T", a.agent.ID(), msg)
+		agentLog.Warn(context.Background(), "agent actor received unknown message", map[string]any{"agent_id": a.agent.ID(), "msg_type": fmt.Sprintf("%T", msg)})
 	}
 }
 
@@ -300,7 +299,7 @@ func (a *AgentActor) handleChat(ctx *actor.Context, msg *ChatMsg) {
 			select {
 			case msg.ReplyTo <- response:
 			default:
-				log.Printf("[AgentActor] %s chat reply channel full or closed", a.agent.ID())
+				agentLog.Warn(context.Background(), "chat reply channel full or closed", map[string]any{"agent_id": a.agent.ID()})
 			}
 		}
 
@@ -450,7 +449,7 @@ func (a *AgentActor) handleStop() {
 	a.cancel()
 
 	if err := a.agent.Close(); err != nil {
-		log.Printf("[AgentActor] %s close error: %v", a.agent.ID(), err)
+		agentLog.Error(context.Background(), "agent actor close error", map[string]any{"agent_id": a.agent.ID(), "error": err})
 	}
 }
 

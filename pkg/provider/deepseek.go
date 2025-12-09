@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
@@ -15,6 +14,8 @@ import (
 	"github.com/astercloud/aster/pkg/types"
 	"github.com/astercloud/aster/pkg/util"
 )
+
+var deepseekLog = logging.ForComponent("DeepseekProvider")
 
 const (
 	defaultDeepseekBaseURL = "https://api.deepseek.com"
@@ -51,8 +52,8 @@ func NewDeepseekProvider(config *types.ModelConfig) (*DeepseekProvider, error) {
 
 // Complete 非流式对话(阻塞式,返回完整响应)
 func (dp *DeepseekProvider) Complete(ctx context.Context, messages []types.Message, opts *StreamOptions) (*CompleteResponse, error) {
-	logging.Info(ctx, "🚀 [DeepseekProvider] 开始Complete API调用 (非流式)", nil)
-	logging.Info(ctx, fmt.Sprintf("📊 [DeepseekProvider] 请求参数: %d条消息, %d个工具", len(messages), len(opts.Tools)), nil)
+	deepseekLog.Info(ctx, "starting complete API call (non-streaming)", nil)
+	deepseekLog.Info(ctx, "request params", map[string]any{"messages": len(messages), "tools": len(opts.Tools)})
 
 	// 构建请求体(非流式)
 	reqBody := dp.buildRequest(messages, opts)
@@ -64,7 +65,7 @@ func (dp *DeepseekProvider) Complete(ctx context.Context, messages []types.Messa
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	logging.Info(ctx, fmt.Sprintf("📦 [DeepseekProvider] 请求体大小: %.2f KB", float64(len(jsonData))/1024), nil)
+	deepseekLog.Info(ctx, "request body size", map[string]any{"size_kb": float64(len(jsonData)) / 1024})
 
 	// 创建HTTP请求
 	endpoint := "/v1/chat/completions"
@@ -77,7 +78,7 @@ func (dp *DeepseekProvider) Complete(ctx context.Context, messages []types.Messa
 	}
 
 	fullURL := dp.baseURL + endpoint
-	logging.Info(ctx, fmt.Sprintf("🌐 [DeepseekProvider] API端点: %s", fullURL), nil)
+	deepseekLog.Info(ctx, "API endpoint", map[string]any{"url": fullURL})
 
 	req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(jsonData))
 	if err != nil {
@@ -91,29 +92,29 @@ func (dp *DeepseekProvider) Complete(ctx context.Context, messages []types.Messa
 	// 发送请求
 	resp, err := dp.client.Do(req)
 	if err != nil {
-		logging.Error(ctx, fmt.Sprintf("请求失败: %v", err), nil)
+		deepseekLog.Error(ctx, "request failed", map[string]any{"error": err})
 		return nil, fmt.Errorf("send request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	logging.Info(ctx, fmt.Sprintf("收到响应, HTTP状态码: %d", resp.StatusCode), nil)
+	deepseekLog.Info(ctx, "received response", map[string]any{"status_code": resp.StatusCode})
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		logging.Error(ctx, fmt.Sprintf("API错误响应: %s", string(body)), nil)
+		deepseekLog.Error(ctx, "API error response", map[string]any{"body": string(body)})
 		return nil, fmt.Errorf("deepseek api error: %d - %s", resp.StatusCode, string(body))
 	}
 
-	logging.Debug(ctx, "正在解析API响应...", nil)
+	deepseekLog.Debug(ctx, "parsing API response", nil)
 
 	// 解析完整响应
 	var apiResp map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		logging.Error(ctx, fmt.Sprintf("解析响应失败: %v", err), nil)
+		deepseekLog.Error(ctx, "failed to parse response", map[string]any{"error": err})
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	logging.Debug(ctx, "响应解析成功", nil)
+	deepseekLog.Debug(ctx, "response parsed successfully", nil)
 
 	// 解析消息内容
 	message, err := dp.parseCompleteResponse(apiResp)
@@ -128,10 +129,10 @@ func (dp *DeepseekProvider) Complete(ctx context.Context, messages []types.Messa
 			InputTokens:  int64(usageData["prompt_tokens"].(float64)),
 			OutputTokens: int64(usageData["completion_tokens"].(float64)),
 		}
-		logging.Info(ctx, fmt.Sprintf("Token使用: 输入=%d, 输出=%d, 总计=%d", usage.InputTokens, usage.OutputTokens, usage.InputTokens+usage.OutputTokens), nil)
+		deepseekLog.Info(ctx, "token usage", map[string]any{"input": usage.InputTokens, "output": usage.OutputTokens, "total": usage.InputTokens + usage.OutputTokens})
 	}
 
-	logging.Info(ctx, "Complete API调用完成", nil)
+	deepseekLog.Info(ctx, "complete API call finished", nil)
 
 	return &CompleteResponse{
 		Message: message,
@@ -152,9 +153,9 @@ func (dp *DeepseekProvider) Stream(ctx context.Context, messages []types.Message
 
 	// 记录请求内容（用于调试）
 	if tools, ok := reqBody["tools"].([]map[string]any); ok && len(tools) > 0 {
-		log.Printf("[DeepseekProvider] Request body includes %d tools", len(tools))
+		deepseekLog.Debug(ctx, "request body includes tools", map[string]any{"count": len(tools)})
 		toolsJSON, _ := util.MarshalDeterministicIndent(reqBody["tools"], "", "  ")
-		log.Printf("[DeepseekProvider] Full tools definition:\n%s", string(toolsJSON))
+		deepseekLog.Debug(ctx, "full tools definition", map[string]any{"tools": string(toolsJSON)})
 	}
 
 	// 创建HTTP请求
@@ -186,11 +187,11 @@ func (dp *DeepseekProvider) Stream(ctx context.Context, messages []types.Message
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
-		log.Printf("[DeepseekProvider] API error response: %s", string(body))
+		deepseekLog.Error(ctx, "API error response", map[string]any{"body": string(body)})
 		return nil, fmt.Errorf("deepseek api error: %d - %s", resp.StatusCode, string(body))
 	}
 
-	log.Printf("[DeepseekProvider] API request successful, status: %d", resp.StatusCode)
+	deepseekLog.Debug(ctx, "API request successful", map[string]any{"status": resp.StatusCode})
 
 	// 创建流式响应channel
 	chunkCh := make(chan StreamChunk, 10)
@@ -202,7 +203,7 @@ func (dp *DeepseekProvider) Stream(ctx context.Context, messages []types.Message
 
 // buildRequest 构建请求体
 func (dp *DeepseekProvider) buildRequest(messages []types.Message, opts *StreamOptions) map[string]any {
-	log.Printf("[DeepseekProvider] 🎯 Building request with model: %s", dp.config.Model)
+	deepseekLog.Debug(nil, "building request", map[string]any{"model": dp.config.Model})
 
 	// 转换消息
 	convertedMessages := dp.convertMessages(messages)
@@ -215,7 +216,7 @@ func (dp *DeepseekProvider) buildRequest(messages []types.Message, opts *StreamO
 			"content": opts.System,
 		}
 		convertedMessages = append([]map[string]any{systemMessage}, convertedMessages...)
-		log.Printf("[DeepseekProvider] Added system message, total messages: %d, system prompt length: %d", len(convertedMessages), len(opts.System))
+		deepseekLog.Debug(nil, "added system message", map[string]any{"total_messages": len(convertedMessages), "system_prompt_length": len(opts.System)})
 	} else if dp.systemPrompt != "" {
 		// 使用 Provider 级别的 system prompt
 		systemMessage := map[string]any{
@@ -223,7 +224,7 @@ func (dp *DeepseekProvider) buildRequest(messages []types.Message, opts *StreamO
 			"content": dp.systemPrompt,
 		}
 		convertedMessages = append([]map[string]any{systemMessage}, convertedMessages...)
-		log.Printf("[DeepseekProvider] Added provider system message, total messages: %d", len(convertedMessages))
+		deepseekLog.Debug(nil, "added provider system message", map[string]any{"total_messages": len(convertedMessages)})
 	}
 
 	req := map[string]any{
@@ -269,7 +270,7 @@ func (dp *DeepseekProvider) buildRequest(messages []types.Message, opts *StreamO
 					}
 				}
 			}
-			log.Printf("[DeepseekProvider] Sending %d tools to API: %v", len(tools), toolNames)
+			deepseekLog.Debug(nil, "sending tools to API", map[string]any{"count": len(tools), "names": toolNames})
 		}
 	} else {
 		req["max_tokens"] = 4096
@@ -378,7 +379,7 @@ func (dp *DeepseekProvider) convertMessages(messages []types.Message) []map[stri
 				"tool_call_id": tr.ToolUseID,
 			}
 			result = append(result, toolMsg)
-			log.Printf("[DeepseekProvider] Added tool result message: tool_call_id=%s, content_length=%d", tr.ToolUseID, len(tr.Content))
+			deepseekLog.Debug(nil, "added tool result message", map[string]any{"tool_call_id": tr.ToolUseID, "content_length": len(tr.Content)})
 		}
 	}
 
@@ -399,7 +400,7 @@ func (dp *DeepseekProvider) processStream(body io.ReadCloser, chunkCh chan<- Str
 		if !strings.HasPrefix(line, "data: ") {
 			// 记录非数据行（用于调试）
 			if strings.TrimSpace(line) != "" && !strings.HasPrefix(line, ":") {
-				log.Printf("[DeepseekProvider] Non-data line: %s", line)
+				deepseekLog.Debug(nil, "non-data line", map[string]any{"line": line})
 			}
 			continue
 		}
@@ -408,34 +409,34 @@ func (dp *DeepseekProvider) processStream(body io.ReadCloser, chunkCh chan<- Str
 
 		// 忽略特殊标记
 		if data == "[DONE]" {
-			log.Printf("[DeepseekProvider] Received [DONE] marker")
+			deepseekLog.Debug(nil, "received [DONE] marker", nil)
 			break
 		}
 
 		// 解析JSON
 		var event map[string]any
 		if err := json.Unmarshal([]byte(data), &event); err != nil {
-			log.Printf("[DeepseekProvider] Failed to parse JSON: %v, data: %s", err, data)
+			deepseekLog.Debug(nil, "failed to parse JSON", map[string]any{"error": err, "data": data})
 			continue
 		}
 
 		eventCount++
-		log.Printf("[DeepseekProvider] Event #%d: %v", eventCount, event)
+		deepseekLog.Debug(nil, "stream event", map[string]any{"event_num": eventCount, "event": event})
 
 		chunk := dp.parseStreamEvent(event)
 		if chunk != nil {
-			log.Printf("[DeepseekProvider] Parsed chunk: type=%s, index=%d", chunk.Type, chunk.Index)
+			deepseekLog.Debug(nil, "parsed chunk", map[string]any{"type": chunk.Type, "index": chunk.Index})
 			chunkCh <- *chunk
 		} else {
-			log.Printf("[DeepseekProvider] No chunk parsed from event")
+			deepseekLog.Debug(nil, "no chunk parsed from event", nil)
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("[DeepseekProvider] Scanner error: %v", err)
+		deepseekLog.Error(nil, "scanner error", map[string]any{"error": err})
 	}
 
-	log.Printf("[DeepseekProvider] Processed %d events total", eventCount)
+	deepseekLog.Debug(nil, "processed events", map[string]any{"total": eventCount})
 }
 
 // parseStreamEvent 解析流式事件（OpenAI 兼容格式）
@@ -472,7 +473,7 @@ func (dp *DeepseekProvider) parseStreamEvent(event map[string]any) *StreamChunk 
 									}
 
 									chunk.Delta = toolInfo
-									log.Printf("[DeepseekProvider] ✅ Received tool_use block: index=%d, id=%v, name=%v", index, id, name)
+									deepseekLog.Debug(nil, "received tool_use block", map[string]any{"index": index, "id": id, "name": name})
 									return chunk
 								}
 							}
@@ -488,7 +489,7 @@ func (dp *DeepseekProvider) parseStreamEvent(event map[string]any) *StreamChunk 
 									"type":      "arguments",
 									"arguments": arguments,
 								}
-								log.Printf("[DeepseekProvider] Received arguments delta: index=%d, args=%s", index, arguments)
+								deepseekLog.Debug(nil, "received arguments delta", map[string]any{"index": index, "args": arguments})
 								return chunk
 							}
 						}
@@ -502,7 +503,7 @@ func (dp *DeepseekProvider) parseStreamEvent(event map[string]any) *StreamChunk 
 						"type":    "reasoning_delta",
 						"content": reasoningContent,
 					}
-					log.Printf("[DeepseekProvider] Received reasoning_content: %s", truncateString(reasoningContent, 50))
+					deepseekLog.Debug(nil, "received reasoning_content", map[string]any{"content": truncateString(reasoningContent, 50)})
 					return chunk
 				}
 
@@ -627,7 +628,7 @@ func (dp *DeepseekProvider) parseCompleteResponse(apiResp map[string]any) (types
 			// 解析参数
 			var input map[string]any
 			if err := json.Unmarshal([]byte(argsJSON), &input); err != nil {
-				log.Printf("[DeepseekProvider] Failed to parse tool arguments: %v", err)
+				deepseekLog.Warn(nil, "failed to parse tool arguments", map[string]any{"error": err})
 				input = make(map[string]any)
 			}
 

@@ -3,7 +3,8 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
+
+	"github.com/astercloud/aster/pkg/logging"
 )
 
 // DecisionType 审核决策类型
@@ -107,9 +108,11 @@ func NewHumanInTheLoopMiddleware(config *HumanInTheLoopMiddlewareConfig) (*Human
 		}
 	}
 
-	log.Printf("[HumanInTheLoopMiddleware] Initialized with %d tools requiring approval", len(m.interruptConfigs))
+	hitlLog.Info(context.Background(), "initialized", map[string]any{"tools_count": len(m.interruptConfigs)})
 	return m, nil
 }
+
+var hitlLog = logging.ForComponent("HumanInTheLoopMiddleware")
 
 // parseInterruptConfig 解析审核配置
 func (m *HumanInTheLoopMiddleware) parseInterruptConfig(toolName string, cfg any) *InterruptConfig {
@@ -157,7 +160,7 @@ func (m *HumanInTheLoopMiddleware) parseInterruptConfig(toolName string, cfg any
 		return v
 
 	default:
-		log.Printf("[HumanInTheLoopMiddleware] Invalid interrupt config for tool '%s': %T", toolName, cfg)
+		hitlLog.Warn(context.Background(), "invalid interrupt config", map[string]any{"tool": toolName, "type": fmt.Sprintf("%T", cfg)})
 		return nil
 	}
 }
@@ -171,7 +174,7 @@ func (m *HumanInTheLoopMiddleware) WrapToolCall(ctx context.Context, req *ToolCa
 		return handler(ctx, req)
 	}
 
-	log.Printf("[HumanInTheLoopMiddleware] Tool '%s' requires approval", req.ToolName)
+	hitlLog.Info(ctx, "tool requires approval", map[string]any{"tool": req.ToolName})
 
 	// 构建审核请求
 	reviewRequest := &ReviewRequest{
@@ -211,18 +214,18 @@ func (m *HumanInTheLoopMiddleware) WrapToolCall(ctx context.Context, req *ToolCa
 	// 处理决策
 	switch decision.Type {
 	case DecisionApprove:
-		log.Printf("[HumanInTheLoopMiddleware] Tool '%s' approved", req.ToolName)
+		hitlLog.Info(ctx, "tool approved", map[string]any{"tool": req.ToolName})
 		return handler(ctx, req)
 
 	case DecisionEdit:
-		log.Printf("[HumanInTheLoopMiddleware] Tool '%s' approved with edited input", req.ToolName)
+		hitlLog.Info(ctx, "tool approved with edited input", map[string]any{"tool": req.ToolName})
 		// 使用编辑后的参数
 		editedReq := *req
 		editedReq.ToolInput = decision.EditedInput
 		return handler(ctx, &editedReq)
 
 	case DecisionReject:
-		log.Printf("[HumanInTheLoopMiddleware] Tool '%s' rejected: %s", req.ToolName, decision.Reason)
+		hitlLog.Info(ctx, "tool rejected", map[string]any{"tool": req.ToolName, "reason": decision.Reason})
 		return &ToolCallResponse{
 			Result: map[string]any{
 				"ok":       false,
@@ -249,7 +252,7 @@ func (m *HumanInTheLoopMiddleware) getApproval(ctx context.Context, request *Rev
 	}
 
 	// 默认处理器: 自动批准所有请求
-	log.Printf("[HumanInTheLoopMiddleware] No approval handler configured, auto-approving %d requests", len(request.ActionRequests))
+	hitlLog.Warn(ctx, "no approval handler configured, auto-approving", map[string]any{"requests": len(request.ActionRequests)})
 	decisions := make([]Decision, len(request.ActionRequests))
 	for i := range decisions {
 		decisions[i] = Decision{
@@ -263,7 +266,7 @@ func (m *HumanInTheLoopMiddleware) getApproval(ctx context.Context, request *Rev
 // SetApprovalHandler 设置审核处理器
 func (m *HumanInTheLoopMiddleware) SetApprovalHandler(handler ApprovalHandler) {
 	m.approvalHandler = handler
-	log.Printf("[HumanInTheLoopMiddleware] Approval handler updated")
+	hitlLog.Info(context.Background(), "approval handler updated", nil)
 }
 
 // GetInterruptConfig 获取工具的审核配置

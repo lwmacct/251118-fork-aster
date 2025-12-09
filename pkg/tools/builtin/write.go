@@ -3,13 +3,15 @@ package builtin
 import (
 	"context"
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/tools"
 )
+
+var writeLog = logging.ForComponent("WriteTool")
 
 // WriteTool 增强的文件写入工具
 // 兼容标准Write工具功能
@@ -114,7 +116,7 @@ func (t *WriteTool) Execute(ctx context.Context, input map[string]any, tc *tools
 		if dir != "." && dir != "/" {
 			// 创建目录（沙箱会处理）
 			if err := tc.Sandbox.FS().Write(ctx, dir+"/.mkdir_marker", ""); err != nil {
-				log.Printf("[WriteTool] Warning: failed to create directory marker: %v", err)
+				writeLog.Warn(ctx, "failed to create directory marker", map[string]any{"dir": dir, "error": err})
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -230,4 +231,61 @@ func Error(ctx context.Context, msg string, fields map[string]any) {
 
 func Flush(ctx context.Context) {
 	Default.Flush(ctx)
+}
+
+// =========================
+// Component Logger
+// =========================
+
+// ComponentLogger 带组件名称的 Logger，便于追踪日志来源
+type ComponentLogger struct {
+	logger    *Logger
+	component string
+}
+
+// ForComponent 创建带组件名称的 Logger
+func ForComponent(component string) *ComponentLogger {
+	return &ComponentLogger{
+		logger:    Default,
+		component: component,
+	}
+}
+
+// WithLogger 使用指定的 Logger 创建 ComponentLogger
+func (l *Logger) ForComponent(component string) *ComponentLogger {
+	return &ComponentLogger{
+		logger:    l,
+		component: component,
+	}
+}
+
+func (c *ComponentLogger) addComponent(fields map[string]any) map[string]any {
+	if fields == nil {
+		fields = make(map[string]any)
+	}
+	fields["component"] = c.component
+	return fields
+}
+
+func (c *ComponentLogger) Debug(ctx context.Context, msg string, fields map[string]any) {
+	c.logger.Debug(ctx, msg, c.addComponent(fields))
+}
+
+func (c *ComponentLogger) Info(ctx context.Context, msg string, fields map[string]any) {
+	c.logger.Info(ctx, msg, c.addComponent(fields))
+}
+
+func (c *ComponentLogger) Warn(ctx context.Context, msg string, fields map[string]any) {
+	c.logger.Warn(ctx, msg, c.addComponent(fields))
+}
+
+func (c *ComponentLogger) Error(ctx context.Context, msg string, fields map[string]any) {
+	c.logger.Error(ctx, msg, c.addComponent(fields))
+}
+
+// Printf 兼容 log.Printf 的接口，便于迁移
+// 用法: logger.Printf("message %s", arg) 替代 log.Printf("[Component] message %s", arg)
+func (c *ComponentLogger) Printf(format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	c.logger.Info(context.Background(), msg, map[string]any{"component": c.component})
 }

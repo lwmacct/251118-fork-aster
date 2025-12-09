@@ -7,14 +7,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/types"
 	"github.com/astercloud/aster/pkg/util"
 )
+
+var openaiLog = logging.ForComponent("OpenAICompatibleProvider")
 
 // OpenAICompatibleProvider OpenAI 兼容格式的通用 Provider
 // 适用于 OpenAI, Groq, Ollama, Fireworks, Cerebras, DeepInfra, xAI 等
@@ -316,7 +318,7 @@ func (p *OpenAICompatibleProvider) buildRequest(
 			for i, t := range opts.Tools {
 				toolNames[i] = t.Name
 			}
-			log.Printf("[%s] Sending %d tools to API: %v", p.providerName, len(opts.Tools), toolNames)
+			openaiLog.Debug(nil, "sending tools to API", map[string]any{"provider": p.providerName, "count": len(opts.Tools), "names": toolNames})
 		}
 	}
 
@@ -606,11 +608,11 @@ func (p *OpenAICompatibleProvider) parseSSEStream(body io.ReadCloser, chunks cha
 		if len(truncatedData) > 200 {
 			truncatedData = truncatedData[:200] + "..."
 		}
-		log.Printf("[%s] SSE Event #%d: %s", p.providerName, eventCount, truncatedData)
+		openaiLog.Debug(nil, "SSE event", map[string]any{"provider": p.providerName, "event_num": eventCount, "data": truncatedData})
 
 		// 结束标记
 		if data == "[DONE]" {
-			log.Printf("[%s] Received [DONE] marker", p.providerName)
+			openaiLog.Debug(nil, "received [DONE] marker", map[string]any{"provider": p.providerName})
 			chunks <- StreamChunk{
 				Type:         string(ChunkTypeDone),
 				FinishReason: "stop",
@@ -621,16 +623,16 @@ func (p *OpenAICompatibleProvider) parseSSEStream(body io.ReadCloser, chunks cha
 		// 解析 JSON
 		var chunk map[string]any
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-			log.Printf("[%s] JSON parse error: %v", p.providerName, err)
+			openaiLog.Debug(nil, "JSON parse error", map[string]any{"provider": p.providerName, "error": err})
 			continue
 		}
 
 		// 解析 chunk 并转换为 StreamChunk
 		streamChunks := p.parseStreamChunk(chunk)
-		log.Printf("[%s] Parsed %d chunks from event", p.providerName, len(streamChunks))
+		openaiLog.Debug(nil, "parsed chunks from event", map[string]any{"provider": p.providerName, "count": len(streamChunks)})
 		for _, sc := range streamChunks {
 			if sc.TextDelta != "" {
-				log.Printf("[%s] Text delta: %s", p.providerName, sc.TextDelta)
+				openaiLog.Debug(nil, "text delta", map[string]any{"provider": p.providerName, "text": sc.TextDelta})
 			}
 			chunks <- sc
 		}
@@ -685,7 +687,7 @@ func (p *OpenAICompatibleProvider) parseStreamChunk(chunk map[string]any) []Stre
 		if len(truncated) > 50 {
 			truncated = truncated[:50] + "..."
 		}
-		log.Printf("[%s] Reasoning content: %s", p.providerName, truncated)
+		openaiLog.Debug(nil, "reasoning content", map[string]any{"provider": p.providerName, "content": truncated})
 		result = append(result, StreamChunk{
 			Type: string(ChunkTypeReasoning),
 			Reasoning: &ReasoningTrace{

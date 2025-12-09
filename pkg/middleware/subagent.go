@@ -3,14 +3,16 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/tools"
 	"github.com/astercloud/aster/pkg/tools/builtin"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var saLog = logging.ForComponent("SubAgentMiddleware")
 
 // SubAgentSpec 子代理规格
 type SubAgentSpec struct {
@@ -99,10 +101,10 @@ func NewSubAgentMiddleware(config *SubAgentMiddlewareConfig) (*SubAgentMiddlewar
 		m.manager = config.Manager
 	case config.EnableProcessIsolation:
 		m.manager = builtin.NewFileSubagentManager()
-		log.Printf("[SubAgentMiddleware] Using FileSubagentManager for process isolation/async execution")
+		saLog.Info(context.Background(), "using FileSubagentManager", nil)
 	case config.EnableAsync:
 		m.manager = newGoroutineSubagentManager(m)
-		log.Printf("[SubAgentMiddleware] Using in-memory async manager")
+		saLog.Info(context.Background(), "using in-memory async manager", nil)
 	}
 
 	// 默认启用 general-purpose 子代理
@@ -125,15 +127,15 @@ func NewSubAgentMiddleware(config *SubAgentMiddlewareConfig) (*SubAgentMiddlewar
 		for _, spec := range specs {
 			agent, err := config.Factory(context.Background(), spec)
 			if err != nil {
-				log.Printf("[SubAgentMiddleware] Failed to create subagent %s: %v", spec.Name, err)
+				saLog.Error(context.Background(), "failed to create subagent", map[string]any{"name": spec.Name, "error": err.Error()})
 				continue
 			}
 			m.agents[spec.Name] = agent
-			log.Printf("[SubAgentMiddleware] Created subagent: %s", spec.Name)
+			saLog.Info(context.Background(), "created subagent", map[string]any{"name": spec.Name})
 		}
 	}
 
-	log.Printf("[SubAgentMiddleware] Initialized with %d subagents", len(m.agents))
+	saLog.Info(context.Background(), "initialized", map[string]any{"subagents": len(m.agents)})
 	return m, nil
 }
 
@@ -165,7 +167,7 @@ func (m *SubAgentMiddleware) OnAgentStop(ctx context.Context, agentID string) er
 
 	for name, agent := range m.agents {
 		if err := agent.Close(); err != nil {
-			log.Printf("[SubAgentMiddleware] Failed to close subagent %s: %v", name, err)
+			saLog.Error(context.Background(), "failed to close subagent", map[string]any{"name": name, "error": err.Error()})
 		}
 	}
 
@@ -300,7 +302,7 @@ func (t *TaskTool) executeSync(ctx context.Context, subagentType, description st
 		}, nil
 	}
 
-	log.Printf("[TaskTool] Delegating task to subagent '%s': %s", subagentType, description)
+	saLog.Info(ctx, "delegating task", map[string]any{"subagent": subagentType, "description": description})
 
 	// 执行任务
 	result, err := subagent.Execute(ctx, description, parentContext)
@@ -312,7 +314,7 @@ func (t *TaskTool) executeSync(ctx context.Context, subagentType, description st
 		}, nil
 	}
 
-	log.Printf("[TaskTool] Subagent '%s' completed task successfully", subagentType)
+	saLog.Info(ctx, "subagent completed task", map[string]any{"subagent": subagentType})
 
 	return map[string]any{
 		"ok":            true,
@@ -344,7 +346,7 @@ func (t *TaskTool) executeAsync(ctx context.Context, subagentType, description s
 		}, nil
 	}
 
-	log.Printf("[TaskTool] Started async subagent '%s' with task_id: %s", subagentType, instance.ID)
+	saLog.Info(ctx, "started async subagent", map[string]any{"subagent": subagentType, "task_id": instance.ID})
 
 	return map[string]any{
 		"ok":            true,
@@ -573,11 +575,11 @@ func BuildSubAgentMiddlewareStack(spec SubAgentSpec, parentMiddlewares []Middlew
 			if idx, exists := nameMap[override.Name()]; exists {
 				// 覆盖同名中间件
 				stack[idx] = override
-				log.Printf("[BuildSubAgentMiddlewareStack] Override middleware: %s", override.Name())
+				saLog.Debug(context.Background(), "override middleware", map[string]any{"name": override.Name()})
 			} else {
 				// 追加新中间件
 				stack = append(stack, override)
-				log.Printf("[BuildSubAgentMiddlewareStack] Append middleware: %s", override.Name())
+				saLog.Debug(context.Background(), "append middleware", map[string]any{"name": override.Name()})
 			}
 		}
 	}
@@ -731,7 +733,7 @@ func (t *StopSubagentTool) Execute(ctx context.Context, input map[string]any, tc
 		}, nil
 	}
 
-	log.Printf("[StopSubagentTool] Stopped subagent: %s", taskID)
+	saLog.Info(ctx, "stopped subagent", map[string]any{"task_id": taskID})
 
 	return map[string]any{
 		"ok":      true,
@@ -798,7 +800,7 @@ func (t *ResumeSubagentTool) Execute(ctx context.Context, input map[string]any, 
 		}, nil
 	}
 
-	log.Printf("[ResumeSubagentTool] Resumed subagent: %s (new task_id: %s)", taskID, instance.ID)
+	saLog.Info(ctx, "resumed subagent", map[string]any{"old_task_id": taskID, "new_task_id": instance.ID})
 
 	return map[string]any{
 		"ok":            true,

@@ -3,11 +3,14 @@ package logic
 import (
 	"context"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/astercloud/aster/pkg/logging"
 )
+
+var consolidationLog = logging.ForComponent("ConsolidationEngine")
 
 // ConsolidationEngine Memory 合并引擎
 // 用于合并相似的 Memory，减少冗余，提高检索效率
@@ -193,7 +196,7 @@ func (e *ConsolidationEngine) Consolidate(ctx context.Context, namespace string)
 
 		merged, deleted, err := e.mergeGroup(ctx, namespace, group)
 		if err != nil {
-			log.Printf("[ConsolidationEngine] Failed to merge group: %v", err)
+			consolidationLog.Warn(ctx, "failed to merge group", map[string]any{"error": err})
 			continue
 		}
 
@@ -337,7 +340,7 @@ func (e *ConsolidationEngine) mergeGroup(ctx context.Context, namespace string, 
 		}
 
 		if err := e.store.Delete(ctx, namespace, mem.Key); err != nil {
-			log.Printf("[ConsolidationEngine] Failed to delete merged memory %s: %v", mem.Key, err)
+			consolidationLog.Warn(ctx, "failed to delete merged memory", map[string]any{"key": mem.Key, "error": err})
 			continue
 		}
 		deleted++

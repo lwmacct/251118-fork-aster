@@ -3,12 +3,14 @@ package core
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/astercloud/aster/pkg/agent"
+	"github.com/astercloud/aster/pkg/logging"
 )
+
+var schedulerLog = logging.ForComponent("Scheduler")
 
 // TaskCallback 任务回调函数
 type TaskCallback func(ctx context.Context) error
@@ -172,7 +174,7 @@ func (s *Scheduler) NotifyStep(stepCount int) {
 		}
 		go func(cb StepCallback) {
 			if err := cb(s.ctx, stepCount); err != nil {
-				log.Printf("[Scheduler] Step callback error at step %d: %v", stepCount, err)
+				schedulerLog.Warn(s.ctx, "step callback error", map[string]any{"step": stepCount, "error": err})
 			}
 		}(listener)
 	}
@@ -192,7 +194,7 @@ func (s *Scheduler) NotifyStep(stepCount int) {
 		// 异步执行回调
 		go func(t *StepTask) {
 			if err := t.Callback(s.ctx, stepCount); err != nil {
-				log.Printf("[Scheduler] Step task %s callback error: %v", t.ID, err)
+				schedulerLog.Warn(s.ctx, "step task callback error", map[string]any{"task_id": t.ID, "error": err})
 			}
 
 			// 通知触发
@@ -236,7 +238,7 @@ func (s *Scheduler) EveryInterval(interval time.Duration, callback TaskCallback)
 			case <-ticker.C:
 				// 执行回调
 				if err := callback(s.ctx); err != nil {
-					log.Printf("[Scheduler] Interval task %s callback error: %v", id, err)
+					schedulerLog.Warn(s.ctx, "interval task callback error", map[string]any{"task_id": id, "error": err})
 				}
 
 				// 通知触发
