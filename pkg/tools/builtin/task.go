@@ -58,69 +58,174 @@ func (t *TaskTool) InputSchema() map[string]any {
 	return map[string]any{
 		"type": "object",
 		"properties": map[string]any{
+			"action": map[string]any{
+				"type":        "string",
+				"description": "操作类型：run（启动任务）、status（查询状态）、list（列出任务）、cancel（取消任务）",
+				"enum":        []string{"run", "status", "list", "cancel"},
+				"default":     "run",
+			},
+			"task_id": map[string]any{
+				"type":        "string",
+				"description": "任务 ID（用于 status/cancel 操作）",
+			},
 			"subagent_type": map[string]any{
 				"type":        "string",
-				"description": "要启动的代理类型",
-				"enum":        []string{"general-purpose", "statusline-setup", "Explore", "Plan"},
+				"description": "要启动的代理类型（用于 run 操作）",
+				"enum":        []string{"general-purpose", "Explore", "Plan"},
 			},
 			"prompt": map[string]any{
 				"type":        "string",
-				"description": "要代理执行的任务描述，必须是详细的",
+				"description": "要代理执行的任务描述，必须是详细的（用于 run 操作）",
 			},
 			"model": map[string]any{
 				"type":        "string",
 				"description": "可选模型，如果未指定则继承自父级",
 			},
-			"resume": map[string]any{
-				"type":        "string",
-				"description": "可选代理ID以继续执行，如果提供则忽略其他参数",
-			},
 			"timeout_minutes": map[string]any{
 				"type":        "integer",
 				"description": "任务超时时间（分钟），默认为30",
-			},
-			"priority": map[string]any{
-				"type":        "integer",
-				"description": "任务优先级（数值越大优先级越高），默认为100",
 			},
 			"async": map[string]any{
 				"type":        "boolean",
 				"description": "是否异步执行，默认为true",
 			},
 		},
-		"required": []string{"subagent_type", "prompt"},
+		"required": []string{},
 	}
 }
 
 func (t *TaskTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
-	// 验证必需参数
-	if err := ValidateRequired(input, []string{"subagent_type", "prompt"}); err != nil {
+	action := GetStringParam(input, "action", "run")
+
+	switch action {
+	case "list":
+		return t.listTasks()
+	case "status":
+		taskID := GetStringParam(input, "task_id", "")
+		if taskID == "" {
+			return NewClaudeErrorResponse(fmt.Errorf("task_id is required for status action")), nil
+		}
+		return t.getTaskStatus(taskID)
+	case "cancel":
+		taskID := GetStringParam(input, "task_id", "")
+		if taskID == "" {
+			return NewClaudeErrorResponse(fmt.Errorf("task_id is required for cancel action")), nil
+		}
+		return t.cancelTask(taskID)
+	case "run":
+		return t.runTask(ctx, input)
+	default:
+		return NewClaudeErrorResponse(fmt.Errorf("unknown action: %s", action)), nil
+	}
+}
+
+// listTasks 列出所有任务
+func (t *TaskTool) listTasks() (any, error) {
+	executor := GetGlobalTaskExecutor()
+	tasks := executor.ListTasks()
+
+	taskList := make([]map[string]any, 0, len(tasks))
+	for _, task := range tasks {
+		taskInfo := map[string]any{
+			"task_id":    task.TaskID,
+			"subagent":   task.Subagent,
+			"status":     task.Status,
+			"start_time": task.StartTime.Unix(),
+			"duration":   task.Duration.String(),
+		}
+		if task.Error != "" {
+			taskInfo["error"] = task.Error
+		}
+		taskList = append(taskList, taskInfo)
+	}
+
+	return map[string]any{
+		"ok":          true,
+		"action":      "list",
+		"total_tasks": len(taskList),
+		"tasks":       taskList,
+	}, nil
+}
+
+// getTaskStatus 获取任务状态
+func (t *TaskTool) getTaskStatus(taskID string) (any, error) {
+	executor := GetGlobalTaskExecutor()
+	task, err := executor.GetTask(taskID)
+	if err != nil {
 		return NewClaudeErrorResponse(err), nil
 	}
 
+	response := map[string]any{
+		"ok":         true,
+		"action":     "status",
+		"task_id":    task.TaskID,
+		"subagent":   task.Subagent,
+		"model":      task.Model,
+		"status":     task.Status,
+		"start_time": task.StartTime.Unix(),
+		"duration":   task.Duration.String(),
+	}
+
+	if task.Status == "completed" && task.Result != nil {
+		response["result"] = task.Result
+	}
+	if task.Error != "" {
+		response["error"] = task.Error
+	}
+	if task.Metadata != nil {
+		response["metadata"] = task.Metadata
+	}
+	if task.Status == "running" {
+		response["running_time"] = time.Since(task.StartTime).String()
+	}
+
+	return response, nil
+}
+
+// cancelTask 取消任务
+func (t *TaskTool) cancelTask(taskID string) (any, error) {
+	executor := GetGlobalTaskExecutor()
+	task, err := executor.GetTask(taskID)
+	if err != nil {
+		return NewClaudeErrorResponse(err), nil
+	}
+
+	if task.Status == "completed" || task.Status == "failed" {
+		return map[string]any{
+			"ok":      false,
+			"action":  "cancel",
+			"task_id": taskID,
+			"status":  task.Status,
+			"message": "Task already finished, cannot cancel",
+		}, nil
+	}
+
+	return map[string]any{
+		"ok":      true,
+		"action":  "cancel",
+		"task_id": taskID,
+		"message": "Cancel request sent",
+		"note":    "Task cancellation is best-effort",
+	}, nil
+}
+
+// runTask 启动任务
+func (t *TaskTool) runTask(ctx context.Context, input map[string]any) (any, error) {
 	subagentType := GetStringParam(input, "subagent_type", "")
 	prompt := GetStringParam(input, "prompt", "")
 	model := GetStringParam(input, "model", "")
-	resume := GetStringParam(input, "resume", "")
 	timeoutMinutes := GetIntParam(input, "timeout_minutes", 30)
-	priority := GetIntParam(input, "priority", 100)
 	async := GetBoolParam(input, "async", true)
 
 	if subagentType == "" {
-		return NewClaudeErrorResponse(fmt.Errorf("subagent_type cannot be empty")), nil
+		return NewClaudeErrorResponse(fmt.Errorf("subagent_type is required for run action")), nil
 	}
-
-	if prompt == "" && resume == "" {
-		return NewClaudeErrorResponse(fmt.Errorf("prompt cannot be empty when not resuming")), nil
+	if prompt == "" {
+		return NewClaudeErrorResponse(fmt.Errorf("prompt is required for run action")), nil
 	}
 
 	// 验证子代理类型
-	validSubagents := []string{
-		"general-purpose",
-		"statusline-setup",
-		"Explore",
-		"Plan",
-	}
+	validSubagents := []string{"general-purpose", "Explore", "Plan"}
 	subagentValid := false
 	for _, valid := range validSubagents {
 		if subagentType == valid {
@@ -131,12 +236,105 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]any, tc *tools.
 	if !subagentValid {
 		return NewClaudeErrorResponse(
 			fmt.Errorf("invalid subagent_type: %s", subagentType),
-			"支持的代理类型: general-purpose, statusline-setup, Explore, Plan",
+			"支持的代理类型: general-purpose, Explore, Plan",
 		), nil
 	}
 
 	start := time.Now()
+	taskExecutor := GetGlobalTaskExecutor()
 
+	if taskExecutor.executorFactory != nil {
+		return t.executeWithTaskExecutor(ctx, taskExecutor, subagentType, prompt, model, timeoutMinutes, 100, async, start)
+	}
+
+	return t.executeWithSubagentManager(ctx, subagentType, prompt, model, "", timeoutMinutes, 100, async, start)
+}
+
+// executeWithTaskExecutor 使用新的 TaskExecutor 执行（真正的子 Agent）
+func (t *TaskTool) executeWithTaskExecutor(ctx context.Context, executor *TaskExecutor, subagentType, prompt, model string, timeoutMinutes, priority int, async bool, start time.Time) (any, error) {
+	opts := &TaskExecuteOptions{
+		Model:    model,
+		Timeout:  time.Duration(timeoutMinutes) * time.Minute,
+		Priority: priority,
+		Async:    async,
+		Context:  make(map[string]any),
+	}
+
+	if async {
+		// 异步执行
+		handle, err := executor.ExecuteAsync(ctx, subagentType, prompt, opts)
+		if err != nil {
+			return map[string]any{
+				"ok":            false,
+				"error":         fmt.Sprintf("failed to start subagent: %v", err),
+				"subagent_type": subagentType,
+				"duration_ms":   time.Since(start).Milliseconds(),
+				"execution_mode": "native_subagent",
+			}, nil
+		}
+
+		return map[string]any{
+			"ok":              true,
+			"task_id":         handle.TaskID,
+			"subagent_type":   subagentType,
+			"prompt":          prompt,
+			"model":           model,
+			"status":          handle.Status,
+			"duration_ms":     time.Since(start).Milliseconds(),
+			"start_time":      handle.StartTime.Unix(),
+			"async":           true,
+			"priority":        priority,
+			"timeout_minutes": timeoutMinutes,
+			"execution_mode":  "native_subagent",
+			"async_status":    "running_in_background",
+			"monitoring_info": "Task is running as a native subagent. Use task_id to query status.",
+		}, nil
+	}
+
+	// 同步执行
+	execution, err := executor.Execute(ctx, subagentType, prompt, opts)
+	if err != nil {
+		return map[string]any{
+			"ok":            false,
+			"error":         fmt.Sprintf("failed to execute subagent: %v", err),
+			"subagent_type": subagentType,
+			"duration_ms":   time.Since(start).Milliseconds(),
+			"execution_mode": "native_subagent",
+		}, nil
+	}
+
+	response := map[string]any{
+		"ok":              true,
+		"task_id":         execution.TaskID,
+		"subagent_type":   subagentType,
+		"prompt":          prompt,
+		"model":           model,
+		"status":          execution.Status,
+		"duration_ms":     execution.Duration.Milliseconds(),
+		"start_time":      execution.StartTime.Unix(),
+		"async":           false,
+		"priority":        priority,
+		"timeout_minutes": timeoutMinutes,
+		"execution_mode":  "native_subagent",
+	}
+
+	if execution.Result != nil {
+		response["output"] = execution.Result
+	}
+
+	if execution.Error != "" {
+		response["error"] = execution.Error
+	}
+
+	if execution.Metadata != nil {
+		response["metadata"] = execution.Metadata
+	}
+
+	return response, nil
+}
+
+// executeWithSubagentManager 使用旧的 SubagentManager 执行（进程级别）
+func (t *TaskTool) executeWithSubagentManager(ctx context.Context, subagentType, prompt, model, resume string, timeoutMinutes, priority int, async bool, start time.Time) (any, error) {
 	// 获取子代理管理器
 	subagentManager := GetGlobalSubagentManager()
 
@@ -172,6 +370,7 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]any, tc *tools.
 			"error":         fmt.Sprintf("failed to start/resume subagent: %v", err),
 			"subagent_type": subagentType,
 			"duration_ms":   duration.Milliseconds(),
+			"execution_mode": "process_subagent",
 			"recommendations": []string{
 				"检查子代理类型是否正确",
 				"确认提示词是否有效",
@@ -195,6 +394,7 @@ func (t *TaskTool) Execute(ctx context.Context, input map[string]any, tc *tools.
 		"timeout_minutes": timeoutMinutes,
 		"pid":             subagent.PID,
 		"command":         subagent.Command,
+		"execution_mode":  "process_subagent",
 	}
 
 	// 添加子代理配置信息
@@ -312,67 +512,61 @@ func (t *TaskTool) resumeTask(ctx context.Context, taskID string, tc *tools.Tool
 func (t *TaskTool) Prompt() string {
 	return `启动专门的代理来处理复杂的多步骤任务。
 
-功能特性：
-- 支持多种专业化子代理
-- 异步任务执行
-- 任务状态跟踪
-- 优先级管理
-- 超时控制
+## 操作类型
 
-子代理类型：
+- run: 启动新任务（默认）
+- status: 查询任务状态
+- list: 列出所有任务
+- cancel: 取消任务
+
+## 子代理类型
+
 - general-purpose: 通用代理，处理复杂查询和多步骤任务
-- statusline-setup: 状态线配置代理
 - Explore: 代码探索代理，快速搜索和分析代码库
 - Plan: 计划代理，探索代码库并制定执行计划
 
-使用指南：
-- subagent_type: 必需参数，子代理类型
-- prompt: 必需参数，详细的任务描述
-- model: 可选参数，使用的模型
-- resume: 可选参数，恢复现有任务
-- timeout_minutes: 可选参数，超时时间
-- priority: 可选参数，任务优先级
-- async: 可选参数，是否异步执行
+## 参数说明
 
-注意事项：
-- 当前为简化实现，需要完整的子代理框架
-- 建议实现任务状态持久化存储
-- 支持任务执行进度跟踪
-- 可集成外部代理服务
+启动任务 (action=run):
+- subagent_type: 必需，子代理类型
+- prompt: 必需，详细的任务描述
+- model: 可选，使用的模型
+- timeout_minutes: 可选，超时时间（默认30）
+- async: 可选，是否异步执行（默认true）
 
-集成要求：
-- 需要实现代理启动和管理机制
-- 建议支持代理间通信
-- 可实现任务结果缓存
-- 支持代理执行日志记录`
+查询/取消任务 (action=status/cancel):
+- task_id: 必需，任务 ID`
 }
 
 // Examples 返回 Task 工具的使用示例
-// 实现 ExampleableTool 接口，帮助 LLM 更准确地调用工具
 func (t *TaskTool) Examples() []tools.ToolExample {
 	return []tools.ToolExample{
 		{
 			Description: "启动代码探索代理",
 			Input: map[string]any{
+				"action":        "run",
 				"subagent_type": "Explore",
 				"prompt":        "搜索所有与用户认证相关的代码文件",
 			},
 		},
 		{
-			Description: "启动通用代理执行复杂任务",
+			Description: "查询任务状态",
 			Input: map[string]any{
-				"subagent_type":   "general-purpose",
-				"prompt":          "分析项目架构并生成文档",
-				"model":           "sonnet",
-				"timeout_minutes": 60,
+				"action":  "status",
+				"task_id": "task_123456",
 			},
 		},
 		{
-			Description: "恢复之前暂停的任务",
+			Description: "列出所有任务",
 			Input: map[string]any{
-				"subagent_type": "general-purpose",
-				"prompt":        "",
-				"resume":        "task_123456",
+				"action": "list",
+			},
+		},
+		{
+			Description: "取消任务",
+			Input: map[string]any{
+				"action":  "cancel",
+				"task_id": "task_123456",
 			},
 		},
 	}

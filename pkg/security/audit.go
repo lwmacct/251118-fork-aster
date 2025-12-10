@@ -477,8 +477,10 @@ func (al *InMemoryAuditLog) eventWorker() {
 		select {
 		case event := <-al.eventChan:
 			if err := al.LogEvent(event); err != nil {
+				al.mu.Lock()
 				al.status.ErrorCount++
 				al.status.LastError = err.Error()
+				al.mu.Unlock()
 			}
 		case <-al.done:
 			return
@@ -795,6 +797,8 @@ func (al *InMemoryAuditLog) ArchiveEvents(ctx context.Context, before time.Time)
 	}
 
 	al.events = remainingEvents
+	// 更新TotalEvents计数
+	al.status.TotalEvents = int64(len(remainingEvents))
 
 	return archivedCount, nil
 }

@@ -68,6 +68,10 @@ func runServe(args []string) error {
 		Router:           rt,
 	}
 
+	// 初始化 SubAgentManager 并注入到 Task 工具
+	// 这使得 Task 工具可以创建真正的子 Agent 而不是进程级别的执行
+	agent.InitializeTaskExecutor(agentDeps)
+
 	// 创建 Server 依赖
 	serverDeps := &server.Dependencies{
 		Store:     jsonStore,

@@ -54,6 +54,7 @@ type EventBus struct {
 	// 清理 Worker
 	cleanupTicker *time.Ticker
 	cleanupDone   chan struct{}
+	cleanupWg     sync.WaitGroup // 等待清理 goroutine 退出
 }
 
 // NewEventBus 创建新的事件总线（使用默认配置）
@@ -92,8 +93,10 @@ func (eb *EventBus) startCleanupWorker() {
 	}
 
 	eb.cleanupTicker = time.NewTicker(eb.config.CleanupInterval)
+	eb.cleanupWg.Add(1)
 
 	go func() {
+		defer eb.cleanupWg.Done()
 		for {
 			select {
 			case <-eb.cleanupTicker.C:
@@ -151,14 +154,16 @@ func (eb *EventBus) cleanup() {
 
 // Close 关闭事件总线，释放资源
 func (eb *EventBus) Close() {
-	eb.mu.Lock()
-	defer eb.mu.Unlock()
-
-	// 停止清理 worker
+	// 先停止清理 worker（不持锁，避免死锁）
 	if eb.cleanupDone != nil {
 		close(eb.cleanupDone)
+		eb.cleanupWg.Wait() // 等待清理 goroutine 完全退出
 		eb.cleanupDone = nil
 	}
+
+	// 然后清理所有资源（持锁）
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
 
 	// 关闭所有订阅 channel
 	for id, ch := range eb.progressSubs {
@@ -327,34 +332,42 @@ func (eb *EventBus) Unsubscribe(ch <-chan types.AgentEventEnvelope) {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
 
-	// 从所有通道中移除，确保只关闭一次
-	closed := false
+	var writeCh chan types.AgentEventEnvelope
+	found := false
+
+	// 从所有订阅 map 中查找并移除（需要检查所有 map，因为同一个 channel 可能订阅了多个通道）
+	// 在第一次找到时保存双向 channel 用于关闭
 	for id, subCh := range eb.progressSubs {
 		if subCh == ch {
 			delete(eb.progressSubs, id)
-			if !closed {
-				close(subCh)
-				closed = true
+			if !found {
+				writeCh = subCh
+				found = true
 			}
 		}
 	}
 	for id, subCh := range eb.controlSubs {
 		if subCh == ch {
 			delete(eb.controlSubs, id)
-			if !closed {
-				close(subCh)
-				closed = true
+			if !found {
+				writeCh = subCh
+				found = true
 			}
 		}
 	}
 	for id, subCh := range eb.monitorSubs {
 		if subCh == ch {
 			delete(eb.monitorSubs, id)
-			if !closed {
-				close(subCh)
-				closed = true
+			if !found {
+				writeCh = subCh
+				found = true
 			}
 		}
+	}
+
+	// 只关闭一次 channel
+	if found && writeCh != nil {
+		close(writeCh)
 	}
 }
 
@@ -470,7 +483,7 @@ func (eb *EventBus) GetLastBookmark() *types.Bookmark {
 	return nil
 }
 
-// GetTimeline 获取完整时间线
+// GetTimeline 获取完整时间线（不推荐用于大量事件，请使用 GetTimelineRange）
 func (eb *EventBus) GetTimeline() []types.AgentEventEnvelope {
 	eb.mu.RLock()
 	defer eb.mu.RUnlock()
@@ -479,6 +492,63 @@ func (eb *EventBus) GetTimeline() []types.AgentEventEnvelope {
 	timeline := make([]types.AgentEventEnvelope, len(eb.timeline))
 	copy(timeline, eb.timeline)
 	return timeline
+}
+
+// GetTimelineRange 获取指定范围的时间线（基于索引）
+func (eb *EventBus) GetTimelineRange(start, limit int) []types.AgentEventEnvelope {
+	eb.mu.RLock()
+	defer eb.mu.RUnlock()
+
+	if start < 0 {
+		start = 0
+	}
+	if start >= len(eb.timeline) {
+		return []types.AgentEventEnvelope{}
+	}
+
+	end := start + limit
+	if limit <= 0 || end > len(eb.timeline) {
+		end = len(eb.timeline)
+	}
+
+	result := make([]types.AgentEventEnvelope, end-start)
+	copy(result, eb.timeline[start:end])
+	return result
+}
+
+// GetTimelineSince 获取指定 cursor 之后的所有事件
+func (eb *EventBus) GetTimelineSince(cursor int64) []types.AgentEventEnvelope {
+	eb.mu.RLock()
+	defer eb.mu.RUnlock()
+
+	result := make([]types.AgentEventEnvelope, 0)
+	for _, envelope := range eb.timeline {
+		if envelope.Cursor > cursor {
+			result = append(result, envelope)
+		}
+	}
+	return result
+}
+
+// GetTimelineFiltered 获取过滤后的时间线
+func (eb *EventBus) GetTimelineFiltered(filter func(types.AgentEventEnvelope) bool) []types.AgentEventEnvelope {
+	eb.mu.RLock()
+	defer eb.mu.RUnlock()
+
+	result := make([]types.AgentEventEnvelope, 0)
+	for _, envelope := range eb.timeline {
+		if filter(envelope) {
+			result = append(result, envelope)
+		}
+	}
+	return result
+}
+
+// GetTimelineCount 获取当前时间线事件数量
+func (eb *EventBus) GetTimelineCount() int {
+	eb.mu.RLock()
+	defer eb.mu.RUnlock()
+	return len(eb.timeline)
 }
 
 // Clear 清空事件总线(用于测试)

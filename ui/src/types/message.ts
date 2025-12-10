@@ -56,6 +56,7 @@ export type AgentEvent =
   | ProgressToolErrorEvent
   | ProgressDoneEvent
   | ProgressTodoUpdateEvent
+  | ProgressSessionSummarizedEvent
   | ControlPermissionRequiredEvent
   | ControlPermissionDecidedEvent
   | ControlAskUserEvent
@@ -142,6 +143,18 @@ export interface ProgressDoneEvent {
   type: "done";
   step: number;
   reason: "completed" | "interrupted";
+}
+
+// Session Summarized Event (会话历史已汇总)
+export interface ProgressSessionSummarizedEvent {
+  type: "session_summarized";
+  messages_before: number;    // 压缩前消息数
+  messages_after: number;     // 压缩后消息数
+  tokens_before: number;      // 压缩前 Token 数
+  tokens_after: number;       // 压缩后 Token 数
+  tokens_saved: number;       // 节省的 Token 数
+  compression_ratio: number;  // 压缩比 (0-1)
+  summary_preview: string;    // 摘要预览
 }
 
 // Todo Events

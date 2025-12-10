@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -275,24 +276,24 @@ func TestLogicMemoryMiddleware_CaptureEvents(t *testing.T) {
 		})
 
 		// 验证事件被处理
-		assert.True(t, matcher.eventProcessed)
-		assert.Equal(t, "user_message", matcher.lastEventType)
+		assert.True(t, matcher.isEventProcessed())
+		assert.Equal(t, "user_message", matcher.getLastEventType())
 		matcher.reset()
 	})
 
 	t.Run("capture user feedback", func(t *testing.T) {
 		mw.CaptureUserFeedback("user:123", "Great response!", 5, nil)
 
-		assert.True(t, matcher.eventProcessed)
-		assert.Equal(t, "user_feedback", matcher.lastEventType)
+		assert.True(t, matcher.isEventProcessed())
+		assert.Equal(t, "user_feedback", matcher.getLastEventType())
 		matcher.reset()
 	})
 
 	t.Run("capture user revision", func(t *testing.T) {
 		mw.CaptureUserRevision("user:123", "然而，这是一个例子", "不过，这是一个例子", nil)
 
-		assert.True(t, matcher.eventProcessed)
-		assert.Equal(t, "user_revision", matcher.lastEventType)
+		assert.True(t, matcher.isEventProcessed())
+		assert.Equal(t, "user_revision", matcher.getLastEventType())
 		matcher.reset()
 	})
 
@@ -306,7 +307,7 @@ func TestLogicMemoryMiddleware_CaptureEvents(t *testing.T) {
 		mw.CaptureEvent(event)
 
 		// 自定义事件类型不在 matcher 支持列表中，matcher 不会被调用
-		assert.False(t, matcher.eventProcessed)
+		assert.False(t, matcher.isEventProcessed())
 		matcher.reset()
 	})
 }
@@ -345,7 +346,7 @@ func TestLogicMemoryMiddleware_AsyncCapture(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// 验证事件被处理
-	assert.True(t, matcher.eventProcessed)
+	assert.True(t, matcher.isEventProcessed())
 
 	// 停止
 	err = mw.OnAgentStop(ctx, "test-agent")
@@ -529,6 +530,7 @@ func TestBuildMemorySection(t *testing.T) {
 
 // testPatternMatcher 测试用的 PatternMatcher
 type testPatternMatcher struct {
+	mu             sync.RWMutex
 	supportedTypes []string
 	memories       []*logic.LogicMemory
 	err            error
@@ -537,6 +539,8 @@ type testPatternMatcher struct {
 }
 
 func (m *testPatternMatcher) MatchEvent(ctx context.Context, event logic.Event) ([]*logic.LogicMemory, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.eventProcessed = true
 	m.lastEventType = event.Type
 	if m.err != nil {
@@ -546,10 +550,26 @@ func (m *testPatternMatcher) MatchEvent(ctx context.Context, event logic.Event) 
 }
 
 func (m *testPatternMatcher) SupportedEventTypes() []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.supportedTypes
 }
 
 func (m *testPatternMatcher) reset() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.eventProcessed = false
 	m.lastEventType = ""
+}
+
+func (m *testPatternMatcher) isEventProcessed() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.eventProcessed
+}
+
+func (m *testPatternMatcher) getLastEventType() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.lastEventType
 }

@@ -61,6 +61,9 @@ type Agent struct {
 	// 权限管理
 	pendingPermissions map[string]chan string // callID -> decision channel
 
+	// Plan 模式管理
+	planMode *PlanModeManager
+
 	// 控制信号
 	stopCh chan struct{}
 }
@@ -347,6 +350,7 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 		toolRecords:        make(map[string]*types.ToolCallRecord),
 		runningTools:       make(map[string]*runningToolHandle),
 		pendingPermissions: make(map[string]chan string),
+		planMode:           NewPlanModeManager(),
 		createdAt:          time.Now(),
 		stopCh:             make(chan struct{}),
 	}
@@ -369,6 +373,25 @@ func (a *Agent) initialize(ctx context.Context) error {
 	// 从Store加载状态
 	messages, err := a.deps.Store.LoadMessages(ctx, a.id)
 	if err == nil && len(messages) > 0 {
+		// 验证并清理不完整的 tool_calls 消息
+		// DeepSeek 等 API 要求每个包含 tool_calls 的 assistant 消息后必须紧跟对应的 tool_result 消息
+		if !a.validateMessageHistory(messages) {
+			agentLog.Warn(ctx, "invalid message history detected, cleaning incomplete tool_calls", map[string]any{"agent_id": a.id, "original_count": len(messages)})
+			cleanedMessages := a.removeIncompleteToolCalls(messages)
+			if len(cleanedMessages) > 0 && a.validateMessageHistory(cleanedMessages) {
+				messages = cleanedMessages
+				// 保存清理后的消息
+				if err := a.deps.Store.SaveMessages(ctx, a.id, messages); err != nil {
+					agentLog.Warn(ctx, "failed to save cleaned messages", map[string]any{"error": err})
+				} else {
+					agentLog.Info(ctx, "cleaned message history", map[string]any{"agent_id": a.id, "removed": len(messages) - len(cleanedMessages), "remaining": len(cleanedMessages)})
+				}
+			} else {
+				agentLog.Warn(ctx, "could not fix message history, clearing all messages", map[string]any{"agent_id": a.id})
+				messages = []types.Message{}
+				_ = a.deps.Store.SaveMessages(ctx, a.id, messages)
+			}
+		}
 		a.messages = messages
 	}
 
@@ -972,6 +995,7 @@ func (a *Agent) Close() error {
 // 当前会注入:
 //   - tool_manuals: 工具手册映射，供 ToolHelp 等工具使用
 //   - skills_runtime: *skills.Runtime, 供 skill_call 工具使用 (仅当 Agent 配置了 SkillsPackage 时)
+//   - plan_mode_manager: *PlanModeManager, 供 EnterPlanMode/ExitPlanMode 工具使用
 func (a *Agent) buildToolContext(ctx context.Context) *tools.ToolContext {
 	tc := &tools.ToolContext{
 		AgentID:  a.id,
@@ -1007,6 +1031,11 @@ func (a *Agent) buildToolContext(ctx context.Context) *tools.ToolContext {
 		loader := skills.NewLoader(fullSkillsDir, a.sandbox.FS())
 		rt := skills.NewRuntime(loader, a.sandbox)
 		tc.Services["skills_runtime"] = rt
+	}
+
+	// 注入 PlanModeManager，供 EnterPlanMode/ExitPlanMode 工具使用
+	if a.planMode != nil {
+		tc.Services["plan_mode_manager"] = a.planMode
 	}
 
 	return tc
@@ -1353,4 +1382,124 @@ func inferProviderFromModel(model string) string {
 	default:
 		return "anthropic" // 默认 anthropic
 	}
+}
+
+// validateMessageHistory 验证消息历史格式是否正确
+// DeepSeek 等 API 要求：每个包含 tool_calls 的 assistant 消息后必须紧跟对应的 tool_result 消息
+func (a *Agent) validateMessageHistory(messages []types.Message) bool {
+	for i, msg := range messages {
+		// 检查是否有 tool_calls，并收集所有 tool_call IDs
+		var toolCallIDs []string
+		hasToolCalls := false
+		for _, block := range msg.ContentBlocks {
+			if toolUse, ok := block.(*types.ToolUseBlock); ok {
+				hasToolCalls = true
+				toolCallIDs = append(toolCallIDs, toolUse.ID)
+			}
+		}
+
+		if hasToolCalls {
+			// 如果是最后一条消息，无效（tool_calls 必须有 response）
+			if i+1 >= len(messages) {
+				return false
+			}
+
+			// 检查紧接着的下一条消息是否包含 tool_result
+			nextMsg := messages[i+1]
+			var toolResultIDs []string
+			hasToolResult := false
+			for _, block := range nextMsg.ContentBlocks {
+				if toolResult, ok := block.(*types.ToolResultBlock); ok {
+					hasToolResult = true
+					toolResultIDs = append(toolResultIDs, toolResult.ToolUseID)
+				}
+			}
+
+			if !hasToolResult {
+				return false
+			}
+
+			// 验证每个 tool_call ID 都有对应的 tool_result
+			for _, toolCallID := range toolCallIDs {
+				found := false
+				for _, resultID := range toolResultIDs {
+					if resultID == toolCallID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+// removeIncompleteToolCalls 移除所有不完整的 tool_call 序列
+// 策略：找到第一个不完整的 tool_call，截断到该位置之前
+func (a *Agent) removeIncompleteToolCalls(messages []types.Message) []types.Message {
+	if len(messages) == 0 {
+		return messages
+	}
+
+	// 从前往后扫描，找到第一个不完整的 tool_call
+	for i, msg := range messages {
+		// 检查是否有 tool_calls
+		var toolCallIDs []string
+		hasToolCalls := false
+		for _, block := range msg.ContentBlocks {
+			if toolUse, ok := block.(*types.ToolUseBlock); ok {
+				hasToolCalls = true
+				toolCallIDs = append(toolCallIDs, toolUse.ID)
+			}
+		}
+
+		if hasToolCalls {
+			// 如果是最后一条消息，截断
+			if i+1 >= len(messages) {
+				return messages[:i]
+			}
+
+			// 检查下一条消息
+			nextMsg := messages[i+1]
+			var toolResultIDs []string
+			hasToolResult := false
+			for _, block := range nextMsg.ContentBlocks {
+				if toolResult, ok := block.(*types.ToolResultBlock); ok {
+					hasToolResult = true
+					toolResultIDs = append(toolResultIDs, toolResult.ToolUseID)
+				}
+			}
+
+			if !hasToolResult {
+				// 下一条消息不是 tool_result，截断到这里
+				return messages[:i]
+			}
+
+			// 验证所有 tool_call 都有对应的 tool_result
+			allMatched := true
+			for _, toolCallID := range toolCallIDs {
+				found := false
+				for _, resultID := range toolResultIDs {
+					if resultID == toolCallID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					allMatched = false
+					break
+				}
+			}
+
+			if !allMatched {
+				return messages[:i]
+			}
+		}
+	}
+
+	// 所有消息都是完整的
+	return messages
 }

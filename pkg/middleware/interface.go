@@ -7,12 +7,34 @@ import (
 	"github.com/astercloud/aster/pkg/types"
 )
 
+// Metadata Keys
+const (
+	// MetadataKeyEventEmitter 事件发送器的 Metadata key
+	// 值类型: EventEmitterFunc
+	MetadataKeyEventEmitter = "event_emitter"
+)
+
+// EventEmitterFunc 事件发送函数类型
+// 中间件可以通过此函数发送事件到 EventBus
+type EventEmitterFunc func(event types.EventType)
+
 // ModelRequest 模型请求
 type ModelRequest struct {
 	Messages     []types.Message
 	SystemPrompt string
 	Tools        []tools.Tool
 	Metadata     map[string]any
+}
+
+// EmitEvent 发送事件的便捷方法
+// 如果 Metadata 中包含 EventEmitter，则调用它发送事件
+func (r *ModelRequest) EmitEvent(event types.EventType) {
+	if r.Metadata == nil {
+		return
+	}
+	if emitter, ok := r.Metadata[MetadataKeyEventEmitter].(EventEmitterFunc); ok && emitter != nil {
+		emitter(event)
+	}
 }
 
 // ModelResponse 模型响应

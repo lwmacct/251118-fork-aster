@@ -19,6 +19,7 @@ export type ThinkAloudEventType =
   | 'tool_call'          // 工具调用开始
   | 'tool_result'        // 工具调用结果
   | 'approval_required'  // 需要审批
+  | 'session_summarized' // 会话历史已汇总
 
 // 思考阶段类型
 export type ThinkingStage =
@@ -108,7 +109,18 @@ export interface ToolCallRecord {
 }
 
 // 旧版类型（保持向后兼容）
-export type ThinkingStepType = 'reasoning' | 'tool_call' | 'tool_result' | 'decision' | 'approval'
+export type ThinkingStepType = 'reasoning' | 'tool_call' | 'tool_result' | 'decision' | 'approval' | 'session_summarized'
+
+// 会话摘要数据
+export interface SessionSummarizedData {
+  messagesBefore: number
+  messagesAfter: number
+  tokensBefore: number
+  tokensAfter: number
+  tokensSaved: number
+  compressionRatio: number
+  summaryPreview: string
+}
 
 export interface ThinkingStep {
   id?: string
@@ -121,6 +133,8 @@ export interface ThinkingStep {
   result?: any
   timestamp: number
   messageId?: string
+  // 会话摘要相关数据
+  sessionSummarized?: SessionSummarizedData
 }
 
 export interface ThinkingState {

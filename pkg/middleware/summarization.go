@@ -149,11 +149,35 @@ func (m *SummarizationMiddleware) WrapModelCall(ctx context.Context, req *ModelR
 	})
 	newMessages = append(newMessages, messagesToKeep...)
 
+	// 计算压缩后的 token 数和压缩比
+	newTokens := m.tokenCounter(newMessages)
+	tokensSaved := totalTokens - newTokens
+	compressionRatio := float64(newTokens) / float64(totalTokens)
+
 	// 更新请求的消息
 	req.Messages = newMessages
 	m.summarizationCount++
 
-	sumLog.Info(ctx, "summarization complete", map[string]any{"before": len(messages), "after": len(newMessages), "total_summarizations": m.summarizationCount})
+	sumLog.Info(ctx, "summarization complete", map[string]any{
+		"before":              len(messages),
+		"after":               len(newMessages),
+		"tokens_before":       totalTokens,
+		"tokens_after":        newTokens,
+		"tokens_saved":        tokensSaved,
+		"compression_ratio":   compressionRatio,
+		"total_summarizations": m.summarizationCount,
+	})
+
+	// 发送会话压缩事件 (通过 Metadata 中的 EventEmitter)
+	req.EmitEvent(&types.ProgressSessionSummarizedEvent{
+		MessagesBefore:   len(messages),
+		MessagesAfter:    len(newMessages),
+		TokensBefore:     totalTokens,
+		TokensAfter:      newTokens,
+		TokensSaved:      tokensSaved,
+		CompressionRatio: compressionRatio,
+		SummaryPreview:   truncateString(summary, 150),
+	})
 
 	return handler(ctx, req)
 }

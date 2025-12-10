@@ -38,6 +38,22 @@ func NewPlanFileManager(basePath string) *PlanFileManager {
 	}
 }
 
+// NewPlanFileManagerWithProject 创建带项目名称的计划文件管理器
+// basePath: 基础路径，如 "{workDir}/.plans"
+// projectName: 项目名称（可选，用于进一步隔离）
+func NewPlanFileManagerWithProject(basePath, projectName string) *PlanFileManager {
+	if basePath == "" {
+		basePath = ".plans"
+	}
+	// 如果提供了项目名称，将其作为子目录
+	if projectName != "" {
+		basePath = filepath.Join(basePath, projectName)
+	}
+	return &PlanFileManager{
+		basePath: basePath,
+	}
+}
+
 // EnsureDir 确保目录存在
 func (m *PlanFileManager) EnsureDir() error {
 	return os.MkdirAll(m.basePath, 0755)

@@ -154,6 +154,21 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 			Metadata:     make(map[string]any),
 		}
 
+		// 注入 EventEmitter，让中间件可以发送事件
+		req.Metadata[middleware.MetadataKeyEventEmitter] = middleware.EventEmitterFunc(func(event types.EventType) {
+			if event == nil {
+				return
+			}
+			switch event.Channel() {
+			case types.ChannelProgress:
+				a.eventBus.EmitProgress(event)
+			case types.ChannelControl:
+				a.eventBus.EmitControl(event)
+			case types.ChannelMonitor:
+				a.eventBus.EmitMonitor(event)
+			}
+		})
+
 		// 定义 finalHandler: 实际调用 Provider
 		finalHandler := func(ctx context.Context, req *middleware.ModelRequest) (*middleware.ModelResponse, error) {
 			streamOpts := &provider.StreamOptions{
@@ -280,6 +295,28 @@ func (a *Agent) executeTools(ctx context.Context, toolUses []*types.ToolUseBlock
 
 // executeSingleTool 执行单个工具
 func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) types.ContentBlock {
+	// Plan 模式检查：验证工具调用是否允许
+	if a.planMode != nil && a.planMode.IsActive() {
+		allowed, reason := a.planMode.ValidateToolCall(tu.Name, tu.Input)
+		if !allowed {
+			errorMsg := fmt.Sprintf("Plan Mode restriction: %s", reason)
+			a.eventBus.EmitProgress(&types.ProgressToolErrorEvent{
+				Call: types.ToolCallSnapshot{
+					ID:        tu.ID,
+					Name:      tu.Name,
+					State:     types.ToolCallStateFailed,
+					Arguments: tu.Input,
+				},
+				Error: errorMsg,
+			})
+			return &types.ToolResultBlock{
+				ToolUseID: tu.ID,
+				Content:   fmt.Sprintf(`{"ok":false,"error":"%s","plan_mode":true}`, errorMsg),
+				IsError:   true,
+			}
+		}
+	}
+
 	// 创建工具调用记录
 	record := tools.NewToolCallRecord(tu.ID, tu.Name, tu.Input).Build()
 	a.mu.Lock()

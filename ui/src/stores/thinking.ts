@@ -119,6 +119,37 @@ export const useThinkingStore = defineStore("thinking", () => {
   };
 
   /**
+   * 添加会话摘要步骤
+   */
+  const addSessionSummarizedStep = (
+    messageId: string,
+    data: {
+      messagesBefore: number;
+      messagesAfter: number;
+      tokensBefore: number;
+      tokensAfter: number;
+      tokensSaved: number;
+      compressionRatio: number;
+      summaryPreview: string;
+    }
+  ) => {
+    addStep(messageId, {
+      type: "session_summarized",
+      content: `已汇总 ${data.messagesBefore} 条消息 → ${data.messagesAfter} 条（节省 ${data.tokensSaved.toLocaleString()} tokens）`,
+      timestamp: Date.now(),
+      sessionSummarized: {
+        messagesBefore: data.messagesBefore,
+        messagesAfter: data.messagesAfter,
+        tokensBefore: data.tokensBefore,
+        tokensAfter: data.tokensAfter,
+        tokensSaved: data.tokensSaved,
+        compressionRatio: data.compressionRatio,
+        summaryPreview: data.summaryPreview,
+      },
+    });
+  };
+
+  /**
    * 获取指定消息的思维步骤
    */
   const getSteps = (messageId: string): ThinkingStep[] => {
@@ -162,6 +193,7 @@ export const useThinkingStore = defineStore("thinking", () => {
     addToolResultStep,
     addDecisionStep,
     addApprovalStep,
+    addSessionSummarizedStep,
     getSteps,
     clearSteps,
     clearAllSteps,

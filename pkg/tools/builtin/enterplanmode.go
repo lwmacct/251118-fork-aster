@@ -8,6 +8,14 @@ import (
 	"github.com/astercloud/aster/pkg/tools"
 )
 
+// PlanModeManagerInterface Plan 模式管理器接口
+// 用于工具与 Agent 的 PlanModeManager 交互
+type PlanModeManagerInterface interface {
+	EnterPlanMode(planID, planFilePath, reason string)
+	ExitPlanMode()
+	IsActive() bool
+}
+
 // EnterPlanModeTool 进入规划模式工具
 // 用于复杂任务的规划阶段，在此模式下只允许只读操作和计划文件写入
 type EnterPlanModeTool struct {
@@ -26,7 +34,7 @@ type EnterPlanModeResult struct {
 
 // NewEnterPlanModeTool 创建EnterPlanMode工具
 func NewEnterPlanModeTool(config map[string]any) (tools.Tool, error) {
-	basePath := ".aster/plans"
+	basePath := ".plans" // 默认使用相对路径，会在工作目录下创建
 	if bp, ok := config["base_path"].(string); ok && bp != "" {
 		basePath = bp
 	}
@@ -60,52 +68,70 @@ func (t *EnterPlanModeTool) InputSchema() map[string]any {
 func (t *EnterPlanModeTool) Execute(ctx context.Context, input map[string]any, tc *tools.ToolContext) (any, error) {
 	reason := GetStringParam(input, "reason", "")
 
+	// 获取工作目录，动态设置计划文件存储路径
+	// 这样计划文件会存储在 {workDir}/.plans/ 下，支持按项目隔离
+	planManager := t.planFileManager
+	if tc != nil && tc.Sandbox != nil {
+		workDir := tc.Sandbox.WorkDir()
+		if workDir != "" {
+			// 创建新的 PlanFileManager，使用工作目录下的 .plans 子目录
+			planManager = NewPlanFileManagerWithProject(workDir+"/.plans", "")
+		}
+	}
+
 	// 确保计划目录存在
-	if err := t.planFileManager.EnsureDir(); err != nil {
+	if err := planManager.EnsureDir(); err != nil {
 		return NewClaudeErrorResponse(fmt.Errorf("failed to create plans directory: %w", err)), nil
 	}
 
 	// 生成计划文件路径
-	planPath := t.planFileManager.GeneratePath()
-	planID := t.planFileManager.GenerateID()
+	planPath := planManager.GeneratePath()
+	planID := planManager.GenerateID()
 
 	// 创建初始计划文件
-	initialContent := fmt.Sprintf(`# Implementation Plan
+	initialContent := fmt.Sprintf(`# 实施计划
 
-> Plan ID: %s
-> Created: %s
-> Status: Planning
+> 计划 ID: %s
+> 创建时间: %s
+> 状态: 规划中
 
-## Overview
+## 概述
 
-[Describe the task and approach here]
+[在此描述任务目标和实施方案]
 
-## Steps
+## 执行步骤
 
-1. [Step 1]
-2. [Step 2]
-3. [Step 3]
+1. [步骤 1]
+2. [步骤 2]
+3. [步骤 3]
 
-## Critical Files
+## 关键文件
 
-| File | Purpose |
-|------|---------|
+| 文件 | 用途 |
+|------|------|
 | | |
 
-## Risks & Mitigations
+## 风险与应对
 
 -
 
-## Success Criteria
+## 成功标准
 
 -
 
 ---
-*This plan file will be updated as planning progresses.*
+*此计划文件将随着规划进展持续更新。*
 `, planID, time.Now().Format(time.RFC3339))
 
-	if err := t.planFileManager.Save(planPath, initialContent); err != nil {
+	if err := planManager.Save(planPath, initialContent); err != nil {
 		return NewClaudeErrorResponse(fmt.Errorf("failed to create plan file: %w", err)), nil
+	}
+
+	// 激活 Agent 级别的 Plan 模式约束
+	if tc != nil && tc.Services != nil {
+		if pmm, ok := tc.Services["plan_mode_manager"].(PlanModeManagerInterface); ok {
+			pmm.EnterPlanMode(planID, planPath, reason)
+		}
 	}
 
 	// 定义规划模式允许的工具
@@ -117,47 +143,52 @@ func (t *EnterPlanModeTool) Execute(ctx context.Context, input map[string]any, t
 		"WebSearch",
 		"AskUserQuestion",
 		"Write", // 仅限计划文件
+		"ExitPlanMode",
+		"Task", // 仅限 Explore 子代理
 	}
 
-	workflow := `## Plan Mode Workflow
+	workflow := `## 规划模式工作流程
 
-### Phase 1: Initial Understanding
-- Launch Explore agents to understand the codebase
-- Ask user questions to clarify requirements
+### 阶段 1：初步了解
+- 启动 Explore 代理了解代码库
+- 向用户提问以澄清需求
 
-### Phase 2: Planning
-- Design the implementation approach
-- Identify critical files and dependencies
+### 阶段 2：方案设计
+- 设计实施方案
+- 识别关键文件和依赖关系
 
-### Phase 3: Synthesis
-- Collect findings and create a comprehensive plan
-- Ask user about trade-offs and preferences
+### 阶段 3：综合分析
+- 收集发现并创建综合计划
+- 向用户询问权衡和偏好
 
-### Phase 4: Final Plan
-- Update the plan file with final recommendations
-- Include implementation steps and success criteria
+### 阶段 4：最终计划
+- 更新计划文件，包含最终建议
+- 包括实施步骤和成功标准
 
-### Phase 5: Exit
-- Call ExitPlanMode when planning is complete
-- Wait for user approval before implementation
+### 阶段 5：退出
+- 规划完成后调用 ExitPlanMode
+- 等待用户批准后再开始实施
 
-**IMPORTANT**: In plan mode, you can ONLY:
-- Read files (Read, Glob, Grep)
-- Search web (WebFetch, WebSearch)
-- Ask questions (AskUserQuestion)
-- Write to the plan file (Write - only to: ` + planPath + `)
+**重要提示**：在规划模式下，你只能：
+- 读取文件（Read, Glob, Grep）
+- 搜索网页（WebFetch, WebSearch）
+- 向用户提问（AskUserQuestion）
+- 写入计划文件（Write - 仅限：` + planPath + `）
+- 启动 Explore 子代理（Task - 仅限 Explore 类型）
 
-You CANNOT edit code, run commands, or make any changes until plan is approved.`
+在计划获得批准之前，你不能编辑代码、运行命令或进行任何修改。`
 
 	// 构建响应
 	result := map[string]any{
-		"ok":             true,
-		"plan_file_path": planPath,
-		"plan_id":        planID,
-		"allowed_tools":  allowedTools,
-		"workflow":       workflow,
-		"message":        "Plan mode activated. You can now explore the codebase and create your plan.",
-		"created_at":     time.Now().Unix(),
+		"ok":                   true,
+		"plan_file_path":       planPath,
+		"plan_id":              planID,
+		"allowed_tools":        allowedTools,
+		"workflow":             workflow,
+		"message":              "已进入规划模式。现在可以探索代码库并创建计划。",
+		"created_at":           time.Now().Unix(),
+		"plan_mode_enforced":   true,
+		"agent_level_enforced": true,
 	}
 
 	if reason != "" {
@@ -166,10 +197,10 @@ You CANNOT edit code, run commands, or make any changes until plan is approved.`
 
 	// 添加提示信息
 	result["next_steps"] = []string{
-		"1. Read the codebase to understand existing patterns",
-		"2. Ask user questions to clarify requirements",
-		"3. Update the plan file with your findings",
-		"4. Call ExitPlanMode when ready for user approval",
+		"1. 阅读代码库，理解现有模式",
+		"2. 向用户提问，澄清需求",
+		"3. 更新计划文件，记录发现",
+		"4. 调用 ExitPlanMode 请求用户审批",
 	}
 
 	result["constraints"] = map[string]any{
@@ -177,6 +208,7 @@ You CANNOT edit code, run commands, or make any changes until plan is approved.`
 		"plan_file_writable":    planPath,
 		"code_editing_disabled": true,
 		"bash_disabled":         true,
+		"task_explore_only":     true,
 	}
 
 	return result, nil

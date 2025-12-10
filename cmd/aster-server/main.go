@@ -177,6 +177,10 @@ func main() {
 		PromptCompressor: promptCompressor,
 	}
 
+	// 初始化 SubAgentManager 并注入到 Task 工具
+	agent.InitializeTaskExecutor(agentDeps)
+	fmt.Println("✅ SubAgentManager initialized for Task tool")
+
 	// Create server dependencies
 	deps := &server.Dependencies{
 		Store:     st,
@@ -250,7 +254,7 @@ func registerDefaultTemplates(registry *agent.TemplateRegistry) {
 3. Search for files: Use the Glob tool
 4. Search within files: Use the Grep tool
 5. Execute commands: Use the Bash tool
-6. Make web requests: Use the HttpRequest tool
+6. Fetch web content: Use the WebFetch tool
 7. Search the web: Use the WebSearch tool
 
 Always use the appropriate tool when possible instead of just explaining what you would do. Tools help you actually perform tasks for the user.
@@ -318,7 +322,7 @@ IMPORTANT: Always follow security best practices:
 3. Search for files: Use the Glob tool
 4. Search within files: Use the Grep tool
 5. Execute commands: Use the Bash tool
-6. Make web requests: Use the HttpRequest tool
+6. Fetch web content: Use the WebFetch tool
 7. Search the web: Use the WebSearch tool
 
 Always use the appropriate tool when possible instead of just explaining what you would do. Tools help you actually perform tasks for the user.
@@ -340,7 +344,7 @@ If you're unsure whether to use a tool, err on the side of using it - it's bette
 3. Search for code patterns: Use the Grep tool
 4. Find files by pattern: Use the Glob tool
 5. Build/test code: Use the Bash tool
-6. Check documentation: Use the HttpRequest or WebSearch tools
+6. Check documentation: Use the WebFetch or WebSearch tools
 
 Always prefer to actually read the code, make the changes, or run the commands rather than just describing what to do. Use your tools to examine real code and make real modifications.
 

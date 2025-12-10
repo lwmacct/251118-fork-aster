@@ -27,6 +27,8 @@ var (
 	globalAskUserRequestsMu sync.RWMutex
 )
 
+
+
 // RespondToAskUser 响应 AskUser 请求（供外部调用）
 func RespondToAskUser(requestID string, answers map[string]any) error {
 	globalAskUserRequestsMu.RLock()
@@ -200,10 +202,10 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 		})
 	}
 
-	// 等待用户响应或超时
-	// 使用独立的 30 分钟超时，不受外层 context 影响
-	// 这是因为 AskUserQuestion 需要等待用户响应，可能需要很长时间
-	timeout := time.After(30 * time.Minute)
+	// 等待用户响应
+	// 使用独立的超时，不受外层 context 影响
+	// 设置为 2 小时，给用户足够的时间响应
+	timeout := time.After(2 * time.Hour)
 
 	// 清理函数
 	cleanup := func() {
@@ -228,11 +230,13 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 		}, nil
 	case <-timeout:
 		cleanup()
-		askUserLog.Warn(context.Background(), "request timed out after 30 minutes", map[string]any{"request_id": requestID})
+		askUserLog.Warn(context.Background(), "request timed out after 2 hours", map[string]any{"request_id": requestID})
+		// 超时后返回成功但标记为超时，避免 AI 重复询问
 		return map[string]any{
-			"ok":         false,
+			"ok":         true,
 			"request_id": requestID,
-			"error":      "user response timeout (30 minutes)",
+			"timeout":    true,
+			"message":    "用户未在规定时间内响应，请继续执行或稍后再问",
 			"timestamp":  time.Now().Unix(),
 		}, nil
 	case <-ctx.Done():
@@ -250,12 +254,13 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 			}
 			cleanup()
 		}()
-		// 返回一个特殊的结果，告诉 Agent 用户正在响应
+		// 返回成功但标记为等待中，避免 AI 重复询问
+		// 关键：返回 ok: true 而不是 ok: false，这样 AI 不会认为失败而重试
 		return map[string]any{
-			"ok":         false,
+			"ok":         true,
 			"request_id": requestID,
 			"waiting":    true,
-			"message":    "等待用户响应中，请稍候...",
+			"message":    "问题已发送给用户，等待响应中。请不要重复询问相同的问题。",
 			"timestamp":  time.Now().Unix(),
 		}, nil
 	}
@@ -396,9 +401,13 @@ func (t *AskUserQuestionTool) Prompt() string {
   ]
 }
 
+重要规则:
+1. 每个问题只问一次，不要重复询问相同的问题
+2. 如果返回 waiting: true，表示正在等待用户响应，请继续其他工作
+3. 如果返回 timeout: true，表示用户未响应，请自行决定并继续执行
+4. 用户总是可以选择"Other"来提供自定义输入
+
 注意事项:
-- 用户总是可以选择"Other"来提供自定义输入
 - 问题应简洁明了，避免技术术语过多
-- 选项描述应解释该选择的含义或影响
-- 如果multi_select为true，需要相应地措辞问题`
+- 选项描述应解释该选择的含义或影响`
 }

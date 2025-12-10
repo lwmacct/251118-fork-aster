@@ -33,6 +33,11 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
 
+        <!-- 会话摘要图标 -->
+        <svg v-else-if="step.type === 'session_summarized'" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+
         <!-- 默认图标 -->
         <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -111,6 +116,37 @@
           </div>
         </div>
       </div>
+
+      <!-- 会话摘要步骤 -->
+      <div v-if="step.type === 'session_summarized'" class="step-body">
+        <div class="session-summarized">
+          <div class="session-summarized-header">
+            <svg class="w-4 h-4 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <span class="font-semibold text-cyan-700 dark:text-cyan-300">已汇总会话历史记录</span>
+          </div>
+          <div v-if="step.sessionSummarized" class="session-summarized-stats">
+            <div class="stat-item">
+              <span class="stat-label">消息</span>
+              <span class="stat-value">{{ step.sessionSummarized.messagesBefore }} → {{ step.sessionSummarized.messagesAfter }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">节省</span>
+              <span class="stat-value text-emerald-600 dark:text-emerald-400">{{ formatTokens(step.sessionSummarized.tokensSaved) }} tokens</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">压缩率</span>
+              <span class="stat-value">{{ formatPercent(step.sessionSummarized.compressionRatio) }}</span>
+            </div>
+          </div>
+          <div v-if="step.sessionSummarized?.summaryPreview" class="session-summarized-preview">
+            <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+              {{ step.sessionSummarized.summaryPreview }}...
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -140,6 +176,7 @@ export default defineComponent({
         tool_result: "step-dot-tool-result",
         decision: "step-dot-decision",
         approval: "step-dot-approval",
+        session_summarized: "step-dot-session-summarized",
       };
       return classes[props.step.type] || "";
     });
@@ -151,6 +188,7 @@ export default defineComponent({
         tool_result: "step-type-tool-result",
         decision: "step-type-decision",
         approval: "step-type-approval",
+        session_summarized: "step-type-session-summarized",
       };
       return classes[props.step.type] || "";
     });
@@ -162,6 +200,7 @@ export default defineComponent({
         tool_result: "执行结果",
         decision: "决策",
         approval: "审批请求",
+        session_summarized: "历史汇总",
       };
       return labels[props.step.type] || props.step.type;
     });
@@ -192,6 +231,14 @@ export default defineComponent({
       }
     };
 
+    const formatTokens = (tokens: number): string => {
+      return tokens.toLocaleString();
+    };
+
+    const formatPercent = (ratio: number): string => {
+      return `${Math.round(ratio * 100)}%`;
+    };
+
     return {
       stepDotClass,
       stepTypeClass,
@@ -199,6 +246,8 @@ export default defineComponent({
       formatTime,
       formatToolArgs,
       formatResult,
+      formatTokens,
+      formatPercent,
     };
   },
 });
@@ -237,6 +286,10 @@ export default defineComponent({
   @apply bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400;
 }
 
+.step-dot-session-summarized {
+  @apply bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400;
+}
+
 .step-line {
   @apply w-0.5 flex-1 bg-slate-200 dark:bg-slate-700 mt-1;
 }
@@ -271,6 +324,10 @@ export default defineComponent({
 
 .step-type-approval {
   @apply bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300;
+}
+
+.step-type-session-summarized {
+  @apply bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300;
 }
 
 .step-time {
@@ -326,5 +383,34 @@ export default defineComponent({
 
 .approval-step-content {
   @apply p-3 bg-white dark:bg-slate-800;
+}
+
+/* 会话摘要样式 */
+.session-summarized {
+  @apply rounded-lg overflow-hidden border border-cyan-200 dark:border-cyan-800 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20;
+}
+
+.session-summarized-header {
+  @apply flex items-center gap-2 px-3 py-2 text-sm font-medium;
+}
+
+.session-summarized-stats {
+  @apply flex flex-wrap gap-4 px-3 py-2 border-t border-cyan-100 dark:border-cyan-800/50;
+}
+
+.stat-item {
+  @apply flex flex-col;
+}
+
+.stat-label {
+  @apply text-xs text-slate-500 dark:text-slate-400;
+}
+
+.stat-value {
+  @apply text-sm font-medium text-slate-700 dark:text-slate-200;
+}
+
+.session-summarized-preview {
+  @apply px-3 py-2 border-t border-cyan-100 dark:border-cyan-800/50 bg-white/50 dark:bg-slate-900/50;
 }
 </style>

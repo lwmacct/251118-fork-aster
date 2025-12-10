@@ -172,6 +172,21 @@ type ProgressDoneEvent struct {
 func (e *ProgressDoneEvent) Channel() AgentChannel { return ChannelProgress }
 func (e *ProgressDoneEvent) EventType() string     { return "done" }
 
+// ProgressSessionSummarizedEvent 会话历史已汇总事件
+// 当 SummarizationMiddleware 压缩历史消息时发送
+type ProgressSessionSummarizedEvent struct {
+	MessagesBefore   int     `json:"messages_before"`   // 压缩前消息数
+	MessagesAfter    int     `json:"messages_after"`    // 压缩后消息数
+	TokensBefore     int     `json:"tokens_before"`     // 压缩前 Token 数
+	TokensAfter      int     `json:"tokens_after"`      // 压缩后 Token 数
+	TokensSaved      int     `json:"tokens_saved"`      // 节省的 Token 数
+	CompressionRatio float64 `json:"compression_ratio"` // 压缩比 (0-1)
+	SummaryPreview   string  `json:"summary_preview"`   // 摘要预览 (前150字符)
+}
+
+func (e *ProgressSessionSummarizedEvent) Channel() AgentChannel { return ChannelProgress }
+func (e *ProgressSessionSummarizedEvent) EventType() string     { return "session_summarized" }
+
 // ===================
 // Control Channel Events
 // ===================

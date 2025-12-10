@@ -183,7 +183,7 @@ func toolTracingExample() {
 	defer parentSpan.End()
 
 	// 模拟执行多个工具
-	tools := []string{"Bash", "Read", "HttpRequest"}
+	tools := []string{"Bash", "Read", "WebFetch"}
 
 	for _, toolName := range tools {
 		_, span := tracer.StartSpan(
