@@ -93,8 +93,8 @@ func (g *Generator) Generate(ctx context.Context, req *PlanRequest) (*ExecutionP
 
 	// 使用结构化输出（如果 provider 支持）
 	opts := &provider.StreamOptions{
-		MaxTokens:   4096,
-		Temperature: 0.2, // 低温度以获得更确定性的输出
+		MaxTokens:   16000, // 执行计划生成需要足够的 token 空间
+		Temperature: 0.2,   // 低温度以获得更确定性的输出
 	}
 
 	// 尝试使用结构化输出

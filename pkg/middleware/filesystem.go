@@ -16,13 +16,14 @@ var fsLog = logging.ForComponent("FilesystemMiddleware")
 
 // FilesystemMiddlewareConfig 文件系统中间件配置
 type FilesystemMiddlewareConfig struct {
-	Backend                backends.BackendProtocol // 后端存储
-	TokenLimit             int                      // 大结果驱逐阈值(tokens)
-	EnableEviction         bool                     // 是否启用自动驱逐
-	AllowedPathPrefixes    []string                 // 允许的路径前缀列表(用于路径安全验证)
-	EnablePathValidation   bool                     // 是否启用路径验证(默认: true)
-	CustomToolDescriptions map[string]string        // 自定义工具描述
-	SystemPromptOverride   string                   // 覆盖默认系统提示词
+	Backend                 backends.BackendProtocol // 后端存储
+	TokenLimit              int                      // 大结果驱逐阈值(tokens)
+	EnableEviction          bool                     // 是否启用自动驱逐
+	AllowedPathPrefixes     []string                 // 允许的路径前缀列表(用于路径安全验证)
+	EnablePathValidation    bool                     // 是否启用路径验证(默认: true)
+	CustomToolDescriptions  map[string]string        // 自定义工具描述
+	SystemPromptOverride    string                   // 覆盖默认系统提示词（设置为空字符串可禁用注入）
+	HasSystemPromptOverride bool                     // 是否明确设置了 SystemPromptOverride
 }
 
 // FilesystemMiddleware 文件系统中间件
@@ -33,14 +34,15 @@ type FilesystemMiddlewareConfig struct {
 // 4. 路径安全验证
 type FilesystemMiddleware struct {
 	*BaseMiddleware
-	backend                backends.BackendProtocol
-	tokenLimit             int
-	enableEviction         bool
-	allowedPathPrefixes    []string
-	enablePathValidation   bool
-	customToolDescriptions map[string]string
-	systemPromptOverride   string
-	fsTools                []tools.Tool
+	backend                 backends.BackendProtocol
+	tokenLimit              int
+	enableEviction          bool
+	allowedPathPrefixes     []string
+	enablePathValidation    bool
+	customToolDescriptions  map[string]string
+	systemPromptOverride    string
+	hasSystemPromptOverride bool // 是否明确设置了 systemPromptOverride（包括空字符串）
+	fsTools                 []tools.Tool
 }
 
 // NewFilesystemMiddleware 创建文件系统中间件
@@ -57,14 +59,15 @@ func NewFilesystemMiddleware(config *FilesystemMiddlewareConfig) *FilesystemMidd
 	}
 
 	m := &FilesystemMiddleware{
-		BaseMiddleware:         NewBaseMiddleware("filesystem", 100),
-		backend:                config.Backend,
-		tokenLimit:             config.TokenLimit,
-		enableEviction:         config.EnableEviction,
-		allowedPathPrefixes:    config.AllowedPathPrefixes,
-		enablePathValidation:   enablePathValidation,
-		customToolDescriptions: config.CustomToolDescriptions,
-		systemPromptOverride:   config.SystemPromptOverride,
+		BaseMiddleware:          NewBaseMiddleware("filesystem", 100),
+		backend:                 config.Backend,
+		tokenLimit:              config.TokenLimit,
+		enableEviction:          config.EnableEviction,
+		allowedPathPrefixes:     config.AllowedPathPrefixes,
+		enablePathValidation:    enablePathValidation,
+		customToolDescriptions:  config.CustomToolDescriptions,
+		systemPromptOverride:    config.SystemPromptOverride,
+		hasSystemPromptOverride: config.HasSystemPromptOverride,
 	}
 
 	// 创建文件系统工具
@@ -104,17 +107,21 @@ func (m *FilesystemMiddleware) Tools() []tools.Tool {
 
 // WrapModelCall 包装模型调用
 func (m *FilesystemMiddleware) WrapModelCall(ctx context.Context, req *ModelRequest, handler ModelCallHandler) (*ModelResponse, error) {
-	// 使用自定义系统提示词或默认提示词
-	prompt := FILESYSTEM_SYSTEM_PROMPT
-	if m.systemPromptOverride != "" {
-		prompt = m.systemPromptOverride
+	// 确定要使用的系统提示词
+	// 如果 systemPromptOverride 被设置（包括空字符串），使用它
+	// 否则使用默认的 FILESYSTEM_SYSTEM_PROMPT
+	prompt := m.systemPromptOverride
+	if !m.hasSystemPromptOverride {
+		prompt = FILESYSTEM_SYSTEM_PROMPT
 	}
 
-	// 增强系统提示词
-	if req.SystemPrompt != "" {
-		req.SystemPrompt += "\n\n" + prompt
-	} else {
-		req.SystemPrompt = prompt
+	// 只有当 prompt 非空时才增强系统提示词
+	if prompt != "" {
+		if req.SystemPrompt != "" {
+			req.SystemPrompt += "\n\n" + prompt
+		} else {
+			req.SystemPrompt = prompt
+		}
 	}
 
 	// 调用下一层

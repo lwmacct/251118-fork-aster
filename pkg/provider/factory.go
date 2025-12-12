@@ -58,6 +58,10 @@ func (f *MultiProviderFactory) Create(config *types.ModelConfig) (Provider, erro
 	case "gemini", "google":
 		return NewGeminiProvider(config)
 
+	// 自定义 Claude API 中转站（Anthropic 格式）
+	case "custom_claude":
+		return NewCustomClaudeProvider(config)
+
 	// 通用 OpenAI 兼容 Provider（用户自定义 API）
 	case "openai_compatible", "custom":
 		return NewCustomProvider(config)

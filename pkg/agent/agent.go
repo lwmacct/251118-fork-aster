@@ -61,9 +61,10 @@ type Agent struct {
 	messages     []types.Message
 	toolRecords  map[string]*types.ToolCallRecord
 	runningTools map[string]*runningToolHandle
-	stepCount      int
-	iterationCount int  // 当前会话的模型调用次数
-	maxIterations  int  // 最大迭代次数限制（默认50）
+	stepCount              int
+	iterationCount         int  // 当前会话的模型调用次数
+	maxIterations          int  // 最大迭代次数限制（默认50）
+	initialThinkingSent    bool // 是否已发送初始思考事件（用于防止重复发送"任务规划"）
 	lastSfpIndex int
 	lastBookmark *types.Bookmark
 	createdAt    time.Time
@@ -1565,6 +1566,7 @@ func inferProviderFromModel(model string) string {
 
 // validateMessageHistory 验证消息历史格式是否正确
 // DeepSeek 等 API 要求：每个包含 tool_calls 的 assistant 消息后必须紧跟对应的 tool_result 消息
+// 注意：__parse_error__ 标记的消息不在这里处理，而是在 convertMessages 中替换为有效 JSON
 func (a *Agent) validateMessageHistory(messages []types.Message) bool {
 	for i, msg := range messages {
 		// 检查是否有 tool_calls，并收集所有 tool_call IDs
@@ -1574,6 +1576,7 @@ func (a *Agent) validateMessageHistory(messages []types.Message) bool {
 			if toolUse, ok := block.(*types.ToolUseBlock); ok {
 				hasToolCalls = true
 				toolCallIDs = append(toolCallIDs, toolUse.ID)
+				// 注意：不再检查 __parse_error__，让 convertMessages 处理
 			}
 		}
 
@@ -1701,4 +1704,26 @@ func (a *Agent) GetIterationCount() int {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.iterationCount
+}
+
+// SetPermissionMode 设置权限模式
+// ModeAutoApprove: 自动批准所有工具调用（YOLO 模式）
+// ModeSmartApprove: 智能审批（低风险自动，高风险需审批）
+// ModeAlwaysAsk: 所有工具都需要审批
+func (a *Agent) SetPermissionMode(mode permission.Mode) {
+	if a.permissionInspector != nil {
+		a.permissionInspector.SetMode(mode)
+		agentLog.Info(context.Background(), "permission mode changed", map[string]any{
+			"agent_id": a.id,
+			"mode":     mode,
+		})
+	}
+}
+
+// GetPermissionMode 获取当前权限模式
+func (a *Agent) GetPermissionMode() permission.Mode {
+	if a.permissionInspector != nil {
+		return a.permissionInspector.GetMode()
+	}
+	return permission.ModeSmartApprove
 }

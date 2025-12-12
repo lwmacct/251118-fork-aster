@@ -74,7 +74,7 @@ func (cp *CustomClaudeProvider) Complete(ctx context.Context, messages []types.M
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", cp.baseURL+"/v1/messages", bytes.NewReader(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", cp.getEndpoint(), bytes.NewReader(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -125,7 +125,13 @@ func (cp *CustomClaudeProvider) Stream(ctx context.Context, messages []types.Mes
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", cp.baseURL+"/v1/messages", bytes.NewReader(jsonData))
+	// 调试：打印请求体大小和前 2000 字符
+	customClaudeLog.Debug(ctx, "request body prepared", map[string]any{
+		"size":    len(jsonData),
+		"preview": string(jsonData[:min(len(jsonData), 2000)]),
+	})
+
+	req, err := http.NewRequestWithContext(ctx, "POST", cp.getEndpoint(), bytes.NewReader(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -142,6 +148,24 @@ func (cp *CustomClaudeProvider) Stream(ctx context.Context, messages []types.Mes
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
+		// 调试：当出错时打印完整请求体
+		// 对于 400 错误，打印更多内容以便诊断 invalid JSON body 问题
+		previewLen := 5000
+		if resp.StatusCode == 400 {
+			previewLen = 20000 // 400 错误时打印更多内容
+		}
+		customClaudeLog.Error(ctx, "API request failed", map[string]any{
+			"status":       resp.StatusCode,
+			"error":        string(body),
+			"request_size": len(jsonData),
+			"request_body": string(jsonData[:min(len(jsonData), previewLen)]),
+		})
+		// 如果是 400 错误且包含 invalid JSON，额外打印请求体的最后部分（可能是截断位置）
+		if resp.StatusCode == 400 && len(jsonData) > previewLen {
+			customClaudeLog.Error(ctx, "API request body tail (for invalid JSON diagnosis)", map[string]any{
+				"tail": string(jsonData[max(0, len(jsonData)-5000):]),
+			})
+		}
 		return nil, fmt.Errorf("api error: %d - %s", resp.StatusCode, string(body))
 	}
 
@@ -163,10 +187,27 @@ func (cp *CustomClaudeProvider) buildRequest(messages []types.Message, opts *Str
 		if opts.MaxTokens > 0 {
 			req["max_tokens"] = opts.MaxTokens
 		} else {
-			req["max_tokens"] = 4096
+			// Claude 4 Sonnet/Opus 最大 output tokens 为 64000
+			// 设置为 32000 作为默认值，足够大多数工具调用场景
+			req["max_tokens"] = 32000
 		}
 
-		if opts.Temperature > 0 {
+		// Extended Thinking 配置
+		// 注意：启用 thinking 时，temperature 必须为 1（或不设置）
+		if opts.Thinking != nil && opts.Thinking.Enabled {
+			budgetTokens := opts.Thinking.BudgetTokens
+			if budgetTokens <= 0 {
+				budgetTokens = 10000 // 默认 10000 tokens 的思考预算
+			}
+			req["thinking"] = map[string]any{
+				"type":          "enabled",
+				"budget_tokens": budgetTokens,
+			}
+			// 启用 thinking 时不能设置 temperature（必须为默认值 1）
+			customClaudeLog.Info(context.Background(), "extended thinking enabled", map[string]any{
+				"budget_tokens": budgetTokens,
+			})
+		} else if opts.Temperature > 0 {
 			req["temperature"] = opts.Temperature
 		}
 
@@ -189,7 +230,7 @@ func (cp *CustomClaudeProvider) buildRequest(messages []types.Message, opts *Str
 			req["tools"] = tools
 		}
 	} else {
-		req["max_tokens"] = 4096
+		req["max_tokens"] = 32000
 		if cp.systemPrompt != "" {
 			req["system"] = cp.systemPrompt
 		}
@@ -213,22 +254,43 @@ func (cp *CustomClaudeProvider) convertMessages(messages []types.Message) []map[
 			for _, block := range msg.ContentBlocks {
 				switch b := block.(type) {
 				case *types.TextBlock:
+					// 跳过空文本块
+					if b.Text == "" {
+						continue
+					}
 					blocks = append(blocks, map[string]any{
 						"type": "text",
 						"text": b.Text,
 					})
 				case *types.ToolUseBlock:
+					// 确保 input 是有效的字典，避免 API 报错
+					input := b.Input
+					if input == nil {
+						input = make(map[string]any)
+					}
+					// 检查是否有解析错误标记，如果有则使用空对象
+					// 这处理了之前因 max_tokens 截断导致 JSON 不完整的情况
+					if _, hasParseError := input["__parse_error__"]; hasParseError {
+						input = map[string]any{
+							"error": "参数解析失败，请重试",
+						}
+					}
 					blocks = append(blocks, map[string]any{
 						"type":  "tool_use",
 						"id":    b.ID,
 						"name":  b.Name,
-						"input": b.Input,
+						"input": input,
 					})
 				case *types.ToolResultBlock:
+					// 确保 content 不为空
+					contentVal := b.Content
+					if contentVal == "" {
+						contentVal = " " // 使用空格而不是空字符串
+					}
 					blocks = append(blocks, map[string]any{
 						"type":        "tool_result",
 						"tool_use_id": b.ToolUseID,
-						"content":     b.Content,
+						"content":     contentVal,
 						"is_error":    b.IsError,
 					})
 				case *types.ImageContent:
@@ -252,12 +314,24 @@ func (cp *CustomClaudeProvider) convertMessages(messages []types.Message) []map[
 					blocks = append(blocks, imageBlock)
 				}
 			}
+			// 如果所有块都被跳过，添加一个空文本块
+			if len(blocks) == 0 {
+				blocks = append(blocks, map[string]any{
+					"type": "text",
+					"text": " ", // 使用空格而不是空字符串
+				})
+			}
 			content = blocks
 		} else {
+			// 确保 Content 不为空
+			text := msg.Content
+			if text == "" {
+				text = " " // 使用空格而不是空字符串
+			}
 			content = []any{
 				map[string]any{
 					"type": "text",
-					"text": msg.Content,
+					"text": text,
 				},
 			}
 		}
@@ -277,8 +351,31 @@ func (cp *CustomClaudeProvider) processStream(body io.ReadCloser, chunkCh chan<-
 	defer func() { _ = body.Close() }()
 
 	scanner := bufio.NewScanner(body)
+	// 增加 scanner 缓冲区大小，避免长行被截断
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024) // 最大 1MB
+
+	lineCount := 0
+	// 用于累积工具输入 JSON 的调试信息
+	toolInputBuffers := make(map[int]string)
+
 	for scanner.Scan() {
 		line := scanner.Text()
+		lineCount++
+
+		// 打印所有原始行（调试用）
+		if len(line) > 0 && line != "" {
+			// 截断过长的行用于日志显示
+			logLine := line
+			if len(logLine) > 500 {
+				logLine = logLine[:500] + "...[truncated]"
+			}
+			customClaudeLog.Debug(context.Background(), "RAW SSE LINE", map[string]any{
+				"line_num": lineCount,
+				"line":     logLine,
+				"line_len": len(line),
+			})
+		}
 
 		if !strings.HasPrefix(line, "data: ") {
 			continue
@@ -286,18 +383,84 @@ func (cp *CustomClaudeProvider) processStream(body io.ReadCloser, chunkCh chan<-
 
 		data := strings.TrimPrefix(line, "data: ")
 		if data == "[DONE]" {
+			customClaudeLog.Info(context.Background(), "stream done", map[string]any{
+				"total_lines":       lineCount,
+				"tool_input_buffers": toolInputBuffers,
+			})
 			break
 		}
 
 		var event map[string]any
 		if err := json.Unmarshal([]byte(data), &event); err != nil {
+			customClaudeLog.Warn(context.Background(), "failed to parse SSE event", map[string]any{
+				"error":    err.Error(),
+				"data_len": len(data),
+				"data":     data,
+			})
 			continue
+		}
+
+		// 调试：记录所有事件类型和完整内容
+		eventType, _ := event["type"].(string)
+		
+		// 记录所有事件的完整内容（用于调试中转站格式）
+		customClaudeLog.Info(context.Background(), "SSE EVENT", map[string]any{
+			"line_num":   lineCount,
+			"event_type": eventType,
+			"event":      event,
+		})
+
+		// 特别追踪工具输入的累积
+		if eventType == "content_block_delta" {
+			if delta, ok := event["delta"].(map[string]any); ok {
+				deltaType, _ := delta["type"].(string)
+				if deltaType == "input_json_delta" {
+					index := 0
+					if idx, ok := event["index"].(float64); ok {
+						index = int(idx)
+					}
+					partialJSON, _ := delta["partial_json"].(string)
+					toolInputBuffers[index] += partialJSON
+					customClaudeLog.Info(context.Background(), "TOOL INPUT ACCUMULATING", map[string]any{
+						"index":           index,
+						"partial_json":    partialJSON,
+						"accumulated_len": len(toolInputBuffers[index]),
+						"accumulated":     toolInputBuffers[index],
+					})
+				}
+			}
+		}
+
+		// 记录 content_block_stop 事件，检查工具输入是否完整
+		if eventType == "content_block_stop" {
+			index := 0
+			if idx, ok := event["index"].(float64); ok {
+				index = int(idx)
+			}
+			if accumulated, exists := toolInputBuffers[index]; exists {
+				customClaudeLog.Info(context.Background(), "TOOL INPUT FINAL", map[string]any{
+					"index":       index,
+					"final_json":  accumulated,
+					"json_len":    len(accumulated),
+					"is_valid":    json.Valid([]byte(accumulated)),
+				})
+			}
 		}
 
 		chunk := cp.parseStreamEvent(event)
 		if chunk != nil {
 			chunkCh <- *chunk
 		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		customClaudeLog.Error(context.Background(), "scanner error", map[string]any{
+			"error": err.Error(),
+		})
+	} else {
+		customClaudeLog.Info(context.Background(), "scanner finished normally", map[string]any{
+			"total_lines": lineCount,
+		})
 	}
 }
 
@@ -317,6 +480,34 @@ func (cp *CustomClaudeProvider) parseStreamEvent(event map[string]any) *StreamCh
 		}
 		if contentBlock, ok := event["content_block"].(map[string]any); ok {
 			chunk.Delta = contentBlock
+			blockType, _ := contentBlock["type"].(string)
+
+			// 处理 thinking 块（Extended Thinking）
+			if blockType == "thinking" {
+				customClaudeLog.Info(context.Background(), "thinking block start", map[string]any{
+					"index": chunk.Index,
+				})
+			}
+
+			// 调试日志：记录工具调用开始
+			if blockType == "tool_use" {
+				// 检查是否在 content_block_start 中就包含了完整的 input
+				// 某些中转站可能不发送 input_json_delta，而是直接在这里提供完整的 input
+				if input, ok := contentBlock["input"].(map[string]any); ok && len(input) > 0 {
+					customClaudeLog.Info(context.Background(), "tool_use block start with input", map[string]any{
+						"index":       chunk.Index,
+						"tool_id":     contentBlock["id"],
+						"tool_name":   contentBlock["name"],
+						"input_keys":  len(input),
+						"has_input":   true,
+					})
+				} else {
+					customClaudeLog.Debug(context.Background(), "tool_use block start without input", map[string]any{
+						"index":         chunk.Index,
+						"content_block": contentBlock,
+					})
+				}
+			}
 		}
 
 	case "content_block_delta":
@@ -326,6 +517,35 @@ func (cp *CustomClaudeProvider) parseStreamEvent(event map[string]any) *StreamCh
 		}
 		if delta, ok := event["delta"].(map[string]any); ok {
 			chunk.Delta = delta
+			// 调试日志：记录所有 delta 类型
+			deltaType, _ := delta["type"].(string)
+			customClaudeLog.Debug(context.Background(), "content_block_delta received", map[string]any{
+				"index":      chunk.Index,
+				"delta_type": deltaType,
+			})
+
+			// 处理 thinking_delta（Extended Thinking 增量）
+			if deltaType == "thinking_delta" {
+				thinking, _ := delta["thinking"].(string)
+				customClaudeLog.Debug(context.Background(), "thinking_delta received", map[string]any{
+					"index":        chunk.Index,
+					"thinking_len": len(thinking),
+				})
+			}
+
+			// 特别记录 input_json_delta
+			if deltaType == "input_json_delta" {
+				partialJSON, _ := delta["partial_json"].(string)
+				customClaudeLog.Info(context.Background(), "input_json_delta received", map[string]any{
+					"index":        chunk.Index,
+					"partial_json": partialJSON,
+					"json_len":     len(partialJSON),
+				})
+			}
+		} else {
+			customClaudeLog.Warn(context.Background(), "content_block_delta missing delta field", map[string]any{
+				"event": event,
+			})
 		}
 
 	case "content_block_stop":
@@ -333,6 +553,9 @@ func (cp *CustomClaudeProvider) parseStreamEvent(event map[string]any) *StreamCh
 		if index, ok := event["index"].(float64); ok {
 			chunk.Index = int(index)
 		}
+		customClaudeLog.Debug(context.Background(), "content_block_stop", map[string]any{
+			"index": chunk.Index,
+		})
 
 	case "message_delta":
 		if delta, ok := event["delta"].(map[string]any); ok {
@@ -452,6 +675,12 @@ func (cp *CustomClaudeProvider) GetSystemPrompt() string {
 // Close 关闭连接
 func (cp *CustomClaudeProvider) Close() error {
 	return nil
+}
+
+// getEndpoint 返回 API 端点地址
+// baseURL + /v1/messages（Anthropic API 格式）
+func (cp *CustomClaudeProvider) getEndpoint() string {
+	return cp.baseURL + "/v1/messages"
 }
 
 // CustomClaudeFactory 自定义 Claude 工厂

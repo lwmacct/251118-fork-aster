@@ -19,9 +19,13 @@ type LocalFS struct {
 }
 
 // Resolve 解析路径为绝对路径
+// 注意：所有路径都会被解析为相对于 workDir 的路径，防止写入到工作目录外
 func (lfs *LocalFS) Resolve(path string) string {
+	// 如果是绝对路径，将其转换为相对于 workDir 的路径
+	// 这防止 Agent 使用 /tmp 等系统目录
 	if filepath.IsAbs(path) {
-		return path
+		// 移除开头的 / 使其成为相对路径
+		path = strings.TrimPrefix(path, "/")
 	}
 	return filepath.Join(lfs.workDir, path)
 }

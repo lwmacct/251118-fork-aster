@@ -27,7 +27,8 @@ func (a *Agent) processMessages(ctx context.Context) {
 		return // 已经在处理中
 	}
 	a.state = types.AgentStateWorking
-	a.iterationCount = 0 // 重置迭代计数
+	a.iterationCount = 0       // 重置迭代计数
+	a.initialThinkingSent = false // 重置初始思考事件标志，允许新用户消息触发新的"任务规划"
 	initialMsgCount := len(a.messages)
 	procLog.Info(ctx, "agent state changed to working", map[string]any{"agent_id": a.id, "message_count": initialMsgCount})
 	a.mu.Unlock()
@@ -46,8 +47,11 @@ func (a *Agent) processMessages(ctx context.Context) {
 		a.mu.Unlock()
 
 		// 如果有新的用户消息，重新触发处理
+		// 注意：使用新的 context，而不是可能已取消的旧 context
+		// 这样即使用户点击了"停止"，新消息仍然可以被处理
 		if hasNewUserMessage {
-			go a.processMessages(ctx)
+			newCtx := context.Background()
+			go a.processMessages(newCtx)
 		}
 	}()
 
@@ -189,7 +193,7 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 			procLog.Info(ctx, "finalHandler: calling provider.Stream", map[string]any{"agent_id": a.id, "message_count": len(req.Messages)})
 			streamOpts := &provider.StreamOptions{
 				Tools:     toolSchemas,
-				MaxTokens: 4096,
+				MaxTokens: 32000, // Claude 4 Sonnet/Opus 最大支持 64000 output tokens
 				System:    req.SystemPrompt,
 			}
 
@@ -226,7 +230,7 @@ func (a *Agent) runModelStep(ctx context.Context) error {
 		// 没有 middleware, 直接调用
 		streamOpts := &provider.StreamOptions{
 			Tools:     toolSchemas,
-			MaxTokens: 4096,
+			MaxTokens: 32000, // Claude 4 Sonnet/Opus 最大支持 64000 output tokens
 			System:    currentSystemPrompt,
 		}
 
@@ -376,6 +380,33 @@ func (a *Agent) executeTools(ctx context.Context, toolUses []*types.ToolUseBlock
 
 // executeSingleTool 执行单个工具
 func (a *Agent) executeSingleTool(ctx context.Context, tu *types.ToolUseBlock) types.ContentBlock {
+	// 检查工具输入是否有解析错误（流式响应被截断等情况）
+	if parseError, ok := tu.Input["__parse_error__"].(bool); ok && parseError {
+		errorMsg := "工具参数解析失败"
+		if msg, ok := tu.Input["__error_message__"].(string); ok {
+			errorMsg = msg
+		}
+		procLog.Error(ctx, "tool input parse error detected", map[string]any{
+			"tool":  tu.Name,
+			"id":    tu.ID,
+			"error": errorMsg,
+		})
+		a.eventBus.EmitProgress(&types.ProgressToolErrorEvent{
+			Call: types.ToolCallSnapshot{
+				ID:        tu.ID,
+				Name:      tu.Name,
+				State:     types.ToolCallStateFailed,
+				Arguments: tu.Input,
+			},
+			Error: errorMsg,
+		})
+		return &types.ToolResultBlock{
+			ToolUseID: tu.ID,
+			Content:   fmt.Sprintf(`{"ok":false,"error":"%s","hint":"请重新调用工具，确保提供完整的参数"}`, errorMsg),
+			IsError:   true,
+		}
+	}
+
 	// Plan 模式检查：验证工具调用是否允许
 	if a.planMode != nil && a.planMode.IsActive() {
 		allowed, reason := a.planMode.ValidateToolCall(tu.Name, tu.Input)
@@ -846,6 +877,31 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 	reasoningStarted := false // 追踪是否已发送思考开始事件
 	reasoningBuffer := ""     // 累积思考内容
 
+	// 只在用户消息后的第一次 LLM 调用时发送初始的任务规划思考事件
+	// 使用 initialThinkingSent 标志而不是 iterationCount，因为：
+	// 1. iterationCount 在 processMessages 中重置，但 handleStreamResponse 可能被多次调用
+	// 2. initialThinkingSent 确保每个用户消息只触发一次"任务规划"事件
+	a.mu.Lock()
+	shouldSendInitialThinking := !a.initialThinkingSent
+	if shouldSendInitialThinking {
+		a.initialThinkingSent = true // 标记已发送，防止重复
+	}
+	a.mu.Unlock()
+
+	if shouldSendInitialThinking {
+		// 发送初始的任务规划思考事件（所有模型通用）
+		// 这确保前端能显示"任务规划"思考框，即使模型不支持 reasoning_delta
+		a.eventBus.EmitProgress(&types.ProgressThinkChunkStartEvent{
+			Step: a.stepCount,
+		})
+		a.eventBus.EmitProgress(&types.ProgressThinkChunkEvent{
+			Step:      a.stepCount,
+			Stage:     types.ThinkingStageTaskPlanning,
+			Reasoning: "正在分析请求并规划执行策略...",
+		})
+		procLog.Debug(ctx, "sent initial task planning event", map[string]any{"step": a.stepCount})
+	}
+
 	for chunk := range stream {
 		switch chunk.Type {
 		// 处理 reasoning_delta (DeepSeek Reasoner 模型的思考过程)
@@ -875,6 +931,18 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 			if delta, ok := chunk.Delta.(map[string]any); ok {
 				blockType, _ := delta["type"].(string)
 				switch blockType {
+				case "thinking":
+					// Extended Thinking 块开始
+					// 发送思考开始事件
+					if !reasoningStarted {
+						reasoningStarted = true
+						a.eventBus.EmitProgress(&types.ProgressThinkChunkStartEvent{
+							Step: a.stepCount,
+						})
+						procLog.Debug(ctx, "extended thinking started", map[string]any{"step": a.stepCount, "index": currentBlockIndex})
+					}
+					// 初始化 thinking 块（不添加到 assistantContent，因为 thinking 不是最终输出）
+					textBuffers[currentBlockIndex] = ""
 				case "text":
 					// 发送文本开始事件
 					a.eventBus.EmitProgress(&types.ProgressTextChunkStartEvent{
@@ -906,10 +974,27 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 						toolName = name
 					}
 
+					// 检查是否在 content_block_start 中就包含了完整的 input
+					// 某些中转站可能不发送 input_json_delta，而是直接在这里提供完整的 input
+					var toolInput map[string]any
+					if input, ok := delta["input"].(map[string]any); ok && len(input) > 0 {
+						toolInput = input
+						procLog.Info(ctx, "tool_use block contains input directly", map[string]any{
+							"tool_name":  toolName,
+							"input_keys": len(input),
+						})
+						// 将完整的 input 序列化到 inputJSONBuffers，以便后续统一处理
+						if inputJSON, err := json.Marshal(input); err == nil {
+							inputJSONBuffers[currentBlockIndex] = string(inputJSON)
+						}
+					} else {
+						toolInput = make(map[string]any)
+					}
+
 					assistantContent[currentBlockIndex] = &types.ToolUseBlock{
 						ID:    toolID,
 						Name:  toolName,
-						Input: make(map[string]any),
+						Input: toolInput,
 					}
 				default:
 					procLog.Debug(ctx, "unknown block type", map[string]any{"type": blockType})
@@ -952,6 +1037,19 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 						Step:  a.stepCount,
 						Delta: text,
 					})
+				case "thinking_delta":
+					// Extended Thinking 增量
+					thinking, _ := delta["thinking"].(string)
+					if thinking != "" {
+						// 累积思考内容
+						reasoningBuffer += thinking
+						// 发送思考增量事件
+						a.eventBus.EmitProgress(&types.ProgressThinkChunkEvent{
+							Step:  a.stepCount,
+							Stage: types.ThinkingStageReasoning,
+							Delta: thinking,
+						})
+					}
 				case "input_json_delta":
 					partialJSON, _ := delta["partial_json"].(string)
 					if currentBlockIndex >= 0 {
@@ -1106,11 +1204,28 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 						tu.Input = input
 						procLog.Debug(ctx, "successfully parsed tool input", map[string]any{"tool": tu.Name, "fields": len(input)})
 					} else {
-						procLog.Warn(ctx, "failed to parse tool input JSON", map[string]any{"tool": tu.Name, "error": err, "raw": jsonStr})
+						// JSON 解析失败，可能是流式响应被截断
+						// 设置错误标记，让工具执行时能够识别并返回友好的错误信息
+						procLog.Warn(ctx, "failed to parse tool input JSON (stream may be truncated)", map[string]any{
+							"tool":       tu.Name,
+							"error":      err,
+							"raw":        jsonStr,
+							"raw_length": len(jsonStr),
+						})
+						tu.Input = map[string]any{
+							"__parse_error__": true,
+							"__error_message__": fmt.Sprintf("工具参数解析失败，流式响应可能被截断。原始数据: %s", jsonStr),
+						}
 					}
 				} else {
-					// 关键修复: 记录空输入缓冲区警告
-					procLog.Warn(ctx, "empty input buffer for tool block", map[string]any{"block": i, "tool": tu.Name, "exists": exists, "json_str": jsonStr})
+					// 空输入缓冲区，检查是否在 content_block_start 中已经有完整的 input
+					if len(tu.Input) == 0 {
+						procLog.Warn(ctx, "empty input buffer for tool block", map[string]any{"block": i, "tool": tu.Name, "exists": exists, "json_str": jsonStr})
+						tu.Input = map[string]any{
+							"__parse_error__": true,
+							"__error_message__": "工具参数为空，流式响应可能未正确传输参数数据",
+						}
+					}
 				}
 			}
 		}
@@ -1170,7 +1285,7 @@ func (a *Agent) runNonStreamingStep(ctx context.Context) error {
 		Tools:       toolSchemas,
 		System:      currentSystemPrompt,
 		Temperature: 0.7,
-		MaxTokens:   4096,
+		MaxTokens:   32000, // Claude 4 Sonnet/Opus 最大支持 64000 output tokens
 	}
 
 	procLog.Debug(ctx, "calling Complete API", map[string]any{"messages": len(messages), "tools": len(toolSchemas)})

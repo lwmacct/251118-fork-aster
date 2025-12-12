@@ -73,10 +73,12 @@ func NewEnhancedInspector(cfg *EnhancedInspectorConfig) *EnhancedInspector {
 		defaultRisks: map[string]RiskLevel{
 			// Low risk - read operations
 			"Read":            RiskLevelLow,
+			"Ls":              RiskLevelLow, // 列出目录内容
 			"Glob":            RiskLevelLow,
 			"Grep":            RiskLevelLow,
 			"WebSearch":       RiskLevelLow,
 			"BashOutput":      RiskLevelLow,
+			"AskUserQuestion": RiskLevelLow, // 用户交互，无副作用
 			"read_file":       RiskLevelLow,
 			"list_dir":        RiskLevelLow,
 			"file_search":     RiskLevelLow,

@@ -454,6 +454,24 @@ func (ls *LocalSandbox) execWithLimits(ctx context.Context, cmd string, opts *Ex
 	if opts != nil && opts.WorkDir != "" {
 		workDir = ls.fs.Resolve(opts.WorkDir)
 	}
+
+	// 验证工作目录是否存在，如果不存在则尝试创建
+	if _, err := os.Stat(workDir); os.IsNotExist(err) {
+		sandboxLogger.Warn(ctx, "Work directory does not exist, attempting to create", map[string]any{
+			"workDir": workDir,
+		})
+		if mkErr := os.MkdirAll(workDir, 0755); mkErr != nil {
+			return &ExecResult{
+				Code:   1,
+				Stdout: "",
+				Stderr: fmt.Sprintf("work directory does not exist and cannot be created: %s (error: %v)", workDir, mkErr),
+			}
+		}
+		sandboxLogger.Info(ctx, "Work directory created successfully", map[string]any{
+			"workDir": workDir,
+		})
+	}
+
 	command.Dir = workDir
 
 	// 设置安全环境变量
@@ -526,9 +544,23 @@ func (ls *LocalSandbox) buildSecureCommand(cmd string) string {
 
 // buildSecureEnv 构建安全环境变量
 func (ls *LocalSandbox) buildSecureEnv(opts *ExecOptions) []string {
+	// 构建 PATH：包含常用路径，支持 macOS (Intel/Apple Silicon) 和 Linux
+	// 优先级：用户本地 > Homebrew > 系统路径
+	pathDirs := []string{
+		"/usr/local/bin",
+		"/usr/local/sbin",
+		"/opt/homebrew/bin",  // Apple Silicon Mac Homebrew
+		"/opt/homebrew/sbin", // Apple Silicon Mac Homebrew
+		"/usr/bin",
+		"/usr/sbin",
+		"/bin",
+		"/sbin",
+	}
+	pathValue := strings.Join(pathDirs, ":")
+
 	// 基础安全环境变量
 	env := []string{
-		"PATH=/usr/local/bin:/usr/bin:/bin",
+		"PATH=" + pathValue,
 		"HOME=" + ls.workDir,
 		"LANG=en_US.UTF-8",
 		"LC_ALL=en_US.UTF-8",

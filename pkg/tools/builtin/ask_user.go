@@ -47,13 +47,20 @@ func RespondToAskUser(requestID string, answers map[string]any) error {
 	req.mu.Unlock()
 
 	// 发送答案到 channel
+	// 使用带超时的发送，给后台 goroutine 一些时间来接收
+	// 这解决了当 Agent context 被取消后，后台 goroutine 可能还没准备好接收的问题
 	select {
 	case req.responseChan <- answers:
 		askUserLog.Info(context.Background(), "successfully sent answer for request", map[string]any{"request_id": requestID})
 		// 注意：不在这里删除 globalAskUserRequests，让 Execute 函数的 goroutine 来清理
 		return nil
-	default:
-		return fmt.Errorf("response channel full or closed for request: %s", requestID)
+	case <-time.After(5 * time.Second):
+		// 5秒超时，如果还没有接收者，说明 goroutine 可能已经退出
+		// 清理请求并返回错误
+		globalAskUserRequestsMu.Lock()
+		delete(globalAskUserRequests, requestID)
+		globalAskUserRequestsMu.Unlock()
+		return fmt.Errorf("response channel timeout for request: %s (goroutine may have exited)", requestID)
 	}
 }
 
@@ -84,46 +91,39 @@ func (t *AskUserQuestionTool) InputSchema() map[string]any {
 		"type": "object",
 		"properties": map[string]any{
 			"questions": map[string]any{
-				"type":        "array",
-				"description": "要向用户提出的问题列表（1-4个问题）",
-				"minItems":    1,
-				"maxItems":    4,
+				"type":     "array",
+				"minItems": 1,
+				"maxItems": 4,
 				"items": map[string]any{
 					"type": "object",
 					"properties": map[string]any{
 						"question": map[string]any{
-							"type":        "string",
-							"description": "完整的问题文本，应清晰、具体，以问号结尾",
+							"type": "string",
 						},
 						"header": map[string]any{
-							"type":        "string",
-							"description": "简短标签，最多12字符，如'Auth method'、'Library'",
-							"maxLength":   12,
+							"type":      "string",
+							"maxLength": 12,
 						},
 						"options": map[string]any{
-							"type":        "array",
-							"description": "可选答案列表（2-4个选项）",
-							"minItems":    2,
-							"maxItems":    4,
+							"type":     "array",
+							"minItems": 2,
+							"maxItems": 4,
 							"items": map[string]any{
 								"type": "object",
 								"properties": map[string]any{
 									"label": map[string]any{
-										"type":        "string",
-										"description": "选项标签，1-5个词",
+										"type": "string",
 									},
 									"description": map[string]any{
-										"type":        "string",
-										"description": "选项说明，解释该选项的含义或影响",
+										"type": "string",
 									},
 								},
 								"required": []string{"label", "description"},
 							},
 						},
 						"multi_select": map[string]any{
-							"type":        "boolean",
-							"description": "是否允许多选，默认为false",
-							"default":     false,
+							"type":    "boolean",
+							"default": false,
 						},
 					},
 					"required": []string{"question", "header", "options"},
@@ -216,6 +216,7 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 
 	// 直接在当前 goroutine 中等待，不使用外层 ctx
 	// 这样即使 Agent 执行循环的 context 被取消，我们仍然可以等待用户响应
+	askUserLog.Info(context.Background(), "starting to wait for user response", map[string]any{"request_id": requestID})
 	select {
 	case answers := <-responseChan:
 		cleanup()
@@ -241,14 +242,16 @@ func (t *AskUserQuestionTool) Execute(ctx context.Context, input map[string]any,
 		// 外层 context 被取消（比如 Agent 执行循环超时）
 		// 但我们不清理 pending request，让用户仍然可以响应
 		// 启动一个后台 goroutine 来等待用户响应并清理
+		// 重要：创建新的 timeout，因为原来的 timeout 可能已经过了一段时间
 		askUserLog.Info(context.Background(), "context cancelled, but keeping request alive for user response", map[string]any{"request_id": requestID})
+		newTimeout := time.After(2 * time.Hour) // 创建新的 2 小时超时
 		go func() {
 			select {
-			case <-responseChan:
-				// 用户响应了，但我们已经返回了，所以只需要清理
-				askUserLog.Info(context.Background(), "user responded after context cancellation", map[string]any{"request_id": requestID})
-			case <-timeout:
-				askUserLog.Warn(context.Background(), "request timed out in background", map[string]any{"request_id": requestID})
+			case answers := <-responseChan:
+				// 用户响应了，发送答案（虽然工具已经返回，但可以记录日志）
+				askUserLog.Info(context.Background(), "user responded after context cancellation", map[string]any{"request_id": requestID, "answers": answers})
+			case <-newTimeout:
+				askUserLog.Warn(context.Background(), "request timed out in background after 2 hours", map[string]any{"request_id": requestID})
 			}
 			cleanup()
 		}()

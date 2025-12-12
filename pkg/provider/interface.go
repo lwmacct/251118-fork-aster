@@ -126,6 +126,16 @@ type ResponseFormat struct {
 	Strict bool               `json:"strict,omitempty"` // 是否严格模式（OpenAI）
 }
 
+// ThinkingConfig Extended Thinking 配置
+type ThinkingConfig struct {
+	// Enabled 是否启用 extended thinking
+	Enabled bool `json:"enabled"`
+
+	// BudgetTokens 思考过程的 token 预算
+	// Claude 建议范围: 1024 - 32000
+	BudgetTokens int `json:"budget_tokens,omitempty"`
+}
+
 // StreamOptions 流式请求选项
 type StreamOptions struct {
 	Tools       []ToolSchema
@@ -140,6 +150,10 @@ type StreamOptions struct {
 	// ResponseFormat 响应格式（用于结构化输出）
 	// 支持 JSON Schema 强制输出特定格式的响应
 	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
+
+	// Thinking Extended Thinking 配置（Claude 专属）
+	// 启用后模型会在响应前进行深度思考，思考过程会通过流式事件返回
+	Thinking *ThinkingConfig `json:"thinking,omitempty"`
 }
 
 // ToolChoiceOption 工具选择选项

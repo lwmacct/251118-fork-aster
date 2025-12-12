@@ -134,17 +134,27 @@ func (r *Registry) registerBuiltin() {
 
 		// 优化: 支持自定义 TokenLimit
 		tokenLimit := 5000 // 默认 5k tokens
+		systemPromptOverride := ""
+		hasSystemPromptOverride := false
+
 		if config.CustomConfig != nil {
 			if tl, ok := config.CustomConfig["token_limit"].(int); ok {
 				tokenLimit = tl
 			} else if tl, ok := config.CustomConfig["token_limit"].(float64); ok {
 				tokenLimit = int(tl)
 			}
+			// 支持禁用系统提示词注入（设置为空字符串）
+			if spo, ok := config.CustomConfig["system_prompt_override"].(string); ok {
+				systemPromptOverride = spo
+				hasSystemPromptOverride = true
+			}
 		}
 
 		return NewFilesystemMiddleware(&FilesystemMiddlewareConfig{
-			Backend:    fsBackend,
-			TokenLimit: tokenLimit,
+			Backend:                 fsBackend,
+			TokenLimit:              tokenLimit,
+			SystemPromptOverride:    systemPromptOverride,
+			HasSystemPromptOverride: hasSystemPromptOverride,
 		}), nil
 	})
 
