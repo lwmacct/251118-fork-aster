@@ -467,3 +467,8 @@ func (t *BashTool) Examples() []tools.ToolExample {
 		},
 	}
 }
+
+// Annotations 返回工具安全注解
+func (t *BashTool) Annotations() *tools.ToolAnnotations {
+	return tools.AnnotationsExecution
+}

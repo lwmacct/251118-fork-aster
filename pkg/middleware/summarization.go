@@ -18,15 +18,18 @@ var sumLog = logging.ForComponent("SummarizationMiddleware")
 // 2. 当超过阈值时,自动总结旧消息
 // 3. 保留最近的 N 条消息
 // 4. 用总结消息替换旧的历史记录
+// 5. (增强) 支持渐进式压缩和消息元数据可见性控制
 type SummarizationMiddleware struct {
 	*BaseMiddleware
-
-	maxTokensBeforeSummary int
-	messagesToKeep         int
-	summaryPrefix          string
-	tokenCounter           TokenCounterFunc
-	summarizer             SummarizerFunc
-	summarizationCount     int // 统计总结触发次数
+	maxTokensBeforeSummary   int
+	messagesToKeep           int
+	summaryPrefix            string
+	tokenCounter             TokenCounterFunc
+	summarizer               SummarizerFunc
+	summarizationCount       int                 // 统计总结触发次数
+	compactionStrategy       *CompactionStrategy // 渐进式压缩策略
+	useMetadataVisibility    bool                // 使用元数据控制可见性
+	enableProgressiveCompact bool                // 启用渐进式压缩
 }
 
 // TokenCounterFunc 自定义 token 计数函数类型
@@ -36,6 +39,30 @@ type TokenCounterFunc func(messages []types.Message) int
 // 接收要总结的消息列表,返回总结内容字符串
 type SummarizerFunc func(ctx context.Context, messages []types.Message) (string, error)
 
+// CompactionStrategy 压缩策略
+// 定义了在触发总结之前，如何渐进式地压缩工具响应
+type CompactionStrategy struct {
+	// ToolResponseRemovalSteps 渐进式删除工具响应的比例步骤
+	// 例如 [0.0, 0.1, 0.2, 0.5, 1.0] 表示先尝试不删除，然后删除10%，20%，50%，最后100%
+	ToolResponseRemovalSteps []float64
+
+	// PreserveSummary 是否保留摘要消息（而非替换原消息）
+	// 如果为 true，原消息会被标记为 invisible，摘要被标记为 agent_only
+	PreserveSummary bool
+
+	// MaxSummaryTokens 摘要消息的最大 token 数
+	MaxSummaryTokens int
+}
+
+// DefaultCompactionStrategy 默认压缩策略
+func DefaultCompactionStrategy() *CompactionStrategy {
+	return &CompactionStrategy{
+		ToolResponseRemovalSteps: []float64{0.0, 0.1, 0.2, 0.5, 1.0},
+		PreserveSummary:          true,
+		MaxSummaryTokens:         2000,
+	}
+}
+
 // SummarizationMiddlewareConfig 配置
 type SummarizationMiddlewareConfig struct {
 	Summarizer             SummarizerFunc   // 用于生成总结的函数
@@ -43,6 +70,11 @@ type SummarizationMiddlewareConfig struct {
 	MessagesToKeep         int              // 总结后保留的最近消息数量
 	SummaryPrefix          string           // 总结消息的前缀
 	TokenCounter           TokenCounterFunc // 自定义 token 计数器
+
+	// 新增配置项
+	CompactionStrategy      *CompactionStrategy // 渐进式压缩策略
+	UseMetadataVisibility   bool                // 使用消息元数据控制可见性（而非删除）
+	EnableProgressiveCompact bool               // 是否启用渐进式压缩
 }
 
 // NewSummarizationMiddleware 创建中间件
@@ -71,17 +103,31 @@ func NewSummarizationMiddleware(config *SummarizationMiddlewareConfig) (*Summari
 		config.Summarizer = defaultSummarizer
 	}
 
-	m := &SummarizationMiddleware{
-		BaseMiddleware:         NewBaseMiddleware("summarization", 40),
-		maxTokensBeforeSummary: config.MaxTokensBeforeSummary,
-		messagesToKeep:         config.MessagesToKeep,
-		summaryPrefix:          config.SummaryPrefix,
-		tokenCounter:           config.TokenCounter,
-		summarizer:             config.Summarizer,
-		summarizationCount:     0,
+	// 初始化压缩策略
+	compactionStrategy := config.CompactionStrategy
+	if compactionStrategy == nil {
+		compactionStrategy = DefaultCompactionStrategy()
 	}
 
-	sumLog.Info(context.Background(), "initialized", map[string]any{"max_tokens": config.MaxTokensBeforeSummary, "keep_messages": config.MessagesToKeep})
+	m := &SummarizationMiddleware{
+		BaseMiddleware:           NewBaseMiddleware("summarization", 40),
+		maxTokensBeforeSummary:   config.MaxTokensBeforeSummary,
+		messagesToKeep:           config.MessagesToKeep,
+		summaryPrefix:            config.SummaryPrefix,
+		tokenCounter:             config.TokenCounter,
+		summarizer:               config.Summarizer,
+		summarizationCount:       0,
+		compactionStrategy:       compactionStrategy,
+		useMetadataVisibility:    config.UseMetadataVisibility,
+		enableProgressiveCompact: config.EnableProgressiveCompact,
+	}
+
+	sumLog.Info(context.Background(), "initialized", map[string]any{
+		"max_tokens":           config.MaxTokensBeforeSummary,
+		"keep_messages":        config.MessagesToKeep,
+		"progressive_compact":  config.EnableProgressiveCompact,
+		"metadata_visibility":  config.UseMetadataVisibility,
+	})
 	return m, nil
 }
 
@@ -645,4 +691,185 @@ func (m *SummarizationMiddleware) UpdateConfig(maxTokens, messagesToKeep int) {
 		m.messagesToKeep = messagesToKeep
 	}
 	sumLog.Info(context.Background(), "config updated", map[string]any{"max_tokens": m.maxTokensBeforeSummary, "keep_messages": m.messagesToKeep})
+}
+
+// ===== 渐进式压缩增强功能 =====
+
+// progressiveCompact 渐进式压缩消息
+// 先尝试删除工具响应，如果仍超限则生成摘要
+func (m *SummarizationMiddleware) progressiveCompact(
+	ctx context.Context,
+	messages []types.Message,
+	targetTokens int,
+) ([]types.Message, error) {
+	strategy := m.compactionStrategy
+	if strategy == nil {
+		strategy = DefaultCompactionStrategy()
+	}
+
+	current := messages
+	currentTokens := m.tokenCounter(current)
+
+	sumLog.Debug(ctx, "starting progressive compaction", map[string]any{
+		"current_tokens": currentTokens,
+		"target_tokens":  targetTokens,
+		"steps":          strategy.ToolResponseRemovalSteps,
+	})
+
+	// 尝试每个删除级别
+	for _, removeRatio := range strategy.ToolResponseRemovalSteps {
+		if currentTokens <= targetTokens {
+			sumLog.Debug(ctx, "target reached", map[string]any{
+				"tokens":       currentTokens,
+				"remove_ratio": removeRatio,
+			})
+			break
+		}
+		current = m.removeToolResponses(current, removeRatio)
+		currentTokens = m.tokenCounter(current)
+		sumLog.Debug(ctx, "after removing tool responses", map[string]any{
+			"tokens":       currentTokens,
+			"remove_ratio": removeRatio,
+		})
+	}
+
+	// 如果仍超限，生成摘要
+	if currentTokens > targetTokens {
+		sumLog.Info(ctx, "still over limit, generating summary", nil)
+		return m.summarizeWithMetadata(ctx, current, targetTokens)
+	}
+
+	return current, nil
+}
+
+// removeToolResponses 按比例移除工具响应内容
+// removeRatio: 0.0 = 不删除, 1.0 = 全部删除
+func (m *SummarizationMiddleware) removeToolResponses(messages []types.Message, removeRatio float64) []types.Message {
+	if removeRatio <= 0 {
+		return messages
+	}
+
+	result := make([]types.Message, len(messages))
+	copy(result, messages)
+
+	// 收集所有工具响应的索引
+	var toolResponseIndices []int
+	for i, msg := range result {
+		if msg.Role == types.MessageRoleTool {
+			toolResponseIndices = append(toolResponseIndices, i)
+		}
+		// 也检查 ContentBlocks 中的 ToolResultBlock
+		for _, block := range msg.ContentBlocks {
+			if _, ok := block.(*types.ToolResultBlock); ok {
+				toolResponseIndices = append(toolResponseIndices, i)
+				break
+			}
+		}
+	}
+
+	if len(toolResponseIndices) == 0 {
+		return result
+	}
+
+	// 计算要删除的数量（从中间开始删除，保留开头和结尾）
+	numToRemove := int(float64(len(toolResponseIndices)) * removeRatio)
+	if numToRemove == 0 {
+		return result
+	}
+
+	// 从中间开始删除
+	startIdx := (len(toolResponseIndices) - numToRemove) / 2
+	indicesToRemove := make(map[int]bool)
+	for i := startIdx; i < startIdx+numToRemove && i < len(toolResponseIndices); i++ {
+		indicesToRemove[toolResponseIndices[i]] = true
+	}
+
+	// 标记为压缩而非删除
+	for idx := range indicesToRemove {
+		msg := &result[idx]
+		// 将内容替换为压缩标记
+		for j, block := range msg.ContentBlocks {
+			if trb, ok := block.(*types.ToolResultBlock); ok {
+				// 标记为已压缩
+				trb.Compressed = true
+				trb.OriginalLength = len(trb.Content)
+				if len(trb.Content) > 100 {
+					trb.Content = trb.Content[:100] + "... [content compressed]"
+				}
+				msg.ContentBlocks[j] = trb
+			}
+		}
+		// 如果是简单的 tool 角色消息
+		if msg.Role == types.MessageRoleTool && len(msg.Content) > 100 {
+			msg.Content = msg.Content[:100] + "... [content compressed]"
+		}
+	}
+
+	return result
+}
+
+// summarizeWithMetadata 带元数据的摘要生成
+// 使用消息元数据控制可见性，而不是直接删除原消息
+func (m *SummarizationMiddleware) summarizeWithMetadata(
+	ctx context.Context,
+	messages []types.Message,
+	targetTokens int,
+) ([]types.Message, error) {
+	// 分离要保留的消息
+	numToKeep := m.messagesToKeep
+	if numToKeep > len(messages) {
+		numToKeep = len(messages)
+	}
+
+	toKeep := messages[len(messages)-numToKeep:]
+	toSummarize := messages[:len(messages)-numToKeep]
+
+	if len(toSummarize) == 0 {
+		return messages, nil
+	}
+
+	// 生成摘要
+	summary, err := m.summarizer(ctx, toSummarize)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建摘要消息
+	summaryMsg := types.Message{
+		Role:    types.MessageRoleSystem,
+		Content: fmt.Sprintf("%s\n\n%s", m.summaryPrefix, summary),
+	}
+
+	// 如果启用了元数据可见性控制
+	if m.useMetadataVisibility {
+		// 摘要消息设为仅 Agent 可见
+		summaryMsg.Metadata = types.NewMessageMetadata().AgentOnly().WithSource("summary")
+
+		// 原消息标记为不可见（但保留在历史中）
+		for i := range toSummarize {
+			if toSummarize[i].Metadata == nil {
+				toSummarize[i].Metadata = types.NewMessageMetadata()
+			}
+			toSummarize[i].Metadata.Invisible()
+		}
+
+		// 返回：原消息（不可见）+ 摘要 + 保留的消息
+		result := make([]types.Message, 0, len(toSummarize)+1+len(toKeep))
+		result = append(result, toSummarize...)
+		result = append(result, summaryMsg)
+		result = append(result, toKeep...)
+		return result, nil
+	}
+
+	// 传统模式：直接替换
+	result := make([]types.Message, 0, 1+len(toKeep))
+	result = append(result, summaryMsg)
+	result = append(result, toKeep...)
+	return result, nil
+}
+
+// countVisibleTokens 计算可见消息的 token 数（用于过滤后的计算）
+func (m *SummarizationMiddleware) countVisibleTokens(messages []types.Message) int {
+	visibleMessages := types.FilterMessagesForAgent(messages)
+	return m.tokenCounter(visibleMessages)
 }

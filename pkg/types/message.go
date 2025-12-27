@@ -8,6 +8,71 @@ import (
 // Role 定义消息角色
 type Role string
 
+// MessageMetadata 消息元数据
+// 用于控制消息的可见性和标记来源
+type MessageMetadata struct {
+	// UserVisible 是否对用户 UI 可见
+	// 默认为 true，设为 false 可用于隐藏系统消息或摘要
+	UserVisible bool `json:"user_visible"`
+
+	// AgentVisible 是否包含在 LLM 上下文中
+	// 默认为 true，设为 false 可用于用户专属反馈
+	AgentVisible bool `json:"agent_visible"`
+
+	// Source 消息来源标识
+	// 可选值: "user", "system", "summary", "tool"
+	Source string `json:"source,omitempty"`
+
+	// Tags 自定义标签，用于分类和过滤
+	Tags []string `json:"tags,omitempty"`
+}
+
+// NewMessageMetadata 创建默认元数据（双方可见）
+func NewMessageMetadata() *MessageMetadata {
+	return &MessageMetadata{UserVisible: true, AgentVisible: true}
+}
+
+// AgentOnly 设置为仅 Agent 可见（用于摘要等系统消息）
+func (m *MessageMetadata) AgentOnly() *MessageMetadata {
+	m.UserVisible = false
+	m.AgentVisible = true
+	return m
+}
+
+// UserOnly 设置为仅用户可见（用于用户专属反馈）
+func (m *MessageMetadata) UserOnly() *MessageMetadata {
+	m.UserVisible = true
+	m.AgentVisible = false
+	return m
+}
+
+// Invisible 设置为双方不可见（用于已归档消息）
+func (m *MessageMetadata) Invisible() *MessageMetadata {
+	m.UserVisible = false
+	m.AgentVisible = false
+	return m
+}
+
+// WithSource 设置消息来源
+func (m *MessageMetadata) WithSource(source string) *MessageMetadata {
+	m.Source = source
+	return m
+}
+
+// WithTags 设置标签
+func (m *MessageMetadata) WithTags(tags ...string) *MessageMetadata {
+	m.Tags = tags
+	return m
+}
+
+// IsVisible 检查消息对指定角色是否可见
+func (m *MessageMetadata) IsVisible(forAgent bool) bool {
+	if forAgent {
+		return m.AgentVisible
+	}
+	return m.UserVisible
+}
+
 const (
 	// RoleUser 用户角色
 	RoleUser Role = "user"
@@ -108,6 +173,32 @@ type Message struct {
 
 	// ToolCallID 工具调用ID（仅tool角色）
 	ToolCallID string `json:"tool_call_id,omitempty"`
+
+	// Metadata 消息元数据，用于可见性控制和标记
+	// 如果为 nil，默认双方可见
+	Metadata *MessageMetadata `json:"metadata,omitempty"`
+}
+
+// IsVisibleForAgent 检查消息是否对 Agent/LLM 可见
+func (m *Message) IsVisibleForAgent() bool {
+	if m.Metadata == nil {
+		return true // 默认可见
+	}
+	return m.Metadata.AgentVisible
+}
+
+// IsVisibleForUser 检查消息是否对用户可见
+func (m *Message) IsVisibleForUser() bool {
+	if m.Metadata == nil {
+		return true // 默认可见
+	}
+	return m.Metadata.UserVisible
+}
+
+// WithMetadata 设置消息元数据（链式调用）
+func (m *Message) WithMetadata(metadata *MessageMetadata) *Message {
+	m.Metadata = metadata
+	return m
 }
 
 // GetContent 获取消息内容，优先返回 Content，如果为空则从 ContentBlocks 提取
@@ -308,6 +399,7 @@ type messageJSON struct {
 	Name          string             `json:"name,omitempty"`
 	ToolCalls     []ToolCall         `json:"tool_calls,omitempty"`
 	ToolCallID    string             `json:"tool_call_id,omitempty"`
+	Metadata      *MessageMetadata   `json:"metadata,omitempty"`
 }
 
 // MarshalJSON 自定义 JSON 序列化
@@ -318,6 +410,7 @@ func (m Message) MarshalJSON() ([]byte, error) {
 		Name:       m.Name,
 		ToolCalls:  m.ToolCalls,
 		ToolCallID: m.ToolCallID,
+		Metadata:   m.Metadata,
 	}
 
 	// 序列化 ContentBlocks
@@ -363,6 +456,7 @@ func (m *Message) UnmarshalJSON(data []byte) error {
 	m.Name = msg.Name
 	m.ToolCalls = msg.ToolCalls
 	m.ToolCallID = msg.ToolCallID
+	m.Metadata = msg.Metadata
 
 	// 反序列化 ContentBlocks
 	if len(msg.ContentBlocks) > 0 {
@@ -388,4 +482,66 @@ func (m *Message) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+// ===== 消息过滤函数 =====
+
+// FilterMessagesForAgent 过滤出 Agent/LLM 可见的消息
+// 用于构建发送给 LLM 的上下文
+func FilterMessagesForAgent(messages []Message) []Message {
+	result := make([]Message, 0, len(messages))
+	for _, msg := range messages {
+		if msg.IsVisibleForAgent() {
+			result = append(result, msg)
+		}
+	}
+	return result
+}
+
+// FilterMessagesForUser 过滤出用户可见的消息
+// 用于构建展示给用户的对话历史
+func FilterMessagesForUser(messages []Message) []Message {
+	result := make([]Message, 0, len(messages))
+	for _, msg := range messages {
+		if msg.IsVisibleForUser() {
+			result = append(result, msg)
+		}
+	}
+	return result
+}
+
+// FilterMessages 根据自定义条件过滤消息
+func FilterMessages(messages []Message, predicate func(*Message) bool) []Message {
+	result := make([]Message, 0, len(messages))
+	for i := range messages {
+		if predicate(&messages[i]) {
+			result = append(result, messages[i])
+		}
+	}
+	return result
+}
+
+// FilterMessagesBySource 按来源过滤消息
+func FilterMessagesBySource(messages []Message, source string) []Message {
+	return FilterMessages(messages, func(m *Message) bool {
+		if m.Metadata == nil {
+			return source == ""
+		}
+		return m.Metadata.Source == source
+	})
+}
+
+// FilterMessagesByTag 按标签过滤消息（消息包含指定标签）
+func FilterMessagesByTag(messages []Message, tag string) []Message {
+	return FilterMessages(messages, func(m *Message) bool {
+		if m.Metadata == nil || len(m.Metadata.Tags) == 0 {
+			return false
+		}
+		for _, t := range m.Metadata.Tags {
+			if t == tag {
+				return true
+			}
+		}
+		return false
+	})
 }

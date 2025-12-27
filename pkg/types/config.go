@@ -6,9 +6,10 @@ import "time"
 type PermissionMode string
 
 const (
-	PermissionModeAuto     PermissionMode = "auto"     // 自动决策
-	PermissionModeApproval PermissionMode = "approval" // 全部需要审批
-	PermissionModeAllow    PermissionMode = "allow"    // 全部允许
+	PermissionModeAuto         PermissionMode = "auto"          // 自动决策
+	PermissionModeApproval     PermissionMode = "approval"      // 全部需要审批
+	PermissionModeAllow        PermissionMode = "allow"         // 全部允许
+	PermissionModeSmartApprove PermissionMode = "smart_approve" // 智能审批：只读工具自动批准，其他需要审批
 )
 
 // PermissionConfig 权限配置

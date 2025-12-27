@@ -220,3 +220,8 @@ func (t *WebFetchTool) Examples() []tools.ToolExample {
 		},
 	}
 }
+
+// Annotations 返回工具安全注解
+func (t *WebFetchTool) Annotations() *tools.ToolAnnotations {
+	return tools.AnnotationsNetworkRead
+}

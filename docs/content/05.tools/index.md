@@ -30,6 +30,12 @@ aster 提供了强大的工具系统，让 Agent 能够与外部世界交互。
 - 工具注册
 - 工具生命周期
 
+### [工具注解](/tools/overview/annotations) ::badge{type="success"}新::
+
+- 安全注解系统
+- 风险级别评估
+- SmartApprove 权限模式
+
 ### [Programmatic Tool Calling](/tools/ptc) ::badge{type="success"}新::
 
 - 让 LLM 生成的 Python 代码直接调用工具

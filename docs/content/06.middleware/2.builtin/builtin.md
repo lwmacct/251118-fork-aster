@@ -48,13 +48,16 @@ summaryMW, err := middleware.NewSummarizationMiddleware(&middleware.Summarizatio
 
 ### 参数说明
 
-| 参数                   | 类型   | 默认值                              | 说明                    |
-| ---------------------- | ------ | ----------------------------------- | ----------------------- |
-| MaxTokensBeforeSummary | int    | 170000                              | 触发总结的 Token 数阈值 |
-| MessagesToKeep         | int    | 6                                   | 总结后保留的最近消息数  |
-| SummaryPrefix          | string | "## Previous conversation summary:" | 总结消息的前缀          |
-| TokenCounter           | func   | 默认计数器                          | 自定义 Token 计数函数   |
-| Summarizer             | func   | 默认总结器                          | 自定义总结生成函数      |
+| 参数                    | 类型               | 默认值                              | 说明                        |
+| ----------------------- | ------------------ | ----------------------------------- | --------------------------- |
+| MaxTokensBeforeSummary  | int                | 170000                              | 触发总结的 Token 数阈值     |
+| MessagesToKeep          | int                | 6                                   | 总结后保留的最近消息数      |
+| SummaryPrefix           | string             | "## Previous conversation summary:" | 总结消息的前缀              |
+| TokenCounter            | func               | 默认计数器                          | 自定义 Token 计数函数       |
+| Summarizer              | func               | 默认总结器                          | 自定义总结生成函数          |
+| CompactionStrategy      | *CompactionStrategy | nil                                | 渐进式压缩策略配置          |
+| EnableProgressiveCompact | bool              | false                               | 是否启用渐进式压缩          |
+| UseMetadataVisibility   | bool               | false                               | 使用元数据控制可见性        |
 
 ### 工作流程
 
@@ -129,6 +132,45 @@ summaryMW, _ := middleware.NewSummarizationMiddleware(&middleware.SummarizationM
     Summarizer: customSummarizer,
 })
 ```
+
+### 渐进式压缩策略 ::badge{type="success"}新::
+
+渐进式压缩在直接总结前，先尝试删除工具响应来释放空间：
+
+```go
+summaryMW, _ := middleware.NewSummarizationMiddleware(&middleware.SummarizationMiddlewareConfig{
+    MaxTokensBeforeSummary: 150000,
+    EnableProgressiveCompact: true,  // 启用渐进式压缩
+    CompactionStrategy: &middleware.CompactionStrategy{
+        // 渐进式删除工具响应的比例：0% → 10% → 20% → 50% → 100%
+        ToolResponseRemovalSteps: []float64{0.0, 0.1, 0.2, 0.5, 1.0},
+        PreserveSummary:          true,   // 保留摘要而非替换
+        MaxSummaryTokens:         2000,   // 摘要最大 Token 数
+    },
+    UseMetadataVisibility: true,  // 使用元数据控制可见性
+})
+```
+
+**工作原理**：
+
+1. 首先尝试删除 10% 的工具响应
+2. 如果仍超限，删除 20%
+3. 继续增加比例直到 100%
+4. 如果删除所有工具响应仍超限，才生成摘要
+
+**元数据可见性模式**：
+
+启用 `UseMetadataVisibility` 后，旧消息不会被删除，而是标记为不可见：
+
+```go
+// 原消息被标记为 Invisible
+oldMsg.Metadata.Invisible()
+
+// 摘要消息仅 Agent 可见
+summaryMsg.Metadata.AgentOnly()
+```
+
+这种方式便于审计和恢复，原始消息仍保留在会话存储中。
 
 ---
 

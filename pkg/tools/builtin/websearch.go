@@ -278,3 +278,8 @@ func (t *WebSearchTool) Examples() []tools.ToolExample {
 		},
 	}
 }
+
+// Annotations 返回工具安全注解
+func (t *WebSearchTool) Annotations() *tools.ToolAnnotations {
+	return tools.AnnotationsNetworkRead
+}

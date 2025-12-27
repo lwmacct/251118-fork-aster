@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -368,9 +369,10 @@ func TestExitPlanModeTool_ConcurrentAccess(t *testing.T) {
 		t.Skip("Skipping concurrent test in short mode")
 	}
 
-	// 设置测试目录
-	basePath := filepath.Join(os.TempDir(), fmt.Sprintf("aster_plans_test_%d", time.Now().UnixNano()))
-	defer cleanupTestPlanDir(basePath)
+	// 设置测试目录（模拟工作目录）
+	workDir := filepath.Join(os.TempDir(), fmt.Sprintf("aster_workspace_%d", time.Now().UnixNano()))
+	basePath := filepath.Join(workDir, ".plans")
+	defer cleanupTestPlanDir(workDir)
 
 	// 创建工具
 	tool, err := NewExitPlanModeTool(map[string]any{
@@ -380,40 +382,63 @@ func TestExitPlanModeTool_ConcurrentAccess(t *testing.T) {
 		t.Fatalf("Failed to create ExitPlanMode tool: %v", err)
 	}
 
-	concurrency := 3
-	result := RunConcurrentTest(concurrency, func() error {
-		// 每个并发请求创建自己的计划文件
-		planContent := fmt.Sprintf("# Concurrent Plan %d\nCreated at %d", time.Now().UnixNano(), time.Now().UnixNano())
-		planFilePath := setupTestPlanFile(t, basePath, planContent)
-
-		input := map[string]any{
-			"plan_file_path": planFilePath,
-		}
-
-		result := ExecuteToolWithInput(t, tool, input)
-		if !result["ok"].(bool) {
-			return errors.New("ExitPlanMode operation failed")
-		}
-
-		// 验证基本响应
-		if _, exists := result["plan_id"]; !exists {
-			return errors.New("Missing plan_id in result")
-		}
-
-		if result["status"].(string) != "pending_approval" {
-			return errors.New("Expected pending_approval status")
-		}
-
-		return nil
-	})
-
-	if result.ErrorCount > 0 {
-		t.Errorf("Concurrent ExitPlanMode operations failed: %d errors out of %d attempts",
-			result.ErrorCount, concurrency)
+	// 预先创建计划目录
+	if err := os.MkdirAll(basePath, 0755); err != nil {
+		t.Fatalf("Failed to create plan directory: %v", err)
 	}
 
-	t.Logf("Concurrent ExitPlanMode operations completed: %d success, %d errors in %v",
-		result.SuccessCount, result.ErrorCount, result.Duration)
+	concurrency := 3
+	var successCount, errorCount int
+	var mu sync.Mutex
+
+	var wg sync.WaitGroup
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+
+			// 每个并发请求创建自己的计划文件
+			planContent := fmt.Sprintf("# Concurrent Plan %d\nCreated at %d", idx, time.Now().UnixNano())
+			planFilePath := setupTestPlanFile(t, basePath, planContent)
+
+			input := map[string]any{
+				"plan_file_path": planFilePath,
+			}
+
+			result := ExecuteToolWithWorkDir(t, tool, input, workDir)
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			if okVal, exists := result["ok"]; !exists || !okVal.(bool) {
+				errorCount++
+				return
+			}
+
+			// 验证基本响应
+			if _, exists := result["plan_id"]; !exists {
+				errorCount++
+				return
+			}
+
+			if status, exists := result["status"]; !exists || status.(string) != "pending_approval" {
+				errorCount++
+				return
+			}
+
+			successCount++
+		}(i)
+	}
+
+	wg.Wait()
+
+	if errorCount > 0 {
+		t.Errorf("Concurrent ExitPlanMode operations failed: %d errors out of %d attempts",
+			errorCount, concurrency)
+	}
+
+	t.Logf("Concurrent ExitPlanMode operations completed: %d success, %d errors",
+		successCount, errorCount)
 }
 
 func TestExitPlanModeTool_DurationMs(t *testing.T) {

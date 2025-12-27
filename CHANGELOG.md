@@ -1,5 +1,40 @@
 # Changelog
 
+## [v0.33.0] - 2025-12-28
+
+### Added
+
+- **消息元数据与可见性控制**
+  - 新增 `MessageMetadata` 结构体，支持 `UserVisible` 和 `AgentVisible` 字段
+  - 工厂方法：`NewMessageMetadata()`、`AgentOnly()`、`UserOnly()`、`Invisible()`
+  - 消息过滤函数：`FilterMessagesForAgent()`、`FilterMessagesForUser()`、`FilterMessagesBySource()`、`FilterMessagesByTag()`
+  - 支持消息来源标识和自定义标签
+
+- **工具注解系统**
+  - 新增 `ToolAnnotations` 结构体，描述工具安全特征（ReadOnly、Destructive、Idempotent、OpenWorld、RiskLevel）
+  - 预定义注解模板：`AnnotationsSafeReadOnly`、`AnnotationsSafeWrite`、`AnnotationsDestructiveWrite`、`AnnotationsExecution`、`AnnotationsNetworkRead` 等
+  - 新增 `AnnotatedTool` 接口和辅助函数 `GetAnnotations()`、`IsToolSafeForAutoApproval()`、`GetToolRiskLevel()`
+  - 新增 `PermissionModeSmartApprove` 权限模式：只读工具自动批准
+  - 为内置工具（Read、Write、Glob、Grep、Bash、WebFetch、WebSearch）添加注解
+
+- **上下文压缩增强**
+  - 新增 `CompactionStrategy` 配置，支持渐进式压缩策略
+  - 渐进式删除工具响应：0% → 10% → 20% → 50% → 100%
+  - 新增 `UseMetadataVisibility` 选项：使用元数据控制可见性而非删除消息
+  - 新方法：`progressiveCompact()`、`removeToolResponses()`、`summarizeWithMetadata()`
+
+### Documentation
+
+- 新增工具注解系统文档 (`docs/content/05.tools/1.overview/annotations.md`)
+- 新增消息元数据文档 (`docs/content/02.core-concepts/18.message-metadata.md`)
+- 更新 Summarization 中间件文档，添加渐进式压缩策略章节
+
+### Tests
+
+- 新增消息元数据单元测试 (`pkg/types/message_test.go`)
+- 新增工具注解单元测试 (`pkg/tools/annotations_test.go`)
+- 修复 `TestExitPlanModeTool_ConcurrentAccess` 测试
+
 ## [v0.32.0] - 2025-12-13
 
 ### Added

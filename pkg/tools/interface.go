@@ -59,6 +59,42 @@ type Tool interface {
 	Prompt() string
 }
 
+// AnnotatedTool 带安全注解的工具接口
+// 实现此接口的工具可以提供安全注解，帮助权限系统做出智能决策
+type AnnotatedTool interface {
+	Tool
+	// Annotations 返回工具安全注解
+	Annotations() *ToolAnnotations
+}
+
+// GetAnnotations 获取工具的安全注解
+// 如果工具实现了 AnnotatedTool 接口，返回其注解
+// 否则返回默认的中等风险注解
+func GetAnnotations(tool Tool) *ToolAnnotations {
+	if at, ok := tool.(AnnotatedTool); ok {
+		return at.Annotations()
+	}
+	// 默认返回中等风险注解（未知工具保守处理）
+	return &ToolAnnotations{
+		ReadOnly:    false,
+		Destructive: false,
+		Idempotent:  false,
+		OpenWorld:   false,
+		RiskLevel:   RiskLevelMedium,
+		Category:    CategoryCustom,
+	}
+}
+
+// IsToolSafeForAutoApproval 判断工具是否可以自动批准
+func IsToolSafeForAutoApproval(tool Tool) bool {
+	return GetAnnotations(tool).IsSafeForAutoApproval()
+}
+
+// GetToolRiskLevel 获取工具风险级别
+func GetToolRiskLevel(tool Tool) int {
+	return GetAnnotations(tool).RiskLevel
+}
+
 // ToolExample 工具使用示例
 // 用于向 LLM 展示工具的正确使用方式，提升复杂参数处理的准确率
 type ToolExample struct {

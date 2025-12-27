@@ -290,3 +290,8 @@ func (t *WriteTool) Examples() []tools.ToolExample {
 		},
 	}
 }
+
+// Annotations 返回工具安全注解
+func (t *WriteTool) Annotations() *tools.ToolAnnotations {
+	return tools.AnnotationsSafeWrite
+}

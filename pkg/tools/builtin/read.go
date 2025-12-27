@@ -296,3 +296,8 @@ func (t *ReadTool) Examples() []tools.ToolExample {
 		},
 	}
 }
+
+// Annotations 返回工具安全注解
+func (t *ReadTool) Annotations() *tools.ToolAnnotations {
+	return tools.AnnotationsSafeReadOnly
+}
