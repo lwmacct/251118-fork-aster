@@ -120,6 +120,9 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]any, tc *t
 		finalSignal = "SIGKILL"
 	}
 
+	// 获取信号编号（用于验证和记录）
+	signalNum := t.getSignalNumber(finalSignal)
+
 	// 执行终止操作
 	err = taskManager.KillTask(shellID, finalSignal, timeoutSeconds)
 	duration := time.Since(start)
@@ -135,7 +138,8 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]any, tc *t
 
 		// 如果需要等待进程退出
 		if wait {
-			time.Sleep(time.Duration(timeoutSeconds) * time.Second)
+			// 使用 waitForProcessExit 等待进程退出
+			exitCode = t.waitForProcessExit(ctx, task.PID, timeoutSeconds, tc)
 
 			// 检查任务最终状态
 			if updatedTask, err := taskManager.GetTask(shellID); err == nil {
@@ -146,8 +150,10 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]any, tc *t
 					} else {
 						message = fmt.Sprintf("task terminated with status %s, exit code %d", updatedTask.Status, exitCode)
 					}
-				} else {
+				} else if t.isProcessRunning(ctx, task.PID, tc) {
 					message = fmt.Sprintf("signal sent but process still running after %d seconds", timeoutSeconds)
+				} else {
+					message = fmt.Sprintf("process terminated with exit code %d", exitCode)
 				}
 			}
 		}
@@ -174,6 +180,7 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]any, tc *t
 		"pid":         task.PID,
 		"status":      updatedTask.Status,
 		"signal":      finalSignal,
+		"signal_num":  signalNum,
 		"duration_ms": duration.Milliseconds(),
 		"kill_time":   start.Unix(),
 		"success":     success,

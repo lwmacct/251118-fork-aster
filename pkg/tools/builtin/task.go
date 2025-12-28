@@ -466,63 +466,6 @@ func (t *TaskTool) executeWithSubagentManager(ctx context.Context, subagentType,
 	return response, nil
 }
 
-// 以下函数预留用于未来的子代理功能集成
-// 当前实现为简化版本，完整功能需要与agent框架深度集成
-
-// executeTask 执行任务（简化实现）
-// 预留用于启动子代理执行任务
-//
-//nolint:unused // 预留用于未来子代理功能
-func (t *TaskTool) executeTask(ctx context.Context, taskDef *TaskDefinition, tc *tools.ToolContext) *TaskExecution {
-	startTime := time.Now()
-
-	// 简化实现：模拟任务执行
-	// 实际实现中，这里会启动对应的子代理
-	execution := &TaskExecution{
-		TaskID:    taskDef.ID,
-		Subagent:  taskDef.Subagent,
-		Model:     taskDef.Model,
-		Status:    "not_implemented",
-		StartTime: startTime,
-		Duration:  time.Since(startTime),
-		Metadata: map[string]any{
-			"note":             "Subagent execution requires integration with agent framework",
-			"task_description": taskDef.Description,
-		},
-	}
-
-	// 模拟设置开始时间
-	now := time.Now()
-	taskDef.StartedAt = &now
-	taskDef.Status = "running"
-
-	return execution
-}
-
-// resumeTask 恢复任务（简化实现）
-// 预留用于恢复暂停的子代理任务
-//
-//nolint:unused // 预留用于未来子代理功能
-func (t *TaskTool) resumeTask(ctx context.Context, taskID string, tc *tools.ToolContext) *TaskExecution {
-	startTime := time.Now()
-
-	// 简化实现：模拟任务恢复
-	execution := &TaskExecution{
-		TaskID:    taskID,
-		Subagent:  "unknown",
-		Model:     "",
-		Status:    "resume_not_implemented",
-		StartTime: startTime,
-		Duration:  time.Since(startTime),
-		Metadata: map[string]any{
-			"note":       "Task resumption requires integration with agent framework",
-			"resumed_at": startTime.Unix(),
-		},
-	}
-
-	return execution
-}
-
 func (t *TaskTool) Prompt() string {
 	return `启动专门的代理来处理复杂的多步骤任务。
 

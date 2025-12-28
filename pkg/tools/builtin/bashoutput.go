@@ -137,6 +137,18 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]any, tc *
 
 	duration := time.Since(start)
 
+	// 应用本地过滤（作为 GetTaskOutput 的补充）
+	if filter != "" {
+		stdout = t.filterOutput(stdout, filter)
+		stderr = t.filterOutput(stderr, filter)
+	}
+
+	// 应用行数限制
+	if lines > 0 {
+		stdout = t.limitLines(stdout, lines)
+		stderr = t.limitLines(stderr, lines)
+	}
+
 	// 合并输出 - 确保保持原始换行格式
 	var fullOutput string
 	if includeStderr && stderr != "" {

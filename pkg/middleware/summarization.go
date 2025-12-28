@@ -150,6 +150,25 @@ func (m *SummarizationMiddleware) WrapModelCall(ctx context.Context, req *ModelR
 
 	sumLog.Info(ctx, "token threshold exceeded, triggering summarization", nil)
 
+	// 如果启用了渐进式压缩，使用新的压缩策略
+	if m.enableProgressiveCompact {
+		compactedMessages, err := m.progressiveCompact(ctx, messages, m.maxTokensBeforeSummary)
+		if err != nil {
+			sumLog.Error(ctx, "progressive compact failed, using traditional method", map[string]any{"error": err.Error()})
+			// 失败时回退到传统方法
+		} else {
+			req.Messages = compactedMessages
+			newTokens := m.tokenCounter(compactedMessages)
+			sumLog.Info(ctx, "progressive compaction complete", map[string]any{
+				"before":        len(messages),
+				"after":         len(compactedMessages),
+				"tokens_before": totalTokens,
+				"tokens_after":  newTokens,
+			})
+			return handler(ctx, req)
+		}
+	}
+
 	// 分离 system messages 和其他消息
 	var systemMessages []types.Message
 	var regularMessages []types.Message
@@ -866,10 +885,4 @@ func (m *SummarizationMiddleware) summarizeWithMetadata(
 	result = append(result, summaryMsg)
 	result = append(result, toKeep...)
 	return result, nil
-}
-
-// countVisibleTokens 计算可见消息的 token 数（用于过滤后的计算）
-func (m *SummarizationMiddleware) countVisibleTokens(messages []types.Message) int {
-	visibleMessages := types.FilterMessagesForAgent(messages)
-	return m.tokenCounter(visibleMessages)
 }
