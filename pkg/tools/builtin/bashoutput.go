@@ -260,9 +260,6 @@ func (t *BashOutputTool) Execute(ctx context.Context, input map[string]any, tc *
 // 对应InputSchema中定义的filter和lines参数
 
 // filterOutput 使用正则表达式过滤输出
-// 预留用于实现filter参数功能
-//
-//nolint:unused // 预留用于filter参数实现
 func (t *BashOutputTool) filterOutput(output, filter string) string {
 	if filter == "" || output == "" {
 		return output
@@ -292,9 +289,6 @@ func (t *BashOutputTool) filterOutput(output, filter string) string {
 }
 
 // limitLines 限制输出行数
-// 预留用于实现lines参数功能
-//
-//nolint:unused // 预留用于lines参数实现
 func (t *BashOutputTool) limitLines(output string, maxLines int) string {
 	if maxLines <= 0 || output == "" {
 		return output

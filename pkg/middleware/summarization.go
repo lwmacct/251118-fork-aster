@@ -21,6 +21,7 @@ var sumLog = logging.ForComponent("SummarizationMiddleware")
 // 5. (增强) 支持渐进式压缩和消息元数据可见性控制
 type SummarizationMiddleware struct {
 	*BaseMiddleware
+
 	maxTokensBeforeSummary   int
 	messagesToKeep           int
 	summaryPrefix            string
@@ -72,9 +73,9 @@ type SummarizationMiddlewareConfig struct {
 	TokenCounter           TokenCounterFunc // 自定义 token 计数器
 
 	// 新增配置项
-	CompactionStrategy      *CompactionStrategy // 渐进式压缩策略
-	UseMetadataVisibility   bool                // 使用消息元数据控制可见性（而非删除）
-	EnableProgressiveCompact bool               // 是否启用渐进式压缩
+	CompactionStrategy       *CompactionStrategy // 渐进式压缩策略
+	UseMetadataVisibility    bool                // 使用消息元数据控制可见性（而非删除）
+	EnableProgressiveCompact bool                // 是否启用渐进式压缩
 }
 
 // NewSummarizationMiddleware 创建中间件
@@ -123,10 +124,10 @@ func NewSummarizationMiddleware(config *SummarizationMiddlewareConfig) (*Summari
 	}
 
 	sumLog.Info(context.Background(), "initialized", map[string]any{
-		"max_tokens":           config.MaxTokensBeforeSummary,
-		"keep_messages":        config.MessagesToKeep,
-		"progressive_compact":  config.EnableProgressiveCompact,
-		"metadata_visibility":  config.UseMetadataVisibility,
+		"max_tokens":          config.MaxTokensBeforeSummary,
+		"keep_messages":       config.MessagesToKeep,
+		"progressive_compact": config.EnableProgressiveCompact,
+		"metadata_visibility": config.UseMetadataVisibility,
 	})
 	return m, nil
 }

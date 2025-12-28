@@ -223,10 +223,7 @@ func (t *KillShellTool) Execute(ctx context.Context, input map[string]any, tc *t
 // 以下辅助函数预留用于未来的功能增强
 // 当前实现使用taskManager，但这些函数提供了独立的底层操作能力
 
-// isProcessRunning 检查进程是否运行（辅助函数）
-// 预留用于直接进程检查，不依赖taskManager
-//
-//nolint:unused // 预留用于未来功能增强
+// isProcessRunning 检查进程是否运行
 func (t *KillShellTool) isProcessRunning(ctx context.Context, pid int, tc *tools.ToolContext) bool {
 	if pid <= 0 {
 		return false
@@ -243,9 +240,6 @@ func (t *KillShellTool) isProcessRunning(ctx context.Context, pid int, tc *tools
 }
 
 // getSignalNumber 获取信号编号
-// 预留用于信号转换，提供统一的信号处理接口
-//
-//nolint:unused // 预留用于未来功能增强
 func (t *KillShellTool) getSignalNumber(signal string) int {
 	signalMap := map[string]int{
 		"SIGTERM": 15,
@@ -271,10 +265,7 @@ func (t *KillShellTool) getSignalNumber(signal string) int {
 	return 15
 }
 
-// waitForProcessExit 等待进程退出（辅助函数）
-// 预留用于同步等待进程终止，返回退出码
-//
-//nolint:unused // 预留用于未来功能增强
+// waitForProcessExit 等待进程退出
 func (t *KillShellTool) waitForProcessExit(ctx context.Context, pid int, timeoutSeconds int, tc *tools.ToolContext) int {
 	timeout := time.Duration(timeoutSeconds) * time.Second
 	startTime := time.Now()

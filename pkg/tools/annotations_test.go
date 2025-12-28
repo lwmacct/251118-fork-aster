@@ -179,7 +179,7 @@ func (m *mockToolWithAnnotations) InputSchema() map[string]any {
 func (m *mockToolWithAnnotations) Execute(ctx context.Context, input map[string]any, tc *ToolContext) (any, error) {
 	return nil, nil
 }
-func (m *mockToolWithAnnotations) Prompt() string              { return "mock prompt" }
+func (m *mockToolWithAnnotations) Prompt() string                { return "mock prompt" }
 func (m *mockToolWithAnnotations) Annotations() *ToolAnnotations { return m.annotations }
 
 // mockToolWithoutAnnotations 不带注解的模拟工具
@@ -213,7 +213,7 @@ func TestGetAnnotations(t *testing.T) {
 		{
 			name:         "tool without annotations",
 			tool:         &mockToolWithoutAnnotations{name: "test"},
-			expectedSafe: false,         // 默认不安全
+			expectedSafe: false,           // 默认不安全
 			expectedRisk: RiskLevelMedium, // 未知工具保守处理
 		},
 	}
