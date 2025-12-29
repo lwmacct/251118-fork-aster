@@ -1,10 +1,14 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/astercloud/aster/pkg/logging"
 	"github.com/astercloud/aster/pkg/types"
 )
+
+var factoryLog = logging.ForComponent("ProviderFactory")
 
 // ProviderFactory 提供商工厂接口
 type ProviderFactory interface {
@@ -26,6 +30,12 @@ func (f *MultiProviderFactory) Create(config *types.ModelConfig) (Provider, erro
 		// 默认使用 anthropic
 		providerType = "anthropic"
 	}
+
+	factoryLog.Info(context.Background(), "Creating provider", map[string]any{
+		"provider_type": providerType,
+		"model":         config.Model,
+		"base_url":      config.BaseURL,
+	})
 
 	switch providerType {
 	// 原有 Providers
@@ -65,6 +75,10 @@ func (f *MultiProviderFactory) Create(config *types.ModelConfig) (Provider, erro
 	// 通用 OpenAI 兼容 Provider（用户自定义 API）
 	case "openai_compatible", "custom":
 		return NewCustomProvider(config)
+
+	// Gateway Provider（自动推断协议）
+	case "gateway":
+		return NewGatewayProvider(config)
 
 	default:
 		// 如果提供了 BaseURL，尝试作为 OpenAI 兼容 Provider

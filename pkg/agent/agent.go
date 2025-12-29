@@ -123,40 +123,41 @@ func Create(ctx context.Context, config *types.AgentConfig, deps *Dependencies) 
 
 	// 创建Provider（支持可选 Router）
 	modelConfig := config.ModelConfig
-	if modelConfig == nil && template.Model != "" {
-		// 从模型名称推断 provider
-		inferredProvider := inferProviderFromModel(template.Model)
-		modelConfig = &types.ModelConfig{
-			Provider: inferredProvider,
-			Model:    template.Model,
-		}
-		agentLog.Debug(ctx, "inferred provider from model", map[string]any{"provider": inferredProvider, "model": template.Model})
-	}
 
-	// 如果定义了 Router，则优先通过 Router 决定最终模型
-	if deps.Router != nil {
-		intent := &router.RouteIntent{
-			Task:       "chat",
-			Priority:   router.Priority(config.RoutingProfile),
-			TemplateID: config.TemplateID,
-			Metadata:   config.Metadata,
-		}
-		// 如果显式传入了 ModelConfig，则作为 Router 的 defaultModel 使用
-		if modelConfig != nil {
-			defaultModel := modelConfig
-			staticRouter, ok := deps.Router.(*router.StaticRouter)
-			if ok && staticRouter != nil {
-				// 对于 StaticRouter，我们假设其内部默认模型已在构造时设置；
-				// 这里不强行覆盖，只在没有配置时作为兜底逻辑留给 Router 自己处理。
-				_ = defaultModel
+	// 如果用户显式传入了 ModelConfig，优先使用用户的配置
+	// 只有当 ModelConfig 为空时，才使用 Router 或模板推断
+	if modelConfig == nil {
+		if template.Model != "" {
+			// 从模型名称推断 provider
+			inferredProvider := inferProviderFromModel(template.Model)
+			modelConfig = &types.ModelConfig{
+				Provider: inferredProvider,
+				Model:    template.Model,
 			}
+			agentLog.Debug(ctx, "inferred provider from model", map[string]any{"provider": inferredProvider, "model": template.Model})
 		}
 
-		resolved, err := deps.Router.SelectModel(ctx, intent)
-		if err != nil {
-			return nil, fmt.Errorf("route model: %w", err)
+		// 如果定义了 Router，则通过 Router 决定最终模型
+		if deps.Router != nil {
+			intent := &router.RouteIntent{
+				Task:       "chat",
+				Priority:   router.Priority(config.RoutingProfile),
+				TemplateID: config.TemplateID,
+				Metadata:   config.Metadata,
+			}
+
+			resolved, err := deps.Router.SelectModel(ctx, intent)
+			if err != nil {
+				return nil, fmt.Errorf("route model: %w", err)
+			}
+			modelConfig = resolved
 		}
-		modelConfig = resolved
+	} else {
+		agentLog.Debug(ctx, "using explicit model config", map[string]any{
+			"provider": modelConfig.Provider,
+			"model":    modelConfig.Model,
+			"base_url": modelConfig.BaseURL,
+		})
 	}
 
 	if modelConfig == nil {
@@ -905,8 +906,8 @@ func (a *Agent) Send(ctx context.Context, text string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	// 检测 slash command
-	if strings.HasPrefix(text, "/") {
+	// 检测 slash command（只有当 commandExecutor 已初始化时才处理）
+	if a.commandExecutor != nil && strings.HasPrefix(text, "/") && a.commandExecutor.IsSlashCommand(text) {
 		return a.handleSlashCommand(ctx, text)
 	}
 
@@ -969,6 +970,42 @@ func (a *Agent) Send(ctx context.Context, text string) error {
 	return nil
 }
 
+// SendWithContent 发送多模态消息
+func (a *Agent) SendWithContent(ctx context.Context, blocks []types.ContentBlock) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	// 创建用户消息
+	message := types.Message{
+		Role:          types.MessageRoleUser,
+		ContentBlocks: blocks,
+	}
+
+	a.messages = append(a.messages, message)
+
+	// ✅ 修复：保存前在内存中修剪
+	if a.shouldTrimMessages() {
+		a.messages = a.trimMessagesInMemory(a.messages, a.config.Store.MaxMessages)
+		agentLog.Debug(ctx, "messages trimmed in memory before save (multimodal message)", map[string]any{
+			"agent_id":     a.id,
+			"max_messages": a.config.Store.MaxMessages,
+			"actual_count": len(a.messages),
+		})
+	}
+
+	a.stepCount++
+
+	// 持久化（已修剪的消息）
+	if err := a.deps.Store.SaveMessages(ctx, a.id, a.messages); err != nil {
+		return fmt.Errorf("save multimodal messages: %w", err)
+	}
+
+	// 触发处理
+	go a.processMessages(ctx)
+
+	return nil
+}
+
 // Chat 同步对话(阻塞式)
 func (a *Agent) Chat(ctx context.Context, text string) (*types.CompleteResult, error) {
 	// 发送消息
@@ -976,6 +1013,21 @@ func (a *Agent) Chat(ctx context.Context, text string) (*types.CompleteResult, e
 		return nil, err
 	}
 
+	return a.waitForCompletion(ctx)
+}
+
+// ChatWithContent 同步对话(阻塞式)，支持多模态内容
+func (a *Agent) ChatWithContent(ctx context.Context, blocks []types.ContentBlock) (*types.CompleteResult, error) {
+	// 发送多模态消息
+	if err := a.SendWithContent(ctx, blocks); err != nil {
+		return nil, err
+	}
+
+	return a.waitForCompletion(ctx)
+}
+
+// waitForCompletion 等待对话完成
+func (a *Agent) waitForCompletion(ctx context.Context) (*types.CompleteResult, error) {
 	// 等待完成
 	for {
 		select {

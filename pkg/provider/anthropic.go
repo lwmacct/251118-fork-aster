@@ -220,7 +220,14 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 		}
 
 		if opts.System != "" {
-			req["system"] = opts.System
+			// 使用数组格式的 system，兼容更多代理服务
+			// Anthropic API 支持字符串和数组两种格式，数组格式兼容性更好
+			req["system"] = []map[string]any{
+				{
+					"type": "text",
+					"text": opts.System,
+				},
+			}
 			// 记录系统提示词长度和关键内容（用于调试）
 			if len(opts.System) > 500 {
 				anthropicLog.Debug(ctx, "system prompt", map[string]any{"length": len(opts.System), "preview": opts.System[:200]})
@@ -242,8 +249,13 @@ func (ap *AnthropicProvider) buildRequest(messages []types.Message, opts *Stream
 				anthropicLog.Debug(ctx, "system prompt", map[string]any{"content": opts.System})
 			}
 		} else if ap.systemPrompt != "" {
-			// 如果 opts 没有 system，使用存储的 systemPrompt
-			req["system"] = ap.systemPrompt
+			// 如果 opts 没有 system，使用存储的 systemPrompt（也使用数组格式）
+			req["system"] = []map[string]any{
+				{
+					"type": "text",
+					"text": ap.systemPrompt,
+				},
+			}
 		}
 
 		if len(opts.Tools) > 0 {

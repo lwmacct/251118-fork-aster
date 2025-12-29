@@ -17,6 +17,61 @@ export type { Theme } from "./useDarkMode";
 export { useScroll } from "./useScroll";
 export { useNotification } from "./useNotification";
 
+// Aster UI Protocol
+export {
+  useAsterDataBinding,
+  useWatchDataPath,
+  createDataBindingContext,
+  DATA_BINDING_CONTEXT_KEY,
+} from "./useAsterDataBinding";
+export type {
+  DataBindingContext,
+  UseAsterDataBindingOptions,
+  UseAsterDataBindingReturn,
+} from "./useAsterDataBinding";
+
+// UI Action Events
+export {
+  useUIAction,
+  createUIActionContext,
+  UI_ACTION_CONTEXT_KEY,
+} from "./useUIAction";
+export type {
+  UIActionContext,
+  UIActionEmitter,
+  UseUIActionOptions,
+  UseUIActionReturn,
+} from "./useUIAction";
+
+// Streaming State Preservation
+export {
+  useStreamingState,
+  useScrollPreserve,
+  getPreservedState,
+  clearPreservedState,
+} from "./useStreamingState";
+export type {
+  PreservedState,
+  UseStreamingStateOptions,
+} from "./useStreamingState";
+
+// Theme System
+export {
+  useAsterTheme,
+  convertProtocolStyles,
+  createThemePreset,
+  mergeThemeVariables,
+  LIGHT_THEME,
+  DARK_THEME,
+} from "./useAsterTheme";
+export type {
+  ThemeMode,
+  AsterThemeVariables,
+  AsterThemePreset,
+  UseAsterThemeOptions,
+  UseAsterThemeReturn,
+} from "./useAsterTheme";
+
 // 工具函数
 export { useLocalStorage } from "./useLocalStorage";
 export { useDebounce, useDebounceFn } from "./useDebounce";

@@ -576,9 +576,16 @@ func (h *AgentHandler) Resume(c *gin.Context) {
 func (h *AgentHandler) Chat(c *gin.Context) {
 	ctx := c.Request.Context()
 
+	// ImageInput 图片输入结构
+	type ImageInput struct {
+		Data      string `json:"data"`       // base64 编码的图片数据
+		MediaType string `json:"media_type"` // MIME 类型，如 "image/png"
+	}
+
 	var req struct {
 		TemplateID  string               `json:"template_id" binding:"required"`
-		Input       string               `json:"input" binding:"required"`
+		Input       string               `json:"input"`
+		Images      []ImageInput         `json:"images"` // 图片列表
 		ModelConfig *types.ModelConfig   `json:"model_config"`
 		Sandbox     *types.SandboxConfig `json:"sandbox"`
 		Middlewares []string             `json:"middlewares"`
@@ -591,6 +598,18 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 			"error": gin.H{
 				"code":    "bad_request",
 				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// 验证：至少需要文本或图片
+	if req.Input == "" && len(req.Images) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "bad_request",
+				"message": "input or images is required",
 			},
 		})
 		return
@@ -638,7 +657,33 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 	}
 
 	// Execute chat
-	result, err := ag.Chat(ctx, req.Input)
+	var result *types.CompleteResult
+
+	// 检查是否有图片
+	if len(req.Images) > 0 {
+		// 构建多模态内容块
+		blocks := make([]types.ContentBlock, 0, len(req.Images)+1)
+
+		// 添加图片块
+		for _, img := range req.Images {
+			blocks = append(blocks, &types.ImageContent{
+				Type:     "base64",
+				Source:   img.Data,
+				MimeType: img.MediaType,
+			})
+		}
+
+		// 添加文本块（如果有）
+		if req.Input != "" {
+			blocks = append(blocks, &types.TextBlock{Text: req.Input})
+		}
+
+		result, err = ag.ChatWithContent(ctx, blocks)
+	} else {
+		// 纯文本消息
+		result, err = ag.Chat(ctx, req.Input)
+	}
+
 	if err != nil {
 		logging.Error(ctx, "chat.failed", map[string]any{
 			"agent_id": ag.ID(),

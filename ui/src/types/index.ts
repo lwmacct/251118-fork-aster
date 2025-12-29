@@ -12,6 +12,9 @@ export * from "./message";
 // Chat Types
 export * from "./chat";
 
+// UI Protocol Types (Aster UI Protocol)
+export * from "./ui-protocol";
+
 // Thinking Types
 export type {
   ThinkingStepType,

@@ -904,6 +904,13 @@ func (a *Agent) handleStreamResponse(ctx context.Context, stream <-chan provider
 	}
 
 	for chunk := range stream {
+		// 调试：打印收到的每个 chunk
+		procLog.Debug(ctx, "received stream chunk", map[string]any{
+			"type":  chunk.Type,
+			"index": chunk.Index,
+			"delta": fmt.Sprintf("%+v", chunk.Delta),
+		})
+
 		switch chunk.Type {
 		// 处理 reasoning_delta (DeepSeek Reasoner 模型的思考过程)
 		case "reasoning_delta":

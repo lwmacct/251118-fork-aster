@@ -19,6 +19,17 @@ type OpenAIProvider struct {
 
 // NewOpenAIProvider 创建 OpenAI 提供商
 func NewOpenAIProvider(config *types.ModelConfig) (Provider, error) {
+	return NewOpenAIProviderWithBaseURL(config)
+}
+
+// NewOpenAIProviderWithBaseURL 创建支持自定义 BaseURL 的 OpenAI 提供商
+func NewOpenAIProviderWithBaseURL(config *types.ModelConfig) (Provider, error) {
+	// 确定 BaseURL
+	baseURL := config.BaseURL
+	if baseURL == "" {
+		baseURL = OpenAIAPIBaseURL
+	}
+
 	// OpenAI 配置选项
 	options := &OpenAICompatibleOptions{
 		RequireAPIKey:      true,
@@ -32,7 +43,7 @@ func NewOpenAIProvider(config *types.ModelConfig) (Provider, error) {
 	// 创建 OpenAI 兼容 Provider
 	baseProvider, err := NewOpenAICompatibleProvider(
 		config,
-		OpenAIAPIBaseURL,
+		baseURL,
 		"OpenAI",
 		options,
 	)

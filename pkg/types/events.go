@@ -140,6 +140,8 @@ type ProgressToolIntermediateEvent struct {
 	Call  ToolCallSnapshot `json:"call"`
 	Label string           `json:"label,omitempty"`
 	Data  any              `json:"data,omitempty"`
+	// UI 可选的 UI 描述，用于工具输出的结构化渲染
+	UI *AsterUIMessage `json:"ui,omitempty"`
 }
 
 func (e *ProgressToolIntermediateEvent) Channel() AgentChannel { return ChannelProgress }
@@ -421,3 +423,67 @@ type ProgressTodoUpdateEvent struct {
 
 func (e *ProgressTodoUpdateEvent) Channel() AgentChannel { return ChannelProgress }
 func (e *ProgressTodoUpdateEvent) EventType() string     { return "todo_update" }
+
+// ===================
+// UI Protocol Events (Progress Channel)
+// ===================
+
+// ProgressUISurfaceUpdateEvent UI Surface 更新事件
+// 用于更新指定 surface 的组件定义
+type ProgressUISurfaceUpdateEvent struct {
+	// SurfaceID Surface 唯一标识符
+	SurfaceID string `json:"surface_id"`
+	// Components 组件定义列表（邻接表模型）
+	Components []ComponentDefinition `json:"components,omitempty"`
+	// Root 根组件 ID（可选，用于 beginRendering）
+	Root string `json:"root,omitempty"`
+	// Styles CSS 自定义属性（主题化支持）
+	Styles map[string]string `json:"styles,omitempty"`
+}
+
+func (e *ProgressUISurfaceUpdateEvent) Channel() AgentChannel { return ChannelProgress }
+func (e *ProgressUISurfaceUpdateEvent) EventType() string     { return "ui:surface_update" }
+
+// ProgressUIDataUpdateEvent UI 数据更新事件
+// 用于更新数据模型并触发响应式 UI 更新
+type ProgressUIDataUpdateEvent struct {
+	// SurfaceID Surface 唯一标识符
+	SurfaceID string `json:"surface_id"`
+	// Path JSON Pointer 路径，默认 "/" 表示根路径
+	Path string `json:"path"`
+	// Contents 数据内容
+	Contents any `json:"contents"`
+}
+
+func (e *ProgressUIDataUpdateEvent) Channel() AgentChannel { return ChannelProgress }
+func (e *ProgressUIDataUpdateEvent) EventType() string     { return "ui:data_update" }
+
+// ProgressUIDeleteSurfaceEvent UI Surface 删除事件
+// 用于移除 surface 并清理相关资源
+type ProgressUIDeleteSurfaceEvent struct {
+	// SurfaceID Surface 唯一标识符
+	SurfaceID string `json:"surface_id"`
+}
+
+func (e *ProgressUIDeleteSurfaceEvent) Channel() AgentChannel { return ChannelProgress }
+func (e *ProgressUIDeleteSurfaceEvent) EventType() string     { return "ui:delete_surface" }
+
+// ===================
+// UI Protocol Events (Control Channel)
+// ===================
+
+// ControlUIActionEvent UI 用户交互事件
+// 当用户与 UI 组件交互（按钮点击、表单提交）时发出
+type ControlUIActionEvent struct {
+	// SurfaceID Surface 唯一标识符
+	SurfaceID string `json:"surface_id"`
+	// ComponentID 组件 ID
+	ComponentID string `json:"component_id"`
+	// Action 动作标识符
+	Action string `json:"action"`
+	// Payload 附加数据
+	Payload map[string]any `json:"payload,omitempty"`
+}
+
+func (e *ControlUIActionEvent) Channel() AgentChannel { return ChannelControl }
+func (e *ControlUIActionEvent) EventType() string     { return "ui:action" }
